@@ -14,6 +14,8 @@ import { PostGameModal } from './screens/PostGameModal.jsx';
 import { BoxScoreModal } from './screens/BoxScoreModal.jsx';
 import { NewGameFlow } from './screens/NewGameFlow.jsx';
 import { TradeScreen, AiTradeProposalModal } from './screens/TradeScreen.jsx';
+import { GameMenuModal } from './screens/GameMenuModal.jsx';
+import { OffseasonTracker } from './screens/OffseasonTracker.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -25,6 +27,7 @@ function AppContent() {
   const [boxScoreData, setBoxScoreData] = useState(null);
   const [tradeOpen, setTradeOpen] = useState(false);
   const [aiTradeOpen, setAiTradeOpen] = useState(false);
+  const [gameMenuOpen, setGameMenuOpen] = useState(false);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -57,6 +60,7 @@ function AppContent() {
     window._reactShowBoxScore = (data) => setBoxScoreData(data);
     window._reactOpenTrade = () => setTradeOpen(true);
     window._reactOpenAiTrade = () => setAiTradeOpen(true);
+    window._reactOpenGameMenu = () => setGameMenuOpen(true);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -65,6 +69,7 @@ function AppContent() {
       delete window._reactShowBoxScore;
       delete window._reactOpenTrade;
       delete window._reactOpenAiTrade;
+      delete window._reactOpenGameMenu;
     };
   }, []);
 
@@ -128,6 +133,7 @@ function AppContent() {
       background: 'var(--color-bg)',
     }}>
       <TopBar />
+      <OffseasonTracker />
       <div style={{ display: 'flex', flex: 1 }}>
         <Sidebar activeScreen={activeScreen} onNavigate={setActiveScreen} />
         <main style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
@@ -154,6 +160,10 @@ function AppContent() {
       <AiTradeProposalModal
         isOpen={aiTradeOpen}
         onClose={() => { setAiTradeOpen(false); refresh?.(); }}
+      />
+      <GameMenuModal
+        isOpen={gameMenuOpen}
+        onClose={() => setGameMenuOpen(false)}
       />
     </div>
   );

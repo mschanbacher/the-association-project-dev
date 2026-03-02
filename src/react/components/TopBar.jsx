@@ -69,7 +69,10 @@ export function TopBar() {
         <SimControls gameState={gameState} />
         <Divider />
         <TopBarButton label="Trade" icon="🔄" onClick={() => window._reactOpenTrade?.()} />
-        <TopBarButton label="Menu" icon="⚙️" onClick={() => window.openGameMenu?.()} />
+        <TopBarButton label="Menu" icon="⚙️" onClick={() => {
+          if (window._reactOpenGameMenu) window._reactOpenGameMenu();
+          else window.openGameMenu?.();
+        }} />
       </div>
     </header>
   );
