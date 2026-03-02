@@ -9,6 +9,7 @@ import { RosterScreen } from './screens/RosterScreen.jsx';
 import { FinancesScreen } from './screens/FinancesScreen.jsx';
 import { HistoryScreen } from './screens/HistoryScreen.jsx';
 import { CoachScreen } from './screens/CoachScreen.jsx';
+import { ScoutingScreen } from './screens/ScoutingScreen.jsx';
 
 function AppContent() {
   const { isReady, gameState } = useGame();
@@ -38,6 +39,7 @@ function AppContent() {
     finances:   <FinancesScreen />,
     history:    <HistoryScreen />,
     coach:      <CoachScreen />,
+    scouting:   <ScoutingScreen />,
   };
 
   return (

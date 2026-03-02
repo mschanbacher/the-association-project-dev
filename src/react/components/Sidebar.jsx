@@ -8,7 +8,7 @@ const navItems = [
   { id: 'finances', icon: '💰', label: 'Finances', converted: true },
   { id: 'coach', icon: '🎓', label: 'Coach', converted: true },
   { id: 'history', icon: '📜', label: 'History', converted: true },
-  { id: 'scouting', icon: '🔍', label: 'Scouting', action: 'openScoutingModal' },
+  { id: 'scouting', icon: '🔍', label: 'Scouting', converted: true },
 ];
 
 export function Sidebar({ activeScreen, onNavigate }) {
