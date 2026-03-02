@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useGame } from '../hooks/GameBridge.jsx';
 import { TierBadge } from './Badge.jsx';
 
@@ -7,7 +7,7 @@ export function TopBar() {
   if (!gameState?.userTeam) return null;
 
   const { userTeam, currentSeason, currentDate, currentTier } = gameState;
-  const { CalendarEngine, SalaryCapEngine, FinanceEngine, CoachEngine } = engines;
+  const { CalendarEngine } = engines;
 
   // Format date
   let dateStr = '—';
@@ -42,11 +42,7 @@ export function TopBar() {
         }}>
           The Association
         </span>
-        <div style={{
-          width: 1,
-          height: 24,
-          background: 'var(--color-border)',
-        }} />
+        <Divider />
         <TierBadge tier={currentTier} />
         <span style={{
           fontSize: 'var(--text-base)',
@@ -55,14 +51,7 @@ export function TopBar() {
         }}>
           {userTeam.city} {userTeam.teamName || userTeam.name}
         </span>
-      </div>
-
-      {/* Center: Record + Season */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-6)',
-      }}>
+        <Divider />
         <Stat label="Record" value={`${userTeam.wins}–${userTeam.losses}`}
           valueColor={userTeam.wins > userTeam.losses ? 'var(--color-win)' :
                       userTeam.wins < userTeam.losses ? 'var(--color-loss)' :
@@ -71,18 +60,138 @@ export function TopBar() {
         <Stat label="Date" value={dateStr} />
       </div>
 
-      {/* Right: Quick nav */}
+      {/* Right: Sim Controls + Menu */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 'var(--space-2)',
+        gap: 'var(--space-3)',
       }}>
+        <SimControls gameState={gameState} />
+        <Divider />
         <TopBarButton label="Menu" icon="⚙️" onClick={() => window.openGameMenu?.()} />
       </div>
     </header>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Sim Controls — always visible in the top bar
+   ═══════════════════════════════════════════════════════════════ */
+function SimControls({ gameState }) {
+  const [simming, setSimming] = useState(false);
+
+  const isComplete = gameState?.isSeasonComplete;
+  const inOffseason = gameState?.offseasonPhase && gameState?.offseasonPhase !== 'none';
+  const disabled = isComplete || simming;
+
+  const wrap = useCallback((fn) => {
+    return () => {
+      if (simming) return;
+      setSimming(true);
+      // Brief delay to show disabled state, then call
+      setTimeout(() => {
+        fn?.();
+        // Re-enable after a tick
+        setTimeout(() => setSimming(false), 200);
+      }, 10);
+    };
+  }, [simming]);
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2,
+      background: 'var(--color-bg-sunken)',
+      borderRadius: 'var(--radius-md)',
+      padding: 2,
+    }}>
+      <SimBtn
+        icon="▶"
+        label="Next"
+        onClick={wrap(() => window.simNextGame?.())}
+        disabled={disabled}
+      />
+      <SimBtn
+        icon="👁"
+        label="Watch"
+        onClick={wrap(() => window.watchNextGame?.())}
+        disabled={disabled}
+        accent
+      />
+      <SimDivider />
+      <SimBtn
+        icon="📅"
+        label="Day"
+        onClick={wrap(() => window.simDay?.())}
+        disabled={disabled}
+      />
+      <SimBtn
+        icon="⏩"
+        label="Week"
+        onClick={wrap(() => window.simWeek?.())}
+        disabled={disabled}
+      />
+      <SimBtn
+        icon="⏭"
+        label="Finish"
+        onClick={wrap(() => window.finishSeason?.())}
+        disabled={disabled && !inOffseason}
+      />
+    </div>
+  );
+}
+
+function SimBtn({ icon, label, onClick, disabled, accent }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '5px 10px',
+        borderRadius: 'calc(var(--radius-md) - 2px)',
+        border: 'none',
+        background: hovered && !disabled
+          ? accent ? 'var(--color-accent)' : 'var(--color-bg-raised)'
+          : 'transparent',
+        color: disabled
+          ? 'var(--color-text-tertiary)'
+          : accent && hovered
+            ? '#1a1a2e'
+            : 'var(--color-text-secondary)',
+        fontSize: 'var(--text-xs)',
+        fontWeight: 'var(--weight-medium)',
+        fontFamily: 'var(--font-body)',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        transition: 'all var(--duration-fast) ease',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ fontSize: '0.85em' }}>{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function SimDivider() {
+  return (
+    <div style={{
+      width: 1, height: 16,
+      background: 'var(--color-border)',
+      margin: '0 2px',
+    }} />
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Shared primitives
+   ═══════════════════════════════════════════════════════════════ */
 function Stat({ label, value, valueColor }) {
   return (
     <div style={{ textAlign: 'center' }}>
@@ -106,6 +215,10 @@ function Stat({ label, value, valueColor }) {
       </div>
     </div>
   );
+}
+
+function Divider() {
+  return <div style={{ width: 1, height: 24, background: 'var(--color-border)' }} />;
 }
 
 function TopBarButton({ label, icon, onClick }) {

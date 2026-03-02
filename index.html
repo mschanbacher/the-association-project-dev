@@ -2756,6 +2756,12 @@
                     eventBus, GameEvents, CalendarEngine, GameEngine
                 });
                 console.log('✅ GMMode initialized');
+
+                // ── Expose sim controls on window for React ──
+                window.simNextGame = () => gmMode.simulateNextGame();
+                window.simDay = () => gmMode.simulateDay();
+                window.simWeek = () => gmMode.simulateWeek();
+                window.finishSeason = () => gmMode.finishSeason();
                 
                 // ── Bridge gameState to React UI ──
                 window._reactGameState = gameState;

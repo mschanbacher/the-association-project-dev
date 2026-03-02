@@ -1,6 +1,5 @@
 import React from 'react';
 import { useGame } from '../hooks/GameBridge.jsx';
-import { SimControls } from '../components/SimControls.jsx';
 import {
   TeamSummaryWidget,
   NextGameWidget,
@@ -36,9 +35,6 @@ export function DashboardScreen() {
       flexDirection: 'column',
       gap: 'var(--space-5)',
     }}>
-      {/* Sim Controls Bar */}
-      <SimControls />
-
       {/* Top row: Team Summary + Next Game */}
       <div style={{
         display: 'grid',
