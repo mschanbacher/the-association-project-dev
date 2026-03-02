@@ -271,6 +271,12 @@ function RecentResults({ gameState, engines }) {
 
   if (recentGames.length === 0) return null;
 
+  const handleClickGame = (game) => {
+    if (!game.played || !game.date) return;
+    // Delegate to the legacy showBoxScore which now routes to React modal
+    window.showBoxScore?.(game.date, game.homeTeamId, game.awayTeamId);
+  };
+
   return (
     <Card padding="lg" className="animate-slide-up">
       <CardHeader>Recent Results</CardHeader>
@@ -285,15 +291,23 @@ function RecentResults({ gameState, engines }) {
           const opponent = isHome ? away : home;
           const dateStr = CalendarEngine?.formatDateShort
             ? CalendarEngine.formatDateShort(game.date) : (game.date || '');
+          const hasBox = !!game.boxScore;
 
           return (
-            <div key={i} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-3)',
-              padding: 'var(--space-2) var(--space-3)',
-              borderRadius: 'var(--radius-md)',
-            }}>
+            <div key={i}
+              onClick={() => handleClickGame(game)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-3)',
+                padding: 'var(--space-2) var(--space-3)',
+                borderRadius: 'var(--radius-md)',
+                cursor: game.played ? 'pointer' : 'default',
+                transition: 'background var(--duration-fast) ease',
+              }}
+              onMouseEnter={e => { if (game.played) e.currentTarget.style.background = 'var(--color-bg-hover)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >
               <span style={{
                 fontSize: 'var(--text-xs)',
                 color: 'var(--color-text-tertiary)',
@@ -314,11 +328,19 @@ function RecentResults({ gameState, engines }) {
                 {userScore}–{oppScore}
               </span>
               <span style={{
+                flex: 1,
                 fontSize: 'var(--text-sm)',
                 color: 'var(--color-text-secondary)',
               }}>
                 {isHome ? 'vs' : '@'} {opponent ? `${opponent.city} ${opponent.teamName || opponent.name}` : '?'}
               </span>
+              {hasBox && (
+                <span style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--color-text-tertiary)',
+                  opacity: 0.6,
+                }}>📊</span>
+              )}
             </div>
           );
         })}

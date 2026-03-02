@@ -60,7 +60,7 @@ export function TopBar() {
         <Stat label="Date" value={dateStr} />
       </div>
 
-      {/* Right: Sim Controls + Menu */}
+      {/* Right: Sim Controls + Actions + Menu */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -68,6 +68,7 @@ export function TopBar() {
       }}>
         <SimControls gameState={gameState} />
         <Divider />
+        <TopBarButton label="Trade" icon="🔄" onClick={() => window._reactOpenTrade?.()} />
         <TopBarButton label="Menu" icon="⚙️" onClick={() => window.openGameMenu?.()} />
       </div>
     </header>

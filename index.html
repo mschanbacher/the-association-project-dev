@@ -2312,8 +2312,12 @@
             // Hide roster modal
             document.getElementById('rosterModal').classList.add('hidden');
             
-            // Open trade screen
-            getTradeController().openTradeScreen();
+            // Open React trade screen if available, else legacy
+            if (window._reactOpenTrade) {
+                window._reactOpenTrade();
+            } else {
+                getTradeController().openTradeScreen();
+            }
         }
         
         // Open Roster Management Hub (during regular season)
@@ -2724,9 +2728,15 @@
                     updateStandings: () => getDashboardController().refreshStandings(),
                     updateNextGames: () => getDashboardController().refreshSchedule(),
                     showSeasonEnd: () => getGameSimController().showSeasonEnd(),
-                    openRosterManagement, openTradeScreen: () => getTradeController().openTradeScreen(), saveGameState,
+                    openRosterManagement, openTradeScreen: () => {
+                        if (window._reactOpenTrade) window._reactOpenTrade();
+                        else getTradeController().openTradeScreen();
+                    }, saveGameState,
                     checkForAiTradeProposals: () => getTradeController().checkForAiTradeProposals(),
-                    showAiTradeProposal: () => getTradeController().showAiTradeProposal(),
+                    showAiTradeProposal: () => {
+                        if (window._reactOpenAiTrade) window._reactOpenAiTrade();
+                        else getTradeController().showAiTradeProposal();
+                    },
                     checkForInjuries: (...args) => InjuryEngine.checkForInjuries(...args),
                     updateInjuries: (team) => InjuryEngine.updateInjuries(team),
                     processFatigueAfterGame: (...args) => FatigueEngine.processAfterGame(...args),
@@ -2762,6 +2772,63 @@
                 window.simDay = () => gmMode.simulateDay();
                 window.simWeek = () => gmMode.simulateWeek();
                 window.finishSeason = () => gmMode.finishSeason();
+
+                // ── Expose trade helpers on window for React ──
+                window.getPickOwner = (teamId, year, round) => {
+                    if (!gameState.draftPickOwnership) return teamId;
+                    return DraftEngine.getPickOwner(gameState.draftPickOwnership, teamId, year, round);
+                };
+                window.calculatePickValue = (year, round) => {
+                    const yearsOut = year - gameState.currentSeason;
+                    const base = round === 1 ? 30 : 15;
+                    return Math.max(5, base - (yearsOut * 3));
+                };
+                window.getEffectiveCap = (team) => SalaryCapEngine.getEffectiveCap(team, gameState.currentTier);
+                window.saveGameState = saveGameState;
+                window.executeTrade = (partnerId, userGiveIds, userReceiveIds, userGivesPicks, userReceivesPicks) => {
+                    const userTeam = getUserTeam();
+                    const aiTeam = [...gameState.tier1Teams, ...gameState.tier2Teams, ...gameState.tier3Teams].find(t => t.id === partnerId);
+                    if (!userTeam || !aiTeam) return;
+                    
+                    TradeEngine.executeTrade({
+                        team1: userTeam,
+                        team2: aiTeam,
+                        team1GivesPlayerIds: userGiveIds,
+                        team2GivesPlayerIds: userReceiveIds,
+                        team1GivesPicks: userGivesPicks || [],
+                        team2GivesPicks: userReceivesPicks || [],
+                        applyTradePenalty: (team, player) => ChemistryEngine.applyTradePenalty(team, player),
+                        initializePlayerChemistry: (player) => ChemistryEngine.initializePlayer(player),
+                        tradeDraftPick: (fromId, toId, origId, year, round) => {
+                            if (!gameState.draftPickOwnership) return;
+                            const key = `${origId}_${year}_${round}`;
+                            gameState.draftPickOwnership[key] = toId;
+                        }
+                    });
+                    
+                    eventBus.emit(GameEvents.TRADE_ACCEPTED, {
+                        userTeamId: userTeam.id, aiTeamId: aiTeam.id, aiTeamName: aiTeam.name,
+                        userGave: userGiveIds.map(id => { const p = aiTeam.roster.find(pl => pl.id === id); return p ? p.name : '?'; }),
+                        userReceived: userReceiveIds.map(id => { const p = userTeam.roster.find(pl => pl.id === id); return p ? p.name : '?'; }),
+                        source: 'user_proposed'
+                    });
+                    
+                    if (gameState.tradeHistory) {
+                        gameState.tradeHistory.push({
+                            season: gameState.currentSeason, date: gameState.currentDate,
+                            tier: gameState.currentTier,
+                            team1: { id: userTeam.id, name: userTeam.name },
+                            team2: { id: aiTeam.id, name: aiTeam.name },
+                            team1Gave: [], team2Gave: [],
+                            type: 'user-proposed'
+                        });
+                    }
+                    
+                    saveGameState();
+                    getDashboardController().refresh();
+                    window._reactGameState = gameState;
+                    if (window._notifyReact) window._notifyReact();
+                };
                 
                 // ── Bridge gameState to React UI ──
                 window._reactGameState = gameState;

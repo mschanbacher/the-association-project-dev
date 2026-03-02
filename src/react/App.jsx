@@ -13,6 +13,7 @@ import { ScoutingScreen } from './screens/ScoutingScreen.jsx';
 import { PostGameModal } from './screens/PostGameModal.jsx';
 import { BoxScoreModal } from './screens/BoxScoreModal.jsx';
 import { NewGameFlow } from './screens/NewGameFlow.jsx';
+import { TradeScreen, AiTradeProposalModal } from './screens/TradeScreen.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -22,6 +23,8 @@ function AppContent() {
   // ── Modal state ──
   const [postGameData, setPostGameData] = useState(null);
   const [boxScoreData, setBoxScoreData] = useState(null);
+  const [tradeOpen, setTradeOpen] = useState(false);
+  const [aiTradeOpen, setAiTradeOpen] = useState(false);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -52,12 +55,16 @@ function AppContent() {
     // Expose imperative openers so legacy code can call them directly
     window._reactShowPostGame = (data) => setPostGameData(data);
     window._reactShowBoxScore = (data) => setBoxScoreData(data);
+    window._reactOpenTrade = () => setTradeOpen(true);
+    window._reactOpenAiTrade = () => setAiTradeOpen(true);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
       window.removeEventListener('reactShowBoxScore', handleBoxScore);
       delete window._reactShowPostGame;
       delete window._reactShowBoxScore;
+      delete window._reactOpenTrade;
+      delete window._reactOpenAiTrade;
     };
   }, []);
 
@@ -139,6 +146,14 @@ function AppContent() {
         isOpen={!!boxScoreData}
         data={boxScoreData}
         onClose={() => setBoxScoreData(null)}
+      />
+      <TradeScreen
+        isOpen={tradeOpen}
+        onClose={() => { setTradeOpen(false); refresh?.(); }}
+      />
+      <AiTradeProposalModal
+        isOpen={aiTradeOpen}
+        onClose={() => { setAiTradeOpen(false); refresh?.(); }}
       />
     </div>
   );
