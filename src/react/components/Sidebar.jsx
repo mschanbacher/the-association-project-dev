@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 
 const navItems = [
-  { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
-  { id: 'roster', icon: '👥', label: 'Roster', action: 'openRosterManagementHub' },
+  { id: 'dashboard', icon: '🏠', label: 'Dashboard', converted: true },
+  { id: 'roster', icon: '👥', label: 'Roster', converted: true },
+  { id: 'standings', icon: '🏆', label: 'Standings', converted: true },
+  { id: 'schedule', icon: '📅', label: 'Schedule', converted: true },
   { id: 'finances', icon: '💰', label: 'Finances', action: 'openFinanceDashboard' },
   { id: 'scouting', icon: '🔍', label: 'Scouting', action: 'openScoutingModal' },
-  { id: 'calendar', icon: '📅', label: 'Calendar', action: 'openCalendarView' },
   { id: 'history', icon: '📜', label: 'History', action: 'openFranchiseHistory' },
   { id: 'coach', icon: '🎓', label: 'Coach', action: 'openCoachManagement' },
 ];
@@ -14,8 +15,8 @@ export function Sidebar({ activeScreen, onNavigate }) {
   const [hoveredItem, setHoveredItem] = useState(null);
 
   const handleClick = (item) => {
-    if (item.id === 'dashboard') {
-      onNavigate?.('dashboard');
+    if (item.converted) {
+      onNavigate?.(item.id);
     } else if (item.action && window[item.action]) {
       // Call existing game function for unconverted screens
       window[item.action]();
@@ -34,7 +35,7 @@ export function Sidebar({ activeScreen, onNavigate }) {
       gap: 'var(--space-1)',
     }}>
       {navItems.map(item => {
-        const isActive = activeScreen === item.id;
+        const isActive = item.converted && activeScreen === item.id;
         const isHovered = hoveredItem === item.id;
 
         return (
@@ -67,6 +68,15 @@ export function Sidebar({ activeScreen, onNavigate }) {
               {item.icon}
             </span>
             {item.label}
+            {!item.converted && (
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: 'var(--text-xs)',
+                opacity: 0.4,
+              }}>
+                ↗
+              </span>
+            )}
           </button>
         );
       })}
