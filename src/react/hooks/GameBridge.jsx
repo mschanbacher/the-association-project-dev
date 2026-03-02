@@ -100,6 +100,9 @@ function getEngines() {
     EventBus:         window.EventBus,
     GameEvents:       window.GameEvents,
     eventBus:         window.eventBus,
+    ScoutingEngine:   window.ScoutingEngine,
+    TeamFactory:      window.TeamFactory,
+    GamePipeline:     window.GamePipeline,
   };
 }
 

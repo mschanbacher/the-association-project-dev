@@ -2091,27 +2091,32 @@
             const allTeams = [...(gameState.tier1Teams || []), ...(gameState.tier2Teams || []), ...(gameState.tier3Teams || [])];
             const homeTeam = allTeams.find(t => t.id === homeTeamId);
             const awayTeam = allTeams.find(t => t.id === awayTeamId);
-            
+
+            let boxPayload;
             if (game.boxScore) {
-                // Full box score available
-                document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore({
+                boxPayload = {
                     home: game.boxScore.home,
                     away: game.boxScore.away,
                     date: CalendarEngine.formatDateDisplay(dateStr),
                     hasDetailedStats: true,
                     quarterScores: game.boxScore.quarterScores || null
-                });
+                };
             } else {
-                // Score only (non-user game)
-                document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore({
+                boxPayload = {
                     home: { city: homeTeam ? (homeTeam.city || '') : '', name: homeTeam ? homeTeam.name : '', score: game.homeScore, players: [] },
                     away: { city: awayTeam ? (awayTeam.city || '') : '', name: awayTeam ? awayTeam.name : '', score: game.awayScore, players: [] },
                     date: CalendarEngine.formatDateDisplay(dateStr),
                     hasDetailedStats: false
-                });
+                };
             }
-            
-            document.getElementById('boxScoreModal').classList.remove('hidden');
+
+            // Dispatch to React modal if available, otherwise fall back to legacy
+            if (window._reactShowBoxScore) {
+                window._reactShowBoxScore(boxPayload);
+            } else {
+                document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore(boxPayload);
+                document.getElementById('boxScoreModal').classList.remove('hidden');
+            }
         }
         // ============================================
         // WATCH GAME MODE

@@ -606,19 +606,26 @@ export class GMMode {
         const topPlayer = userBox.players.length > 0 
             ? userBox.players.reduce((best, p) => p.pts > best.pts ? p : best, userBox.players[0])
             : null;
-        
-        const html = UIRenderer.postGameSummary({
+
+        const postGamePayload = {
             userTeam: userBox,
             opponent: oppBox,
             isHome,
             userWon,
             topPlayer,
             date: dateStr,
-            userRecord: { wins: userTeam.wins, losses: userTeam.losses }
-        });
-        
-        document.getElementById('postGameContent').innerHTML = html;
-        document.getElementById('postGameModal').classList.remove('hidden');
+            userRecord: { wins: userTeam.wins, losses: userTeam.losses },
+            quarterScores: userGame.boxScore.quarterScores || null,
+        };
+
+        // Dispatch to React modal if available, otherwise fall back to legacy
+        if (window._reactShowPostGame) {
+            window._reactShowPostGame(postGamePayload);
+        } else {
+            const html = UIRenderer.postGameSummary(postGamePayload);
+            document.getElementById('postGameContent').innerHTML = html;
+            document.getElementById('postGameModal').classList.remove('hidden');
+        }
     }
     
     /**

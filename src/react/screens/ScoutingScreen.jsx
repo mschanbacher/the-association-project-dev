@@ -76,10 +76,11 @@ function getAllLeaguePlayers(gameState) {
   return all;
 }
 
-function calculateTeamFit(player, userTeam, coach) {
-  // Delegate to global if available
-  if (window.ScoutingEngine?.calculateTeamFit) {
-    return window.ScoutingEngine.calculateTeamFit(player, userTeam, coach);
+function calculateTeamFit(player, userTeam, coach, engines) {
+  // Use ScoutingEngine from the bridge if available
+  const SE = engines?.ScoutingEngine || window.ScoutingEngine;
+  if (SE?.calculateTeamFit) {
+    return SE.calculateTeamFit(player, userTeam, coach);
   }
   // Simple fallback grade based on position need and rating
   const posCount = (userTeam.roster || []).filter(p => p.position === player.position).length;
@@ -163,7 +164,7 @@ function ScannerTab({ gameState, engines }) {
       return true;
     });
 
-    result.forEach(p => { p._fit = calculateTeamFit(p, userTeam, coach); });
+    result.forEach(p => { p._fit = calculateTeamFit(p, userTeam, coach, engines); });
 
     if (f.sort === 'fit') result.sort((a, b) => b._fit.combined - a._fit.combined);
     else if (f.sort === 'rating') result.sort((a, b) => b.rating - a.rating);
@@ -191,7 +192,7 @@ function ScannerTab({ gameState, engines }) {
   if (selectedPlayer) {
     const p = allPlayers.find(pl => pl.id === selectedPlayer);
     if (p) {
-      const fit = calculateTeamFit(p, userTeam, coach);
+      const fit = calculateTeamFit(p, userTeam, coach, engines);
       return <PlayerDetail player={p} fit={fit} gameState={gameState}
         onBack={() => setSelectedPlayer(null)}
         onToggleWatch={() => toggleWatch(p.id)}
@@ -575,7 +576,7 @@ function WatchListTab({ gameState, engines }) {
                 );
               }
 
-              const fit = calculateTeamFit(p, userTeam, coach);
+              const fit = calculateTeamFit(p, userTeam, coach, engines);
               const contractColor = p.contractYears <= 1 ? 'var(--color-warning)' : 'var(--color-text)';
 
               return (
