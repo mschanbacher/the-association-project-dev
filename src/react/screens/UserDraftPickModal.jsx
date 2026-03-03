@@ -116,8 +116,12 @@ function ProspectCard({ prospect, getRatingColor }) {
           <div style={{ marginTop: 3, fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
             {p.position} | Age {p.age}{p._measurables ? ` | ${p._measurables}` : ''}
           </div>
-          {p._topAttrs && (
-            <div style={{ marginTop: 3, fontSize: 'var(--text-xs)' }} dangerouslySetInnerHTML={{ __html: p._topAttrs }} />
+          {p._topAttrs && p._topAttrs.length > 0 && (
+            <div style={{ marginTop: 3, fontSize: 'var(--text-xs)', display: 'flex', gap: 'var(--space-2)' }}>
+              {p._topAttrs.map((attr, i) => (
+                <span key={i} style={{ color: attr.color }}>{attr.icon}{attr.value}</span>
+              ))}
+            </div>
           )}
         </div>
         <div style={{ textAlign: 'right' }}>

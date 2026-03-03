@@ -248,10 +248,11 @@ export class DraftController {
                     copy._measurables = `${PlayerAttributes.formatHeight(p.measurables.height)} \u00B7 ${p.measurables.weight}lbs \u00B7 ${PlayerAttributes.formatWingspan(p.measurables.wingspan)} WS`;
                 }
                 if (p.attributes) {
+                    const allDefs2 = allDefs;
                     copy._topAttrs = Object.entries(p.attributes)
                         .sort(([,a],[,b]) => b - a).slice(0, 3)
-                        .map(([k,v]) => { const d = allDefs[k]; return d ? `<span style="color:${PlayerAttributes.getAttrColor(v)}">${d.icon}${v}</span>` : ''; })
-                        .join(' ');
+                        .map(([k,v]) => { const d = allDefs2[k]; return d ? { icon: d.icon, value: v, color: PlayerAttributes.getAttrColor(v) } : null; })
+                        .filter(Boolean);
                 }
                 return copy;
             });
