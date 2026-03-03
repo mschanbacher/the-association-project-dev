@@ -17,8 +17,6 @@ const MODAL_IDS = [
   { id: 'seasonEndModal',             maxWidth: 1000 },
   { id: 'championshipPlayoffModal',   maxWidth: 1000 },
   { id: 'playoffModal',               maxWidth: 1000 },
-  { id: 'financialTransitionModal',   maxWidth: 900 },
-  { id: 'complianceModal',            maxWidth: 700 },
   { id: 'draftResultsModal',          maxWidth: 1200 },
   { id: 'freeAgencyModal',            maxWidth: 1100 },
   { id: 'collegeGradFAModal',         maxWidth: 1000 },

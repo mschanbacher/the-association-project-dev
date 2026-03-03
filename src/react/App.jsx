@@ -19,6 +19,8 @@ import { OffseasonTracker } from './screens/OffseasonTracker.jsx';
 import { OffseasonModals } from './screens/OffseasonModals.jsx';
 import { InjuryModal } from './screens/InjuryModal.jsx';
 import { DevelopmentModal } from './screens/DevelopmentModal.jsx';
+import { ComplianceModal } from './screens/ComplianceModal.jsx';
+import { FinancialTransitionModal } from './screens/FinancialTransitionModal.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -33,6 +35,8 @@ function AppContent() {
   const [gameMenuOpen, setGameMenuOpen] = useState(false);
   const [injuryData, setInjuryData] = useState(null);
   const [developmentData, setDevelopmentData] = useState(null);
+  const [complianceData, setComplianceData] = useState(null);
+  const [financialTransitionData, setFinancialTransitionData] = useState(null);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -69,6 +73,8 @@ function AppContent() {
     window._reactShowInjury = (data) => setInjuryData(data);
     window._reactHideInjury = () => setInjuryData(null);
     window._reactShowDevelopment = (data) => setDevelopmentData(data);
+    window._reactShowCompliance = (data) => setComplianceData(data);
+    window._reactShowFinancialTransition = (data) => setFinancialTransitionData(data);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -81,6 +87,8 @@ function AppContent() {
       delete window._reactShowInjury;
       delete window._reactHideInjury;
       delete window._reactShowDevelopment;
+      delete window._reactShowCompliance;
+      delete window._reactShowFinancialTransition;
     };
   }, []);
 
@@ -191,6 +199,29 @@ function AppContent() {
         onContinue={() => {
           setDevelopmentData(null);
           window._developmentContinueCallback?.();
+        }}
+      />
+      <ComplianceModal
+        isOpen={!!complianceData}
+        data={complianceData}
+        onManageRoster={() => {
+          setComplianceData(null);
+          window._complianceManageRosterCallback?.();
+        }}
+        onRecheck={() => {
+          setComplianceData(null);
+          window._complianceRecheckCallback?.();
+        }}
+      />
+      <FinancialTransitionModal
+        isOpen={!!financialTransitionData}
+        data={financialTransitionData}
+        onContinue={() => {
+          setFinancialTransitionData(null);
+          window._financialTransitionContinueCallback?.();
+        }}
+        onSpendingChange={(pct) => {
+          window._financialTransitionSpendingCallback?.(pct);
         }}
       />
     </div>

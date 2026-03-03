@@ -352,15 +352,34 @@ export class OffseasonController {
         const newTierBaseline = engines.FinanceEngine.TIER_BASELINES[currentTier];
         const newTotalBaseline = newTierBaseline.league + newTierBaseline.matchday + newTierBaseline.commercial + newTierBaseline.legacy;
 
-        document.getElementById('financialTransitionContent').innerHTML = UIRenderer.financialTransitionBriefing({
+        const briefingData = {
             team, isRelegation, isPromotion, previousTier, currentTier,
             summary, totalSalary, spendingLimit, capSpace,
             locked, expiring, lockedSalary, expiringSalary,
             releasedPlayers, rosterBySalary, oldTierBaseline, newTotalBaseline,
             formatCurrency: helpers.formatCurrency, getRatingColor: helpers.getRatingColor,
             spendingRatio: f.spendingRatio, currentSeason: gameState.currentSeason
-        });
+        };
 
+        if (window._reactShowFinancialTransition) {
+            window._financialTransitionContinueCallback = () => {
+                document.getElementById('financialTransitionModal').classList.add('hidden');
+                helpers.saveGameState();
+                console.log('Proceeding to draft/development after transition briefing...');
+                helpers.proceedToDraftOrDevelopment();
+            };
+            window._financialTransitionSpendingCallback = (pct) => {
+                const userTeam = helpers.getUserTeam();
+                if (userTeam && userTeam.finances) {
+                    userTeam.finances.spendingRatio = pct / 100;
+                    engines.FinanceEngine.recalculateSpendingLimit(userTeam);
+                }
+            };
+            window._reactShowFinancialTransition(briefingData);
+            return;
+        }
+
+        document.getElementById('financialTransitionContent').innerHTML = UIRenderer.financialTransitionBriefing(briefingData);
         document.getElementById('financialTransitionModal').classList.remove('hidden');
     }
 
@@ -971,8 +990,26 @@ export class OffseasonController {
 
     showRosterComplianceModal(isOverCap, isUnderMinimum, isOverMaximum, totalSalary, salaryCap, rosterSize) {
         const { helpers } = this.ctx;
+        const userTeam = helpers.getUserTeam();
+        const tier = userTeam ? userTeam.tier : 1;
+
+        if (window._reactShowCompliance) {
+            window._complianceManageRosterCallback = () => {
+                window.openRosterManagementFromCompliance?.();
+            };
+            window._complianceRecheckCallback = () => {
+                window.recheckRosterCompliance?.();
+            };
+            window._reactShowCompliance({
+                isOverCap, isUnderMinimum, isOverMaximum,
+                totalSalary, salaryCap, rosterSize, tier,
+                formatCurrency: helpers.formatCurrency
+            });
+            return;
+        }
+
         document.getElementById('complianceModalContent').innerHTML = UIRenderer.rosterComplianceModal({
-            isOverCap, isUnderMinimum, isOverMaximum, totalSalary, salaryCap, rosterSize, formatCurrency: helpers.formatCurrency
+            isOverCap, isUnderMinimum, isOverMaximum, totalSalary, salaryCap, rosterSize, tier, formatCurrency: helpers.formatCurrency
         });
         document.getElementById('complianceModal').classList.remove('hidden');
     }
