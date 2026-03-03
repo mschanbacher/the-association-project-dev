@@ -24,7 +24,7 @@ export function NewGameFlow({ gameState, onComplete }) {
   };
 
   const handleConfirm = () => {
-    if (!selectedTeamId || !selectedTier || starting) return;
+    if (selectedTeamId == null || !selectedTier || starting) return;
     setStarting(true);
     // Call legacy selectTeam which initializes season, generates schedules, etc.
     if (window.selectTeam) {
