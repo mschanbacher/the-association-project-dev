@@ -13,10 +13,11 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #fff;
+            background: var(--color-bg, #0f1419);
+            color: var(--color-text, #e7e9ea);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
         }
         
         .container {
@@ -237,7 +238,8 @@
             border-radius: 4px;
         }
 
-        .modal {
+        /* Legacy modal styles — scoped to #legacy-modal-stubs to prevent React interference */
+        #legacy-modal-stubs .modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -252,15 +254,15 @@
             overflow-y: auto;
         }
 
-        .modal.hidden {
+        #legacy-modal-stubs .modal.hidden {
             display: none;
         }
 
-        .hidden:not(.modal) {
+        .hidden {
             display: none;
         }
 
-        .modal-content {
+        #legacy-modal-stubs .modal-content {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             border-radius: 15px;
             padding: 40px;
@@ -379,853 +381,130 @@
 </head>
 <body>
     <!-- Team Selection Modal -->
-    <div id="teamSelectionModal" class="modal">
-        <div class="modal-content">
-            <h1>🏀 Welcome to The Association Project</h1>
-            <p style="text-align: center; font-size: 1.2em; margin: 20px 0; opacity: 0.9;">
-                Select your starting tier and team to begin your journey
-            </p>
-
-            <div style="text-align: center; margin: 30px 0;">
-                <h2>Choose Your Starting Tier</h2>
-                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
-                    <button onclick="selectTier(1)" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                        Start in Tier 1 (Premier League)
-                    </button>
-                    <button onclick="selectTier(2)" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                        Start in Tier 2 (Regional League)
-                    </button>
-                    <button onclick="selectTier(3)" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                        Start in Tier 3 (Metro League)
-                    </button>
-                </div>
-            </div>
-
-            <div id="tier1Teams" class="team-grid" style="display: none;">
-                <!-- Populated by JavaScript -->
-            </div>
-
-            <div id="tier2Teams" class="team-grid" style="display: none;">
-                <!-- Populated by JavaScript -->
-            </div>
-            
-            <div id="tier3Teams" class="team-grid" style="display: none;">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
+    <!-- Legacy modal ID stubs — kept for fallback getElementById calls, all hidden -->
+    <div id="legacy-modal-stubs" style="display: none !important; position: absolute; width: 0; height: 0; overflow: hidden;">
+      <div id="teamSelectionModal"></div>
+      <div id="tier1Teams"></div>
+      <div id="tier2Teams"></div>
+      <div id="tier3Teams"></div>
+      <div id="seasonEndModal"></div>
+      <div id="seasonEndContent"></div>
+      <div id="playoffModal"></div>
+      <div id="playoffContent"></div>
+      <div id="rosterModal"></div>
+      <div id="positionBreakdown"></div>
+      <div id="rosterCount"></div>
+      <div id="capStatus"></div>
+      <div id="currentRoster"></div>
+      <div id="positionFilter"></div>
+      <div id="tierFilter"></div>
+      <div id="freeAgentsList"></div>
+      <div id="developmentModal"></div>
+      <div id="developmentSummary"></div>
+      <div id="freeAgencyModal"></div>
+      <div id="faCapSpace"></div>
+      <div id="faOfferTally"></div>
+      <div id="faOfferCount"></div>
+      <div id="faOfferTotal"></div>
+      <div id="faOfferRemaining"></div>
+      <div id="faCurrentRoster"></div>
+      <div id="faPositionFilter"></div>
+      <div id="freeAgencyPlayersList"></div>
+      <div id="selectedOffersPanel"></div>
+      <div id="offerCount"></div>
+      <div id="offersList"></div>
+      <div id="submitOffersBtn"></div>
+      <div id="freeAgencyResultsModal"></div>
+      <div id="freeAgencyResultsContent"></div>
+      <div id="financeDashboardModal"></div>
+      <div id="financeDashboardCloseBtn"></div>
+      <div id="financeDashboardContent"></div>
+      <div id="financialTransitionModal"></div>
+      <div id="financialTransitionContent"></div>
+      <div id="collegeGradFAModal"></div>
+      <div id="collegeGradSubtitle"></div>
+      <div id="collegeGradCapInfo"></div>
+      <div id="collegeGradTally"></div>
+      <div id="cgOfferCount"></div>
+      <div id="cgOfferTotal"></div>
+      <div id="cgOfferRemaining"></div>
+      <div id="cgPositionFilter"></div>
+      <div id="cgSortBy"></div>
+      <div id="collegeGradList"></div>
+      <div id="cgSubmitBtn"></div>
+      <div id="cgSelectedCount"></div>
+      <div id="scoutingModal"></div>
+      <div id="scoutTabScanner"></div>
+      <div id="scoutTabPipeline"></div>
+      <div id="scoutTabWatchlist"></div>
+      <div id="watchlistCount"></div>
+      <div id="scoutTabNeeds"></div>
+      <div id="scoutTabContent"></div>
+      <div id="tradeModal"></div>
+      <div id="tradePositionBreakdown"></div>
+      <div id="tradePartnerSelect"></div>
+      <div id="tradeInterface"></div>
+      <div id="yourTradeRoster"></div>
+      <div id="yourTradePicksHeader"></div>
+      <div id="yourTradePicks"></div>
+      <div id="aiTradeRoster"></div>
+      <div id="aiTradePicksHeader"></div>
+      <div id="aiTradePicks"></div>
+      <div id="tradeSummary"></div>
+      <div id="tradeYourValue"></div>
+      <div id="tradeAiValue"></div>
+      <div id="tradeNetValue"></div>
+      <div id="noTradePartner"></div>
+      <div id="aiTradeProposalModal"></div>
+      <div id="aiProposalTeam"></div>
+      <div id="aiProposalYouGive"></div>
+      <div id="aiProposalYouReceive"></div>
+      <div id="aiProposalSummary"></div>
+      <div id="draftResultsModal"></div>
+      <div id="draftRound1Btn"></div>
+      <div id="draftCompBtn"></div>
+      <div id="draftRound2Btn"></div>
+      <div id="userPicksBtn"></div>
+      <div id="draftResultsContent"></div>
+      <div id="championshipPlayoffModal"></div>
+      <div id="championshipPlayoffContent"></div>
+      <div id="bracketViewerModal"></div>
+      <div id="bracketViewerContent"></div>
+      <div id="lotteryModal"></div>
+      <div id="lotteryContent"></div>
+      <div id="userDraftPickModal"></div>
+      <div id="userPickNumber"></div>
+      <div id="draftPositionFilter"></div>
+      <div id="draftSortBy"></div>
+      <div id="draftProspectsList"></div>
+      <div id="draftYourRoster"></div>
+      <div id="gameContainer"></div>
+      <div id="watchGameModal"></div>
+      <div id="watchGameContent"></div>
+      <div id="postGameModal"></div>
+      <div id="postGameContent"></div>
+      <div id="boxScoreModal"></div>
+      <div id="boxScoreContent"></div>
+      <div id="franchiseHistoryModal"></div>
+      <div id="franchiseHistoryContent"></div>
+      <div id="complianceModal"></div>
+      <div id="complianceModalContent"></div>
+      <div id="injuryModal"></div>
+      <div id="injuryDetails"></div>
+      <div id="injuryOptions"></div>
+      <div id="injuryConfirmBtn"></div>
+      <div id="coachModal"></div>
+      <div id="coachModalContent"></div>
+      <div id="calendarModal"></div>
+      <div id="calendarContent"></div>
+      <div id="allStarModal"></div>
+      <div id="allStarContent"></div>
+      <div id="contractDecisionsModal"></div>
+      <div id="contractDecisionsSummary"></div>
+      <div id="expiringContractsList"></div>
+      <div id="contractDecisionsConfirmBtn"></div>
+      <div id="gameMenuModal"></div>
     </div>
-
-    <!-- Season End Modal -->
-    <div id="seasonEndModal" class="modal hidden">
-        <div class="modal-content" id="seasonEndContent">
-            <!-- Populated by JavaScript -->
-        </div>
-    </div>
-
-    <!-- Playoff Modal -->
-    <div id="playoffModal" class="modal hidden">
-        <div class="modal-content" id="playoffContent">
-            <!-- Populated by JavaScript -->
-        </div>
-    </div>
-
-    <!-- Roster Management Modal -->
-    <div id="rosterModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1600px;">
-            <h1 style="text-align: center; margin-bottom: 30px;">📋 Roster Management</h1>
-            
-            <!-- Position Breakdown -->
-            <div id="positionBreakdown"></div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                <!-- Your Roster -->
-                <div>
-                    <h2 style="margin-bottom: 20px;">Your Roster (<span id="rosterCount">0</span>/15)</h2>
-                    
-                    <!-- Salary Cap Status -->
-                    <div id="capStatus"></div>
-                    
-                    <div id="currentRoster" style="max-height: 500px; overflow-y: auto;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Free Agents -->
-                <div>
-                    <h2 style="margin-bottom: 20px;">Free Agents</h2>
-                    
-                    <!-- Filter Controls -->
-                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <select id="positionFilter" onchange="filterFreeAgents()" style="padding: 8px; border-radius: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
-                            <option value="ALL" style="background: #1a1a1a; color: white;">All Positions</option>
-                            <option value="PG" style="background: #1a1a1a; color: white;">PG</option>
-                            <option value="SG" style="background: #1a1a1a; color: white;">SG</option>
-                            <option value="SF" style="background: #1a1a1a; color: white;">SF</option>
-                            <option value="PF" style="background: #1a1a1a; color: white;">PF</option>
-                            <option value="C" style="background: #1a1a1a; color: white;">C</option>
-                        </select>
-                        
-                        <select id="tierFilter" onchange="filterFreeAgents()" style="padding: 8px; border-radius: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
-                            <option value="ALL" style="background: #1a1a1a; color: white;">All Tiers</option>
-                            <option value="1" style="background: #1a1a1a; color: white;">Tier 1 (70-95)</option>
-                            <option value="2" style="background: #1a1a1a; color: white;">Tier 2 (60-85)</option>
-                            <option value="3" style="background: #1a1a1a; color: white;">Tier 3 (50-75)</option>
-                        </select>
-
-                        <button onclick="sortFreeAgents('rating')" style="padding: 8px 15px; font-size: 0.9em;">Sort by Rating</button>
-                        <button onclick="sortFreeAgents('age')" style="padding: 8px 15px; font-size: 0.9em;">Sort by Age</button>
-                    </div>
-                    
-                    <div id="freeAgentsList" style="max-height: 450px; overflow-y: auto;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px;">
-                <button onclick="openTradeScreenFromRoster()" class="warning" style="font-size: 1.2em; padding: 15px 40px; margin-right: 15px;">
-                    📊 Open Trade Screen
-                </button>
-                <button onclick="closeRosterManagementDynamic()" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    Done Managing Roster
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Player Development Summary Modal -->
-    <div id="developmentModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 800px;">
-            <h1 style="text-align: center; margin-bottom: 30px;">🌟 Player Development Report</h1>
-            
-            <div id="developmentSummary" style="max-height: 500px; overflow-y: auto;">
-                <!-- Populated by JavaScript -->
-            </div>
-
-            <div style="text-align: center; margin-top: 30px;">
-                <button onclick="closeDevelopmentSummary()" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    Continue
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Free Agency Modal -->
-    <div id="freeAgencyModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1800px;">
-            <h1 style="text-align: center; margin-bottom: 20px;">🤝 Free Agency Period</h1>
-            <p style="text-align: center; font-size: 1.1em; margin-bottom: 10px;">
-                Select players to make offers to. 
-                <span style="font-weight: bold; color: #34a853;">Cap Space: <span id="faCapSpace">$0M</span></span>
-            </p>
-            <div id="faOfferTally" style="text-align: center; margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; display: none;">
-                <span style="opacity: 0.8;">Selected: </span>
-                <span id="faOfferCount" style="font-weight: bold;">0</span> player(s) · 
-                <span style="opacity: 0.8;">Est. Cost: </span>
-                <span id="faOfferTotal" style="font-weight: bold; color: #fbbc04;">$0M</span> · 
-                <span style="opacity: 0.8;">Remaining: </span>
-                <span id="faOfferRemaining" style="font-weight: bold;">$0M</span>
-            </div>
-            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px; font-size: 0.95em;">
-                You'll compete with other teams for these players. Higher offers and team success increase your chances.
-            </p>
-            
-            <!-- Two column layout: Current Roster | Free Agents -->
-            <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; margin-bottom: 30px;">
-                <!-- Current Roster Column -->
-                <div style="background: rgba(255,255,255,0.05); border-radius: 10px; padding: 20px;">
-                    <h2 style="margin-bottom: 15px; text-align: center;">📋 Current Roster</h2>
-                    <div id="faCurrentRoster" style="max-height: 500px; overflow-y: auto;">
-                        <!-- Current roster populated by JavaScript -->
-                    </div>
-                </div>
-                
-                <!-- Free Agents Column -->
-                <div>
-                    <!-- Position Filter -->
-                    <div style="margin-bottom: 15px; text-align: center;">
-                        <label style="margin-right: 10px; font-weight: bold;">Filter by Position:</label>
-                        <select id="faPositionFilter" onchange="filterFreeAgentsByPosition()" style="padding: 8px 15px; border-radius: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); font-size: 1em; cursor: pointer;">
-                            <option value="ALL" style="background: #1a1a1a;">All Positions</option>
-                            <option value="PG" style="background: #1a1a1a;">Point Guard (PG)</option>
-                            <option value="SG" style="background: #1a1a1a;">Shooting Guard (SG)</option>
-                            <option value="SF" style="background: #1a1a1a;">Small Forward (SF)</option>
-                            <option value="PF" style="background: #1a1a1a;">Power Forward (PF)</option>
-                            <option value="C" style="background: #1a1a1a;">Center (C)</option>
-                        </select>
-                    </div>
-                    
-                    <div id="freeAgencyPlayersList" style="max-height: 500px; overflow-y: auto;">
-                        <!-- Table of free agents populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-            
-            <div id="selectedOffersPanel" style="display: none; margin-bottom: 20px;">
-                <h2 style="margin-bottom: 20px;">📝 Your Offers (<span id="offerCount">0</span>)</h2>
-                <div id="offersList" style="max-height: 300px; overflow-y: auto;">
-                    <!-- Selected players with offer inputs -->
-                </div>
-            </div>
-            
-            <div style="text-align: center; margin-top: 20px;">
-                <button id="submitOffersBtn" onclick="submitFreeAgencyOffers()" class="success" style="font-size: 1.2em; padding: 15px 40px;" disabled>
-                    Submit Offers
-                </button>
-                <button onclick="skipFreeAgency()" style="font-size: 1.2em; padding: 15px 40px; margin-left: 15px;">
-                    Skip Free Agency
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Free Agency Results Modal -->
-    <div id="freeAgencyResultsModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1000px;">
-            <h1 style="text-align: center; margin-bottom: 30px;">📊 Free Agency Results</h1>
-            
-            <div id="freeAgencyResultsContent" style="max-height: 500px; overflow-y: auto;">
-                <!-- Results populated by JavaScript -->
-            </div>
-            
-            <div style="text-align: center; margin-top: 30px;">
-                <button onclick="continueFreeAgency()" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    Continue to Season Setup
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Finance Dashboard Modal -->
-    <div id="financeDashboardModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1100px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h1 style="margin: 0;">💰 Club Finances</h1>
-                <button id="financeDashboardCloseBtn" onclick="document.getElementById('financeDashboardModal').classList.add('hidden')" style="padding: 8px 20px;">✕ Close</button>
-            </div>
-            <div id="financeDashboardContent" style="max-height: 600px; overflow-y: auto;">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Financial Transition Briefing Modal -->
-    <div id="financialTransitionModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1000px;">
-            <div id="financialTransitionContent">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- College Graduate Free Agency Modal -->
-    <div id="collegeGradFAModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1100px;">
-            <h1 style="text-align: center; margin-bottom: 10px;">🎓 College Graduate Free Agency</h1>
-            <p id="collegeGradSubtitle" style="text-align: center; font-size: 1.05em; margin-bottom: 5px; opacity: 0.9;"></p>
-            <div id="collegeGradCapInfo" style="text-align: center; margin-bottom: 5px;"></div>
-            <div id="collegeGradTally" style="text-align: center; margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; display: none;">
-                <span style="opacity: 0.8;">Selected: </span>
-                <span id="cgOfferCount" style="font-weight: bold;">0</span> player(s) · 
-                <span style="opacity: 0.8;">Est. Cost: </span>
-                <span id="cgOfferTotal" style="font-weight: bold; color: #fbbc04;">$0M</span> · 
-                <span style="opacity: 0.8;">Remaining: </span>
-                <span id="cgOfferRemaining" style="font-weight: bold;">$0M</span>
-            </div>
-            <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; justify-content: center;">
-                <label>Position: 
-                    <select id="cgPositionFilter" onchange="filterCollegeGrads()" style="padding: 6px;">
-                        <option value="ALL">All</option>
-                        <option value="PG">PG</option>
-                        <option value="SG">SG</option>
-                        <option value="SF">SF</option>
-                        <option value="PF">PF</option>
-                        <option value="C">C</option>
-                    </select>
-                </label>
-                <label>Sort: 
-                    <select id="cgSortBy" onchange="filterCollegeGrads()" style="padding: 6px;">
-                        <option value="rating">Rating</option>
-                        <option value="age">Age</option>
-                        <option value="salary">Salary</option>
-                        <option value="potential">Potential</option>
-                    </select>
-                </label>
-            </div>
-            <div id="collegeGradList" style="max-height: 450px; overflow-y: auto; margin-bottom: 20px;"></div>
-            <div style="text-align: center; display: flex; gap: 15px; justify-content: center;">
-                <button onclick="submitCollegeGradOffers()" id="cgSubmitBtn" class="success" style="font-size: 1.1em; padding: 12px 35px;" disabled>
-                    📝 Submit Offers (<span id="cgSelectedCount">0</span>)
-                </button>
-                <button onclick="skipCollegeGradFA()" style="font-size: 1em; padding: 12px 25px; opacity: 0.8;">
-                    Skip → Continue
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scouting Modal -->
-    <div id="scoutingModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h1 style="margin: 0;">🔍 Scouting Center</h1>
-                <button onclick="closeScoutingModal()" style="font-size: 1.2em; padding: 8px 20px;">✕ Close</button>
-            </div>
-            
-            <!-- Tab Navigation -->
-            <div style="display: flex; gap: 0; margin-bottom: 15px; border-bottom: 2px solid rgba(255,255,255,0.15);">
-                <button id="scoutTabScanner" onclick="switchScoutTab('scanner')" class="scout-tab active" style="padding: 12px 25px; border: none; background: rgba(102,126,234,0.3); color: white; font-size: 1em; cursor: pointer; border-radius: 8px 8px 0 0; border-bottom: 2px solid #667eea;">
-                    🌐 League Scanner
-                </button>
-                <button id="scoutTabPipeline" onclick="switchScoutTab('pipeline')" class="scout-tab" style="padding: 12px 25px; border: none; background: rgba(255,255,255,0.05); color: white; font-size: 1em; cursor: pointer; border-radius: 8px 8px 0 0; opacity: 0.7;">
-                    🎓 College Pipeline
-                </button>
-                <button id="scoutTabWatchlist" onclick="switchScoutTab('watchlist')" class="scout-tab" style="padding: 12px 25px; border: none; background: rgba(255,255,255,0.05); color: white; font-size: 1em; cursor: pointer; border-radius: 8px 8px 0 0; opacity: 0.7;">
-                    ⭐ Watch List (<span id="watchlistCount">0</span>)
-                </button>
-                <button id="scoutTabNeeds" onclick="switchScoutTab('needs')" class="scout-tab" style="padding: 12px 25px; border: none; background: rgba(255,255,255,0.05); color: white; font-size: 1em; cursor: pointer; border-radius: 8px 8px 0 0; opacity: 0.7;">
-                    📊 Team Needs
-                </button>
-            </div>
-            
-            <!-- Tab Content -->
-            <div id="scoutTabContent" style="flex: 1; overflow-y: auto;"></div>
-        </div>
-    </div>
-
-    <!-- Trade Modal -->
-    <div id="tradeModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1400px;">
-            <h1 style="text-align: center; margin-bottom: 20px;">📊 Trade Players</h1>
-            
-            <!-- Position Breakdown -->
-            <div id="tradePositionBreakdown"></div>
-            
-            <!-- Trade Partner Selection -->
-            <div style="text-align: center; margin-bottom: 30px;">
-                <label style="font-size: 1.1em; margin-right: 15px;">Trade with:</label>
-                <select id="tradePartnerSelect" onchange="loadTradePartner()" style="padding: 10px; font-size: 1em; border-radius: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); min-width: 300px;">
-                    <option value="" style="background: #1a1a1a; color: white;">-- Select Team --</option>
-                </select>
-            </div>
-
-            <div id="tradeInterface" style="display: none;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px;">
-                    <!-- Your Team Offers -->
-                    <div>
-                        <h2 style="margin-bottom: 20px; text-align: center;">You Give Up</h2>
-                        
-                        <!-- Players -->
-                        <h3 style="margin: 15px 0 10px 0; font-size: 1em; opacity: 0.8;">Players:</h3>
-                        <div id="yourTradeRoster" style="max-height: 300px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <!-- Populated by JavaScript -->
-                        </div>
-                        
-                        <!-- Draft Picks (T1 only) -->
-                        <h3 id="yourTradePicksHeader" style="margin: 20px 0 10px 0; font-size: 1em; opacity: 0.8;">Draft Picks:</h3>
-                        <div id="yourTradePicks" style="max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <!-- Populated by JavaScript -->
-                        </div>
-                    </div>
-
-                    <!-- AI Team Offers -->
-                    <div>
-                        <h2 style="margin-bottom: 20px; text-align: center;">You Receive</h2>
-                        
-                        <!-- Players -->
-                        <h3 style="margin: 15px 0 10px 0; font-size: 1em; opacity: 0.8;">Players:</h3>
-                        <div id="aiTradeRoster" style="max-height: 300px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <!-- Populated by JavaScript -->
-                        </div>
-                        
-                        <!-- Draft Picks (T1 only) -->
-                        <h3 id="aiTradePicksHeader" style="margin: 20px 0 10px 0; font-size: 1em; opacity: 0.8;">Draft Picks:</h3>
-                        <div id="aiTradePicks" style="max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <!-- Populated by JavaScript -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trade Summary -->
-                <div id="tradeSummary" style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 15px; text-align: center;">Trade Summary</h3>
-                    <div style="display: flex; justify-content: space-around; text-align: center;">
-                        <div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">You Give</div>
-                            <div id="tradeYourValue" style="font-size: 1.5em; font-weight: bold; margin-top: 5px;">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">Total Rating</div>
-                        </div>
-                        <div style="display: flex; align-items: center; font-size: 2em;">↔️</div>
-                        <div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">You Receive</div>
-                            <div id="tradeAiValue" style="font-size: 1.5em; font-weight: bold; margin-top: 5px;">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">Total Rating</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">Net Value</div>
-                            <div id="tradeNetValue" style="font-size: 1.5em; font-weight: bold; margin-top: 5px;">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">(+ = You Win)</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div style="text-align: center; display: flex; gap: 20px; justify-content: center;">
-                    <button onclick="proposeTrade()" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                        Propose Trade
-                    </button>
-                    <button onclick="closeTradeScreen()" style="font-size: 1.2em; padding: 15px 40px;">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-
-            <div id="noTradePartner" style="text-align: center; padding: 40px; opacity: 0.7;">
-                <p style="font-size: 1.2em;">Select a team to start trading</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- AI Trade Proposal Modal -->
-    <div id="aiTradeProposalModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1000px;">
-            <h1 style="text-align: center; margin-bottom: 20px;">📬 Trade Offer Received!</h1>
-            
-            <div id="aiProposalTeam" style="text-align: center; margin-bottom: 25px; font-size: 1.2em;">
-                <!-- Team name populated by JavaScript -->
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 25px;">
-                <!-- You Give -->
-                <div>
-                    <h2 style="margin-bottom: 15px; text-align: center; color: #ea4335;">You Would Give Up</h2>
-                    <div id="aiProposalYouGive" style="background: rgba(234,67,53,0.1); padding: 15px; border-radius: 8px; min-height: 150px;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- You Receive -->
-                <div>
-                    <h2 style="margin-bottom: 15px; text-align: center; color: #34a853;">You Would Receive</h2>
-                    <div id="aiProposalYouReceive" style="background: rgba(52,168,83,0.1); padding: 15px; border-radius: 8px; min-height: 150px;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Proposal Summary -->
-            <div id="aiProposalSummary" style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center;">
-                <!-- Populated by JavaScript -->
-            </div>
-
-            <!-- Action Buttons -->
-            <div style="text-align: center; display: flex; gap: 20px; justify-content: center;">
-                <button onclick="acceptAiTradeProposal()" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    ✅ Accept Trade
-                </button>
-                <button onclick="rejectAiTradeProposal()" class="danger" style="font-size: 1.2em; padding: 15px 40px;">
-                    ❌ Decline Trade
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Draft Results Modal -->
-    <div id="draftResultsModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1200px;">
-            <h1 style="text-align: center; margin-bottom: 20px;">🎓 Draft Results</h1>
-            
-            <div style="text-align: center; margin-bottom: 20px;">
-                <button onclick="showDraftRound(1)" id="draftRound1Btn" class="success" style="margin: 0 5px; padding: 10px 20px;">Round 1</button>
-                <button onclick="showDraftRound('Comp')" id="draftCompBtn" style="margin: 0 5px; padding: 10px 20px;">Comp.</button>
-                <button onclick="showDraftRound(2)" id="draftRound2Btn" style="margin: 0 5px; padding: 10px 20px;">Round 2</button>
-                <button onclick="showUserDraftPicks()" id="userPicksBtn" style="margin: 0 5px; padding: 10px 20px; background: linear-gradient(135deg, #fbbc04 0%, #f9a825 100%);">Your Picks</button>
-            </div>
-
-            <div id="draftResultsContent" style="max-height: 500px; overflow-y: auto; padding: 20px;">
-                <!-- Populated by JavaScript -->
-            </div>
-
-            <div style="text-align: center; margin-top: 25px;">
-                <button onclick="closeDraftResults()" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    Continue to Free Agency
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Championship Playoff Modal -->
-    <div id="championshipPlayoffModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1200px;">
-            <div id="championshipPlayoffContent">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Bracket Viewer Modal (overlays playoff modal) -->
-    <div id="bracketViewerModal" class="modal hidden" style="z-index: 1015;">
-        <div class="modal-content" style="max-width: 1400px; max-height: 90vh; overflow-y: auto;">
-            <div id="bracketViewerContent">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Draft Lottery Modal -->
-    <div id="lotteryModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 900px;">
-            <h1 style="text-align: center; margin-bottom: 20px;">🎰 Draft Lottery Results</h1>
-            
-            <div id="lotteryContent" style="max-height: 500px; overflow-y: auto; padding: 20px;">
-                <!-- Populated by JavaScript -->
-            </div>
-
-            <div style="text-align: center; margin-top: 25px;">
-                <button onclick="closeLotteryModal()" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    Continue to Draft
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- User Draft Pick Modal -->
-    <div id="userDraftPickModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1600px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1 style="margin: 0;">🎯 Your Pick</h1>
-                <div style="text-align: right;">
-                    <div id="userPickNumber" style="font-size: 1.5em; font-weight: bold; color: #fbbc04;"></div>
-                    <div style="opacity: 0.7; margin-top: 5px;">Make your selection</div>
-                </div>
-            </div>
-
-            <!-- Filter/Sort Controls -->
-            <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
-                <div>
-                    <label style="margin-right: 8px;">Filter by Position:</label>
-                    <select id="draftPositionFilter" onchange="filterDraftProspects()" style="padding: 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;">
-                        <option value="ALL" style="background: #1a1a1a; color: white;">All Positions</option>
-                        <option value="PG" style="background: #1a1a1a; color: white;">PG</option>
-                        <option value="SG" style="background: #1a1a1a; color: white;">SG</option>
-                        <option value="SF" style="background: #1a1a1a; color: white;">SF</option>
-                        <option value="PF" style="background: #1a1a1a; color: white;">PF</option>
-                        <option value="C" style="background: #1a1a1a; color: white;">C</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="margin-right: 8px;">Sort by:</label>
-                    <select id="draftSortBy" onchange="filterDraftProspects()" style="padding: 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;">
-                        <option value="rating" style="background: #1a1a1a; color: white;">Rating (High to Low)</option>
-                        <option value="age" style="background: #1a1a1a; color: white;">Age (Young to Old)</option>
-                        <option value="position" style="background: #1a1a1a; color: white;">Position</option>
-                    </select>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 400px; gap: 20px;">
-                <!-- Available Prospects (Left) -->
-                <div>
-                    <h2 style="margin-bottom: 15px;">Available Prospects</h2>
-                    <div id="draftProspectsList" style="max-height: 500px; overflow-y: auto; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Your Current Roster (Right) -->
-                <div>
-                    <h2 style="margin-bottom: 15px;">Your Roster</h2>
-                    <div id="draftYourRoster" style="max-height: 500px; overflow-y: auto; background: rgba(251,188,4,0.1); padding: 15px; border-radius: 8px;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Game Container -->
-    <div id="gameContainer" class="container" style="display: none;">
-        <h1>🏀 The Association Project</h1>
-        <p class="subtitle">
-            <span class="tier-badge" id="tierBadge">TIER 1</span>
-            <span id="leagueName">North American Premier League</span>
-        </p>
-
-        <div class="info-bar">
-            <div class="info-card">
-                <h3>Season</h3>
-                <div class="value" id="currentSeason">2025-26</div>
-            </div>
-            <div class="info-card">
-                <h3>📅 Date</h3>
-                <div class="value" id="currentDateDisplay" style="font-size: 1.1em;">-</div>
-                <div id="calendarEvent" style="font-size: 0.8em; margin-top: 4px; color: #ffd700; display: none;"></div>
-            </div>
-            <div class="info-card">
-                <h3>Your Team</h3>
-                <div class="value" id="userTeamName">-</div>
-            </div>
-            <div class="info-card">
-                <h3>Record</h3>
-                <div class="value" id="userRecord">0-0</div>
-            </div>
-            <div class="info-card">
-                <h3>Roster Strength</h3>
-                <div class="value" id="rosterStrength">-</div>
-            </div>
-            <div class="info-card" style="cursor: pointer;" onclick="openFinanceDashboard()">
-                <h3>💰 Budget</h3>
-                <div class="value" id="budgetDisplay" style="font-size: 0.95em;">-</div>
-                <div id="budgetSubDisplay" style="font-size: 0.75em; margin-top: 2px; opacity: 0.7;">-</div>
-            </div>
-            <div class="info-card" id="coachInfoCard" style="cursor: pointer;" onclick="openCoachManagement()">
-                <h3>🎓 Head Coach</h3>
-                <div class="value" id="coachNameDisplay" style="font-size: 0.95em;">-</div>
-                <div id="coachOverallDisplay" style="font-size: 0.8em; margin-top: 2px; opacity: 0.8;">-</div>
-            </div>
-            <div class="info-card">
-                <h3>Games Played</h3>
-                <div class="value"><span id="currentGame">0</span> / <span id="totalGames">82</span></div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button onclick="simNextGame()" id="simNextBtn">▶️ Sim Next Game</button>
-            <button onclick="watchNextGame()" id="watchNextBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">👁️ Watch Game</button>
-            <button onclick="simDay()" id="simDayBtn">📅 Sim Day</button>
-            <button onclick="simWeek()" id="simWeekBtn">⏩ Sim Week</button>
-            <button onclick="finishSeason()" id="finishBtn">⏭️ Finish Season</button>
-            <button onclick="openRosterManagementHub()" id="rosterBtn" style="background: linear-gradient(135deg, #34a853 0%, #2d8f47 100%);">👥 Roster Management</button>
-            <button onclick="openCalendarView()" id="calendarBtn" style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);">📅 Calendar</button>
-            <button onclick="openFinanceDashboard()" id="financeBtn" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">💰 Finances</button>
-            <button onclick="openScoutingModal()" id="scoutingBtn" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">🔍 Scouting</button>
-            <button onclick="openFranchiseHistory()" id="historyBtn" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">📜 History</button>
-            <button onclick="openGameMenu()" style="background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);">⚙️ Game Menu</button>
-        </div>
-
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-box" style="background: rgba(102, 126, 234, 0.3);"></div>
-                <span>Your Team</span>
-            </div>
-            <div class="legend-item" id="promotionLegend" style="display: none;">
-                <div class="legend-box" style="background: rgba(52, 168, 83, 0.3);"></div>
-                <span>Auto-Promotion</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-box" style="background: rgba(255, 193, 7, 0.2);"></div>
-                <span id="playoffLegendText">Playoff Zone</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-box" style="background: rgba(234, 67, 53, 0.3);"></div>
-                <span id="autoZoneLegendText">Auto-Relegation</span>
-            </div>
-        </div>
-
-        <div class="content-grid">
-            <div class="standings-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h2 id="standingsTitle" style="margin: 0;">League Standings</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="viewOverallBtn" onclick="toggleStandingsView('overall')" style="padding: 8px 16px; font-size: 0.9em; background: linear-gradient(135deg, #667eea 0%, #5568d3 100%);">
-                            Overall
-                        </button>
-                        <button id="viewDivisionBtn" onclick="toggleStandingsView('division')" style="padding: 8px 16px; font-size: 0.9em;">
-                            Division
-                        </button>
-                        <span style="border-left: 2px solid rgba(255,255,255,0.2); margin: 0 5px;"></span>
-                        <button id="viewTier1Btn" onclick="viewTierStandings(1)" style="padding: 8px 16px; font-size: 0.9em;">
-                            View Tier 1
-                        </button>
-                        <button id="viewTier2Btn" onclick="viewTierStandings(2)" style="padding: 8px 16px; font-size: 0.9em;">
-                            View Tier 2
-                        </button>
-                        <button id="viewTier3Btn" onclick="viewTierStandings(3)" style="padding: 8px 16px; font-size: 0.9em;">
-                            View Tier 3
-                        </button>
-                        <button id="viewCurrentBtn" onclick="viewTierStandings(gameState.currentTier)" style="padding: 8px 16px; font-size: 0.9em; background: linear-gradient(135deg, #34a853 0%, #2e7d32 100%);">
-                            My Tier
-                        </button>
-                    </div>
-                </div>
-                <div id="standingsLeagueInfo" style="text-align: center; margin-bottom: 10px; font-size: 0.9em; opacity: 0.8;">
-                    <!-- Shows which tier is being viewed -->
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Team</th>
-                            <th>Division</th>
-                            <th>W</th>
-                            <th>L</th>
-                            <th>PCT</th>
-                            <th>DIFF</th>
-                        </tr>
-                    </thead>
-                    <tbody id="standingsBody">
-                        <!-- Populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="next-games-container">
-                <h2>📅 Upcoming Schedule</h2>
-                <div id="todaysGamesContainer" style="margin-bottom: 15px;">
-                    <!-- Today's games across all tiers -->
-                </div>
-                <div id="nextGamesContainer">
-                    <!-- Upcoming user team games -->
-                </div>
-            </div>
-        </div>
-
-        <div id="seasonHistory" class="history-section" style="display: none;">
-            <h2>🏆 Career History</h2>
-            <div id="historyList">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Watch Game Modal -->
-    <div id="watchGameModal" class="modal hidden" style="z-index: 1020;">
-        <div class="modal-content" style="max-width: 1000px; max-height: 95vh; overflow: hidden; padding: 0;">
-            <div id="watchGameContent"></div>
-        </div>
-    </div>
-
-    <!-- Post-Game Summary Modal -->
-    <div id="postGameModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 700px;">
-            <div id="postGameContent"></div>
-            <div style="text-align: center; margin-top: 15px;">
-                <button onclick="document.getElementById('postGameModal').classList.add('hidden')" class="success" style="font-size: 1.1em; padding: 12px 35px;">Continue</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Box Score Modal (detailed view from calendar) -->
-    <div id="boxScoreModal" class="modal hidden" style="z-index: 1025;">
-        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-            <div id="boxScoreContent"></div>
-            <div style="text-align: center; margin-top: 15px;">
-                <button onclick="document.getElementById('boxScoreModal').classList.add('hidden')" class="success" style="padding: 10px 30px;">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Franchise History Modal -->
-    <div id="franchiseHistoryModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
-            <h2 style="text-align: center; margin-bottom: 20px;">📜 Franchise History</h2>
-            <div id="franchiseHistoryContent">
-                <!-- Populated by JavaScript -->
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button onclick="document.getElementById('franchiseHistoryModal').classList.add('hidden')" class="success" style="font-size: 1.1em; padding: 12px 35px;">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Roster Compliance Modal -->
-    <div id="complianceModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 800px;">
-            <div id="complianceModalContent">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Injury Report Modal -->
-    <div id="injuryModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 700px;">
-            <h2 style="text-align: center; color: #ea4335; margin-bottom: 20px;">🚑 Injury Report</h2>
-            
-            <div id="injuryDetails" style="background: rgba(234,67,53,0.1); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid rgba(234,67,53,0.3);">
-                <!-- Populated by JavaScript -->
-            </div>
-            
-            <div id="injuryOptions" style="margin-bottom: 20px;">
-                <!-- Populated by JavaScript -->
-            </div>
-            
-            <div style="text-align: center;">
-                <button id="injuryConfirmBtn" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    Confirm Decision
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Coach Management Modal -->
-    <div id="coachModal" class="modal hidden">
-        <div class="modal-content" id="coachModalContent" style="max-width: 1100px; width: 95%;">
-            <!-- Populated by JavaScript -->
-        </div>
-    </div>
-
-    <!-- Calendar View Modal -->
-    <div id="calendarModal" class="modal hidden">
-        <div class="modal-content" id="calendarContent" style="max-width: 1100px; width: 95%;">
-        </div>
-    </div>
-    
-    <!-- All-Star Game Modal -->
-    <div id="allStarModal" class="modal hidden">
-        <div class="modal-content" id="allStarContent" style="max-width: 1000px; width: 95%;">
-        </div>
-    </div>
-
-    <!-- Contract Decisions Modal -->
-    <div id="contractDecisionsModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 900px;">
-            <h2 style="text-align: center; margin-bottom: 10px;">📝 Contract Decisions</h2>
-            <p style="text-align: center; opacity: 0.8; margin-bottom: 25px;">
-                The following players' contracts have expired. Decide who to re-sign before they hit free agency.
-            </p>
-            
-            <div id="contractDecisionsSummary" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-                <!-- Summary info populated by JavaScript -->
-            </div>
-            
-            <div id="expiringContractsList" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
-                <!-- Player cards populated by JavaScript -->
-            </div>
-            
-            <div style="text-align: center; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.1);">
-                <button id="contractDecisionsConfirmBtn" class="success" style="font-size: 1.2em; padding: 15px 40px;">
-                    Confirm Decisions
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Game Menu Modal -->
-    <div id="gameMenuModal" class="modal hidden" onclick="if(event.target===this)closeGameMenu()">
-        <div class="modal-content" style="max-width: 420px; padding: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="margin: 0;">⚙️ Game Menu</h2>
-                <button onclick="closeGameMenu()" style="background: rgba(255,255,255,0.1); padding: 6px 12px; font-size: 0.9em; box-shadow: none;">✕</button>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                <button onclick="downloadSave(); closeGameMenu()" style="width: 100%; text-align: left; padding: 16px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <span style="font-size: 1.1em;">💾 Download Save</span><br>
-                    <span style="font-size: 0.8em; opacity: 0.7; font-weight: normal;">Export your game to a file</span>
-                </button>
-                <button onclick="uploadSave()" style="width: 100%; text-align: left; padding: 16px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <span style="font-size: 1.1em;">📂 Load Save</span><br>
-                    <span style="font-size: 0.8em; opacity: 0.7; font-weight: normal;">Import a save file (replaces current)</span>
-                </button>
-                <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;"></div>
-                <button onclick="resetGame()" style="width: 100%; text-align: left; padding: 16px 20px; background: linear-gradient(135deg, #ea4335 0%, #c62828 100%);">
-                    <span style="font-size: 1.1em;">🔄 Reset Game</span><br>
-                    <span style="font-size: 0.8em; opacity: 0.7; font-weight: normal;">Start over — all progress will be lost</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- React UI root — mounts above the legacy game container -->
     <div id="react-root"></div>
 

@@ -29,6 +29,16 @@ export class DashboardController {
         const { CalendarEngine, LeagueManager, SalaryCapEngine, FinanceEngine,
                 CoachEngine, UIHelpers, UIRenderer } = engines;
 
+        // When React UI is active, the legacy dashboard DOM is removed.
+        // Notify React instead of updating legacy DOM elements.
+        if (window._notifyReact) {
+            window._reactGameState = gameState;
+            window._notifyReact();
+        }
+
+        // Skip legacy DOM updates if the elements have been removed
+        if (!document.getElementById('tierBadge')) return;
+
         const teams = helpers.getCurrentTeams();
         const userTeam = teams.find(t => t.id === gameState.userTeamId);
         const numGames = gameState.currentTier === 1 ? 82 : gameState.currentTier === 2 ? 60 : 40;
