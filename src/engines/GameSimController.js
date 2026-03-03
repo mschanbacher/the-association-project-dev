@@ -811,10 +811,15 @@ export class GameSimController {
         // Mark offseason phase
         gameState.offseasonPhase = 'season_ended';
 
-        document.getElementById('simNextBtn').disabled = true;
-        document.getElementById('simDayBtn').disabled = true;
-        document.getElementById('simWeekBtn').disabled = true;
-        document.getElementById('finishBtn').disabled = true;
+        // Disable sim buttons (legacy DOM — may not exist when React UI is active)
+        const simNextBtn = document.getElementById('simNextBtn');
+        const simDayBtn = document.getElementById('simDayBtn');
+        const simWeekBtn = document.getElementById('simWeekBtn');
+        const finishBtn = document.getElementById('finishBtn');
+        if (simNextBtn) simNextBtn.disabled = true;
+        if (simDayBtn) simDayBtn.disabled = true;
+        if (simWeekBtn) simWeekBtn.disabled = true;
+        if (finishBtn) finishBtn.disabled = true;
 
         const userTeam = helpers.getUserTeam();
         if (!userTeam) {
@@ -962,13 +967,14 @@ export class GameSimController {
     }
 
     closeSeasonEnd() {
-        document.getElementById('seasonEndModal').classList.add('hidden');
-        // Keep sim buttons disabled - season is over
-        document.getElementById('simNextBtn').disabled = true;
-        document.getElementById('simDayBtn').disabled = true;
-        document.getElementById('simWeekBtn').disabled = true;
-        // Re-enable finish button so user can reopen season end modal
-        document.getElementById('finishBtn').disabled = false;
+        const el = document.getElementById('seasonEndModal');
+        if (el) el.classList.add('hidden');
+        // Keep sim buttons disabled - season is over (legacy DOM may not exist)
+        const s = id => document.getElementById(id);
+        if (s('simNextBtn')) s('simNextBtn').disabled = true;
+        if (s('simDayBtn')) s('simDayBtn').disabled = true;
+        if (s('simWeekBtn')) s('simWeekBtn').disabled = true;
+        if (s('finishBtn')) s('finishBtn').disabled = false;
     }
 
     // ═══════════════════════════════════════════════════════════════════

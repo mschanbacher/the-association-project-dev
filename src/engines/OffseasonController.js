@@ -1174,10 +1174,11 @@ export class OffseasonController {
 
         helpers.saveGameState();
 
-        document.getElementById('simNextBtn').disabled = false;
-        document.getElementById('simDayBtn').disabled = false;
-        document.getElementById('simWeekBtn').disabled = false;
-        document.getElementById('finishBtn').disabled = false;
+        // Re-enable sim buttons (legacy DOM may not exist when React UI is active)
+        for (const id of ['simNextBtn', 'simDayBtn', 'simWeekBtn', 'finishBtn']) {
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+        }
 
         console.log('✅ Step 5 complete: New season ready!');
         console.log('Current game:', gameState.currentGame);
