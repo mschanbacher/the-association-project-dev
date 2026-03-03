@@ -648,6 +648,25 @@ class GameState {
      * Preserves all non-team data (scores, strings, numbers, booleans, null) as-is.
      * Handles arrays, plain objects, and the known playoff sub-structures.
      */
+    /**
+     * Recursively strip boxScore objects from playoff data to reduce save size.
+     * Box scores contain full player stat arrays for every game and can add
+     * megabytes of data during a full postseason. They're only used for
+     * mid-session bracket box score viewing and aren't needed across sessions.
+     */
+    static _stripBoxScores(obj) {
+        if (obj === null || obj === undefined) return obj;
+        if (typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(item => GameState._stripBoxScores(item));
+        
+        const result = {};
+        for (const key of Object.keys(obj)) {
+            if (key === 'boxScore') continue; // skip box scores entirely
+            result[key] = GameState._stripBoxScores(obj[key]);
+        }
+        return result;
+    }
+
     static _dehydrate(obj) {
         if (obj === null || obj === undefined) return obj;
         if (typeof obj !== 'object') return obj; // number, string, boolean
@@ -818,10 +837,13 @@ class GameState {
             tradeHistory: this._tradeHistory,
             lastAiToAiTradeDate: this._lastAiToAiTradeDate,
             // v4: playoff state persistence (dehydrated: team objects → {_ref: id})
-            postseasonResults: GameState._dehydrate(this._postseasonResults),
-            championshipPlayoffData: GameState._dehydrate(this._championshipPlayoffData),
-            t2PlayoffData: GameState._dehydrate(this._t2PlayoffData),
-            t3PlayoffData: GameState._dehydrate(this._t3PlayoffData),
+            // Strip box scores from serialized playoff data — they're large (full player
+            // stats per game) and only needed for mid-session bracket viewing. This prevents
+            // saves from ballooning during playoffs and causing UI freezes.
+            postseasonResults: GameState._dehydrate(GameState._stripBoxScores(this._postseasonResults)),
+            championshipPlayoffData: GameState._dehydrate(GameState._stripBoxScores(this._championshipPlayoffData)),
+            t2PlayoffData: GameState._dehydrate(GameState._stripBoxScores(this._t2PlayoffData)),
+            t3PlayoffData: GameState._dehydrate(GameState._stripBoxScores(this._t3PlayoffData)),
             lastSaveTime: new Date().toISOString(),
             gameVersion: this._gameVersion
         });
