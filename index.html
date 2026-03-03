@@ -2482,15 +2482,55 @@
             
             const userTeam = getUserTeam();
             const isUserTeam = team.id === userTeam.id;
-            
-            // Render details header via UIRenderer
+
+            // ── Route to React InjuryModal ──
+            if (window._reactShowInjury) {
+                let aiDecision = null;
+                let dpeEligible = false;
+                let dpeAmount = 0;
+
+                if (!isUserTeam) {
+                    // AI team — auto-decide and apply immediately
+                    aiDecision = injury.canPlayThrough && Math.random() < 0.3 ? 'playThrough' : 'rest';
+                    InjuryEngine.applyInjury(player, injury, aiDecision);
+                } else if (!injury.canPlayThrough) {
+                    // Severe — no choice, apply rest immediately
+                    InjuryEngine.applyInjury(player, injury, 'rest');
+                    dpeEligible = injury.allowsDPE && player.salary > getDPEThreshold(team.tier);
+                    dpeAmount = dpeEligible ? Math.min(player.salary * 0.5, getDPEAmount(team.tier)) : 0;
+                    if (dpeEligible) grantDPE(team, player);
+                }
+
+                // Set up callback for when React modal closes
+                window._injuryDecisionCallback = (decision) => {
+                    // For user playthrough injuries, apply the decision now
+                    if (isUserTeam && injury.canPlayThrough && decision) {
+                        InjuryEngine.applyInjury(player, injury, decision);
+                    }
+                    // Advance queue
+                    if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
+                        gameState.pendingInjuries.shift();
+                    }
+                    pendingInjuryDecision = null;
+                    // Show next injury if any
+                    if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
+                        showNextInjuryModal();
+                    }
+                };
+
+                window._reactShowInjury({
+                    team, player, injury, isUserTeam,
+                    aiDecision, dpeEligible, dpeAmount, formatCurrency,
+                });
+                return;
+            }
+
+            // ── Legacy fallback ──
             document.getElementById('injuryDetails').innerHTML = UIRenderer.injuryDetails({ player, team, injury });
             
-            // Build options based on team type and severity
             let optionsHtml = '';
             
             if (!isUserTeam) {
-                // AI team injury - auto-decide and just inform user
                 const aiDecision = injury.canPlayThrough && Math.random() < 0.3 ? 'playThrough' : 'rest';
                 InjuryEngine.applyInjury(player, injury, aiDecision);
                 
@@ -2508,11 +2548,9 @@
                     }
                 };
             } else {
-                // User team injury - present options
                 if (injury.canPlayThrough) {
                     optionsHtml = UIRenderer.injuryUserOptions({ player, injury });
                 } else {
-                    // Severe/season-ending - no choice
                     const dpeEligible = injury.allowsDPE && player.salary > getDPEThreshold(team.tier);
                     const dpeAmount = dpeEligible ? Math.min(player.salary * 0.5, getDPEAmount(team.tier)) : 0;
                     

@@ -17,6 +17,7 @@ import { TradeScreen, AiTradeProposalModal } from './screens/TradeScreen.jsx';
 import { GameMenuModal } from './screens/GameMenuModal.jsx';
 import { OffseasonTracker } from './screens/OffseasonTracker.jsx';
 import { OffseasonModals } from './screens/OffseasonModals.jsx';
+import { InjuryModal } from './screens/InjuryModal.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -29,6 +30,7 @@ function AppContent() {
   const [tradeOpen, setTradeOpen] = useState(false);
   const [aiTradeOpen, setAiTradeOpen] = useState(false);
   const [gameMenuOpen, setGameMenuOpen] = useState(false);
+  const [injuryData, setInjuryData] = useState(null);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -62,6 +64,8 @@ function AppContent() {
     window._reactOpenTrade = () => setTradeOpen(true);
     window._reactOpenAiTrade = () => setAiTradeOpen(true);
     window._reactOpenGameMenu = () => setGameMenuOpen(true);
+    window._reactShowInjury = (data) => setInjuryData(data);
+    window._reactHideInjury = () => setInjuryData(null);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -71,6 +75,8 @@ function AppContent() {
       delete window._reactOpenTrade;
       delete window._reactOpenAiTrade;
       delete window._reactOpenGameMenu;
+      delete window._reactShowInjury;
+      delete window._reactHideInjury;
     };
   }, []);
 
@@ -167,6 +173,14 @@ function AppContent() {
         onClose={() => setGameMenuOpen(false)}
       />
       <OffseasonModals />
+      <InjuryModal
+        isOpen={!!injuryData}
+        data={injuryData}
+        onDecision={(decision) => {
+          setInjuryData(null);
+          window._injuryDecisionCallback?.(decision);
+        }}
+      />
     </div>
   );
 }
