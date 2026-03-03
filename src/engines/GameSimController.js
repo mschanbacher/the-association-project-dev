@@ -962,7 +962,11 @@ export class GameSimController {
         const seasonEndPayload = {
             userTeam, rank, tier: gameState.currentTier, status, statusColor, nextAction,
             seasonLabel: `${gameState.currentSeason}-${(gameState.currentSeason + 1) % 100}`,
-            awardsHTML: tier1AwardsHTML + tier2AwardsHTML + tier3AwardsHTML,
+            awards: [
+                { tierLabel: 'Tier 1 — Premier League', data: tier1Awards },
+                { tierLabel: 'Tier 2 — Regional League', data: tier2Awards },
+                { tierLabel: 'Tier 3 — Metro League', data: tier3Awards },
+            ],
             t1TopTeam, t2Champion, t3Champion,
             t2Promoted, t1Relegated, t3Promoted, tier2Sorted,
             getRankSuffix: helpers.getRankSuffix

@@ -9,7 +9,7 @@ export function SeasonEndModal({ isOpen, data, onAdvance, onManageRoster, onStay
 
   const {
     userTeam, rank, tier, status, statusColor, nextAction, seasonLabel,
-    awardsHTML, t1TopTeam, t2Champion, t3Champion,
+    awards, t1TopTeam, t2Champion, t3Champion,
     t2Promoted, t1Relegated, t3Promoted, tier2Sorted, getRankSuffix
   } = data;
 
@@ -20,10 +20,12 @@ export function SeasonEndModal({ isOpen, data, onAdvance, onManageRoster, onStay
     return 'th';
   });
 
+  const hasAwards = awards && awards.some(a => a.data);
+
   const tabs = [
     { key: 'summary', label: 'Summary' },
     { key: 'prorel', label: 'Promo / Rel' },
-    awardsHTML ? { key: 'awards', label: 'Awards' } : null,
+    hasAwards ? { key: 'awards', label: 'Awards' } : null,
   ].filter(Boolean);
 
   return (
@@ -94,8 +96,12 @@ export function SeasonEndModal({ isOpen, data, onAdvance, onManageRoster, onStay
           </div>
         )}
 
-        {tab === 'awards' && awardsHTML && (
-          <div dangerouslySetInnerHTML={{ __html: awardsHTML }} />
+        {tab === 'awards' && hasAwards && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+            {awards.filter(a => a.data).map((tier, idx) => (
+              <TierAwardsSection key={idx} tierLabel={tier.tierLabel} awards={tier.data} />
+            ))}
+          </div>
         )}
       </ModalBody>
 
@@ -112,6 +118,171 @@ export function SeasonEndModal({ isOpen, data, onAdvance, onManageRoster, onStay
   );
 }
 
+/* ── Tier Awards Section ── */
+function TierAwardsSection({ tierLabel, awards }) {
+  if (!awards) return null;
+
+  const mvpExtra = awards.mvp
+    ? `${awards.mvp.avgs.fieldGoalPct.toFixed(1)}% FG · ${awards.mvp.team.wins}-${awards.mvp.team.losses}`
+    : '';
+  const dpoyExtra = awards.dpoy
+    ? `DEF ${awards.dpoy.player.defRating || '??'} · ${awards.dpoy.avgs.stealsPerGame} SPG · ${awards.dpoy.avgs.blocksPerGame} BPG`
+    : '';
+  const mipExtra = awards.mostImproved?.prevAvgs
+    ? `+${awards.mostImproved.improvement.toFixed(1)} composite improvement`
+    : '';
+
+  return (
+    <div style={{
+      background: 'var(--color-accent-subtle, rgba(212,168,67,0.05))',
+      padding: 'var(--space-5)',
+      borderRadius: 'var(--radius-lg)',
+      border: '1px solid var(--color-accent-border, rgba(212,168,67,0.15))',
+    }}>
+      <div style={{
+        fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)',
+        color: 'var(--color-accent)', marginBottom: 'var(--space-4)',
+      }}>
+        🏆 {tierLabel} Season Awards
+      </div>
+
+      {/* Major Awards */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: 'var(--space-3)', marginBottom: 'var(--space-4)',
+      }}>
+        <AwardCard emoji="🏅" title="MVP" winner={awards.mvp} extra={mvpExtra} />
+        <AwardCard emoji="🛡️" title="Defensive POY" winner={awards.dpoy} extra={dpoyExtra} />
+        <AwardCard emoji="⭐" title="Rookie of the Year" winner={awards.roy} />
+        <AwardCard emoji="💪" title="Sixth Man" winner={awards.sixthMan} />
+        <AwardCard emoji="📈" title="Most Improved" winner={awards.mostImproved} extra={mipExtra} />
+      </div>
+
+      {/* All-League Teams */}
+      <div style={{
+        background: 'var(--color-bg-sunken)', padding: 'var(--space-4)',
+        borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-3)',
+      }}>
+        <div style={{
+          color: 'var(--color-accent)', fontWeight: 'var(--weight-bold)',
+          fontSize: 'var(--text-md)', marginBottom: 'var(--space-3)',
+        }}>
+          All-League Teams
+        </div>
+        <AllLeagueRow label="First Team" team={awards.allLeagueFirst} />
+        <AllLeagueRow label="Second Team" team={awards.allLeagueSecond} />
+      </div>
+
+      {/* Stat Leaders */}
+      {awards.statLeaders && (
+        <div style={{
+          background: 'var(--color-bg-sunken)', padding: 'var(--space-4)',
+          borderRadius: 'var(--radius-md)',
+        }}>
+          <div style={{
+            color: 'var(--color-accent)', fontWeight: 'var(--weight-bold)',
+            fontSize: 'var(--text-md)', marginBottom: 'var(--space-3)',
+          }}>
+            Statistical Leaders
+          </div>
+          <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.8 }}>
+            <StatLeaderRow label="Scoring" stat="pointsPerGame" leaders={awards.statLeaders.scoring} />
+            <StatLeaderRow label="Rebounds" stat="reboundsPerGame" leaders={awards.statLeaders.rebounds} />
+            <StatLeaderRow label="Assists" stat="assistsPerGame" leaders={awards.statLeaders.assists} />
+            <StatLeaderRow label="Steals" stat="stealsPerGame" leaders={awards.statLeaders.steals} />
+            <StatLeaderRow label="Blocks" stat="blocksPerGame" leaders={awards.statLeaders.blocks} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Award Card ── */
+function AwardCard({ emoji, title, winner, extra }) {
+  if (!winner) return null;
+  const a = winner.avgs;
+  return (
+    <div style={{
+      background: 'var(--color-accent-subtle, rgba(212,168,67,0.05))',
+      border: '1px solid var(--color-accent-border, rgba(212,168,67,0.15))',
+      borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', textAlign: 'center',
+    }}>
+      <div style={{ fontSize: '2em', marginBottom: 'var(--space-1)' }}>{emoji}</div>
+      <div style={{
+        fontSize: 'var(--text-xs)', color: 'var(--color-accent)',
+        textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 'var(--space-2)',
+      }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)', marginBottom: 2 }}>
+        {winner.player.name}
+      </div>
+      <div style={{ fontSize: 'var(--text-sm)', opacity: 0.8 }}>
+        {winner.team.name} · {winner.player.position}
+      </div>
+      <div style={{ fontSize: 'var(--text-xs)', opacity: 0.7, marginTop: 'var(--space-1)' }}>
+        {a.pointsPerGame} PPG · {a.reboundsPerGame} RPG · {a.assistsPerGame} APG
+      </div>
+      {extra && (
+        <div style={{ fontSize: 'var(--text-xs)', opacity: 0.6, marginTop: 2 }}>{extra}</div>
+      )}
+    </div>
+  );
+}
+
+/* ── All-League Row ── */
+function AllLeagueRow({ label, team }) {
+  if (!team) return null;
+  const slots = [team.G1, team.G2, team.F1, team.F2, team.C].filter(Boolean);
+  if (slots.length === 0) return null;
+  return (
+    <div style={{ marginBottom: 'var(--space-3)' }}>
+      <div style={{
+        fontSize: 'var(--text-sm)', color: 'var(--color-accent)',
+        fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)',
+      }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'var(--space-2)' }}>
+        {slots.map((p, i) => (
+          <div key={i} style={{
+            background: 'var(--color-bg-active)', padding: 'var(--space-2) var(--space-3)',
+            borderRadius: 'var(--radius-sm)', minWidth: 135,
+          }}>
+            <div style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>
+              {p.player.name}
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', opacity: 0.7 }}>
+              {p.player.position} · {p.team.name}
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', opacity: 0.6 }}>
+              {p.avgs.pointsPerGame}/{p.avgs.reboundsPerGame}/{p.avgs.assistsPerGame}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Stat Leader Row ── */
+function StatLeaderRow({ label, stat, leaders }) {
+  if (!leaders || leaders.length === 0) return null;
+  return (
+    <div>
+      <strong>{label}:</strong>{' '}
+      {leaders.map((p, i) => (
+        <span key={i} style={{ opacity: 1 - i * 0.2 }}>
+          {i === 0 ? '👑 ' : ''}{p.player.name} ({p.avgs[stat]})
+          {i < leaders.length - 1 ? ' · ' : ''}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ── Summary cards ── */
 function LeaderCard({ tier, color, team, label }) {
   if (!team) return null;
   return (
