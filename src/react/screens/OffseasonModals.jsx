@@ -19,7 +19,6 @@ const MODAL_IDS = [
   { id: 'freeAgencyModal',            maxWidth: 1100 },
   { id: 'collegeGradFAModal',         maxWidth: 1000 },
   { id: 'financeDashboardModal',      maxWidth: 1100 },
-  { id: 'rosterModal',                maxWidth: 1600 },
   { id: 'bracketViewerModal',         maxWidth: 1400 },
 ];
 

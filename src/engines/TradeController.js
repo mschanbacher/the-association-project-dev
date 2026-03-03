@@ -74,7 +74,11 @@ export class TradeController {
         // If we came from roster management, return there
         if (window.returnToRosterManagement) {
             window.returnToRosterManagement = false;
-            document.getElementById('rosterModal').classList.remove('hidden');
+            if (window._reactShowRoster && window._buildRosterData) {
+                window._reactShowRoster(window._buildRosterData('game'));
+            } else {
+                document.getElementById('rosterModal').classList.remove('hidden');
+            }
         }
     }
 

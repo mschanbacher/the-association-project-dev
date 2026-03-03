@@ -2278,6 +2278,70 @@
         // Track where roster management was opened from
         let rosterManagementReturnContext = 'seasonEnd'; // 'seasonEnd', 'compliance', 'development'
         
+        function _buildRosterData(returnContext) {
+            const userTeam = getUserTeam();
+            if (!userTeam) return null;
+            ensureRosterExists(userTeam);
+
+            const roster = [...(userTeam.roster || [])].sort((a, b) => b.rating - a.rating);
+            const totalSalary = Math.round(calculateTeamSalary(userTeam));
+            FinanceEngine.ensureFinances(userTeam);
+            const salaryCap = getEffectiveCap(userTeam);
+            const baseCap = getSalaryCap(userTeam.tier);
+            const salaryFloor = FinanceEngine.getSalaryFloor(userTeam);
+            const remainingCap = Math.round(getRemainingCap(userTeam));
+            const isOverCap = totalSalary > salaryCap;
+            const isUnderFloor = totalSalary < salaryFloor;
+            const isRevenueBasedCap = userTeam.tier !== 1;
+            const hasCapBoost = isRevenueBasedCap ? (salaryCap > baseCap) : false;
+            let boostLabel = '';
+            if (isRevenueBasedCap && salaryCap > baseCap * 1.2) {
+                boostLabel = '📈 Revenue exceeds tier baseline';
+            } else if (userTeam.finances && userTeam.finances.previousTier && userTeam.finances.previousTier < userTeam.tier) {
+                boostLabel = '🏛️ Retained revenue from Tier ' + userTeam.finances.previousTier;
+            }
+            const teamChemistry = calculateTeamChemistry(userTeam);
+            const chemistryColor = getChemistryColor(teamChemistry);
+            const chemistryDesc = getChemistryDescription(teamChemistry);
+
+            const posBreakdown = {};
+            roster.forEach(p => { posBreakdown[p.position] = (posBreakdown[p.position] || 0) + 1; });
+
+            // Ensure contract info on free agents
+            const freeAgents = (gameState.freeAgents || []).map(p => {
+                if (!p.contractYears) {
+                    p.contractYears = TeamFactory.determineContractLength(p.age, p.rating);
+                    p.originalContractLength = p.contractYears;
+                }
+                return p;
+            });
+
+            const allAttrDefs = { ...PlayerAttributes.PHYSICAL_ATTRS, ...PlayerAttributes.MENTAL_ATTRS };
+
+            // Ensure attributes exist for all roster players
+            roster.forEach(p => PlayerAttributes.ensureAttributes(p));
+
+            return {
+                roster, freeAgents, posBreakdown, returnContext,
+                capInfo: {
+                    totalSalary, salaryCap, salaryFloor, remainingCap, isOverCap, isUnderFloor,
+                    isRevenueBasedCap, hasCapBoost, boostLabel, boostAmount: salaryCap - baseCap,
+                    teamChemistry, chemistryColor, chemistryDesc,
+                },
+                formatCurrency, getRatingColor,
+                getAttrColor: (v) => PlayerAttributes.getAttrColor(v),
+                attrDefs: allAttrDefs,
+                physicalAttrs: PlayerAttributes.PHYSICAL_ATTRS,
+                mentalAttrs: PlayerAttributes.MENTAL_ATTRS,
+                onRefresh: () => {
+                    // Re-open with fresh data after drop/sign
+                    if (window._reactShowRoster) {
+                        window._reactShowRoster(_buildRosterData(returnContext));
+                    }
+                },
+            };
+        }
+
         function openRosterManagement() {
             console.log('📋 Opening Roster Management');
             console.log('User Team ID:', gameState.userTeamId);
@@ -2300,6 +2364,13 @@
                 rosterManagementReturnContext = 'seasonEnd';
             } else {
                 rosterManagementReturnContext = 'game';
+            }
+
+            if (window._reactShowRoster) {
+                document.getElementById('seasonEndModal').classList.add('hidden');
+                window._rosterCloseCallback = () => closeRosterManagementDynamic();
+                window._reactShowRoster(_buildRosterData(rosterManagementReturnContext));
+                return;
             }
             
             document.getElementById('seasonEndModal').classList.add('hidden');
@@ -2380,6 +2451,15 @@
             
             // Set context so we return to game (not season end modal)
             rosterManagementReturnContext = 'game';
+
+            if (window._reactShowRoster) {
+                window._rosterCloseCallback = () => {
+                    saveGameState();
+                    getDashboardController().refresh();
+                };
+                window._reactShowRoster(_buildRosterData('game'));
+                return;
+            }
             
             // Open the roster modal
             document.getElementById('rosterModal').classList.remove('hidden');
@@ -2459,6 +2539,15 @@
             // Set return context so closeRosterManagement knows where to go back
             rosterManagementReturnContext = 'compliance';
             document.getElementById('complianceModal').classList.add('hidden');
+
+            if (window._reactShowRoster) {
+                window._rosterCloseCallback = () => {
+                    saveGameState();
+                    getOffseasonController().checkRosterComplianceAndContinue();
+                };
+                window._reactShowRoster(_buildRosterData('compliance'));
+                return;
+            }
             openRosterManagement();
         }
         
@@ -3037,6 +3126,7 @@
         window.generateSalary = generateSalary;
         window.openFranchiseHistory = () => getDashboardController().openFranchiseHistory();
         window.openRosterManagement = openRosterManagement;
+        window._buildRosterData = _buildRosterData;
         window.openRosterManagementFromCompliance = openRosterManagementFromCompliance;
         window.openRosterManagementHub = openRosterManagementHub;
         window.openTradeScreenFromRoster = openTradeScreenFromRoster;

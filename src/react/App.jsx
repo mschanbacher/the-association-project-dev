@@ -27,6 +27,7 @@ import { SeasonEndModal } from './screens/SeasonEndModal.jsx';
 import { DraftResultsModal } from './screens/DraftResultsModal.jsx';
 import { CalendarModal } from './screens/CalendarModal.jsx';
 import { CoachModal } from './screens/CoachModal.jsx';
+import { RosterModal } from './screens/RosterModal.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -49,6 +50,7 @@ function AppContent() {
   const [draftResultsData, setDraftResultsData] = useState(null);
   const [calendarData, setCalendarData] = useState(null);
   const [coachData, setCoachData] = useState(null);
+  const [rosterData, setRosterData] = useState(null);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -93,6 +95,7 @@ function AppContent() {
     window._reactShowDraftResults = (data) => setDraftResultsData(data);
     window._reactShowCalendar = (data) => setCalendarData(data);
     window._reactShowCoach = (data) => setCoachData(data);
+    window._reactShowRoster = (data) => setRosterData(data);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -113,6 +116,7 @@ function AppContent() {
       delete window._reactShowDraftResults;
       delete window._reactShowCalendar;
       delete window._reactShowCoach;
+      delete window._reactShowRoster;
     };
   }, []);
 
@@ -297,6 +301,14 @@ function AppContent() {
         isOpen={!!coachData}
         data={coachData}
         onClose={() => setCoachData(null)}
+      />
+      <RosterModal
+        isOpen={!!rosterData}
+        data={rosterData}
+        onClose={() => {
+          setRosterData(null);
+          window._rosterCloseCallback?.();
+        }}
       />
     </div>
   );
