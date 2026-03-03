@@ -309,8 +309,11 @@ export class GMMode {
                 this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
                 this.deps.saveGameState();
                 this.deps.updateUI();
+                window._resumeAfterInjuries = () => {
+                    delete window._resumeAfterInjuries;
+                    this._resumeSimWeek(this.gameState.currentDate, endDate);
+                };
                 this.deps.showNextInjuryModal();
-                // User makes injury decisions, then clicks Sim Week again to resume
                 return;
             }
 
@@ -371,6 +374,10 @@ export class GMMode {
             if (this.gameState.pendingInjuries && this.gameState.pendingInjuries.length > 0) {
                 this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
                 this.deps.saveGameState(); this.deps.updateUI();
+                window._resumeAfterInjuries = () => {
+                    delete window._resumeAfterInjuries;
+                    this._resumeSimWeek(this.gameState.currentDate, endDate);
+                };
                 this.deps.showNextInjuryModal();
                 return;
             }
@@ -706,8 +713,12 @@ export class GMMode {
                 this.gameState.currentDate = this.deps.CalendarEngine.addDays(currentDate, 1);
                 this.deps.saveGameState();
                 this.deps.updateUI();
+                // Set resume callback so finishSeasonBatch resumes after all injuries are handled
+                window._resumeAfterInjuries = () => {
+                    delete window._resumeAfterInjuries;
+                    this.finishSeasonBatch();
+                };
                 this.deps.showNextInjuryModal();
-                // User makes decision, then clicks Finish Season again to resume
                 return;
             }
 

@@ -2655,9 +2655,11 @@
                         gameState.pendingInjuries.shift();
                     }
                     pendingInjuryDecision = null;
-                    // Show next injury if any
+                    // Show next injury if any, otherwise resume sim if finish season was active
                     if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
                         showNextInjuryModal();
+                    } else if (window._resumeAfterInjuries) {
+                        window._resumeAfterInjuries();
                     }
                 };
 
@@ -2688,6 +2690,8 @@
                     pendingInjuryDecision = null;
                     if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
                         showNextInjuryModal();
+                    } else if (window._resumeAfterInjuries) {
+                        window._resumeAfterInjuries();
                     }
                 };
             } else {
@@ -2726,6 +2730,8 @@
                     
                     if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
                         showNextInjuryModal();
+                    } else if (window._resumeAfterInjuries) {
+                        window._resumeAfterInjuries();
                     }
                 };
             }
