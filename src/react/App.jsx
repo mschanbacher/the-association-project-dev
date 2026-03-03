@@ -94,8 +94,11 @@ function AppContent() {
     window._reactShowPostGame = (data) => setPostGameData(data);
     window._reactShowBoxScore = (data) => setBoxScoreData(data);
     window._reactOpenTrade = () => setTradeOpen(true);
+    window._reactCloseTrade = () => setTradeOpen(false);
     window._reactOpenAiTrade = () => setAiTradeOpen(true);
+    window._reactCloseAiTrade = () => setAiTradeOpen(false);
     window._reactOpenGameMenu = () => setGameMenuOpen(true);
+    window._reactCloseGameMenu = () => setGameMenuOpen(false);
     window._reactShowInjury = (data) => setInjuryData(data);
     window._reactHideInjury = () => setInjuryData(null);
     window._reactShowDevelopment = (data) => setDevelopmentData(data);
@@ -126,8 +129,11 @@ function AppContent() {
       delete window._reactShowPostGame;
       delete window._reactShowBoxScore;
       delete window._reactOpenTrade;
+      delete window._reactCloseTrade;
       delete window._reactOpenAiTrade;
+      delete window._reactCloseAiTrade;
       delete window._reactOpenGameMenu;
+      delete window._reactCloseGameMenu;
       delete window._reactShowInjury;
       delete window._reactHideInjury;
       delete window._reactShowDevelopment;

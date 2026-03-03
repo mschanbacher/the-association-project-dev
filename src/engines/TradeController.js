@@ -65,10 +65,15 @@ export class TradeController {
 
         document.getElementById('tradeInterface').style.display = 'none';
         document.getElementById('noTradePartner').style.display = 'block';
-        document.getElementById('tradeModal').classList.remove('hidden');
+        if (window._reactOpenTrade) {
+            window._reactOpenTrade();
+        } else {
+            document.getElementById('tradeModal').classList.remove('hidden');
+        }
     }
 
     closeTradeScreen() {
+        if (window._reactCloseTrade) window._reactCloseTrade();
         document.getElementById('tradeModal').classList.add('hidden');
         
         // If we came from roster management, return there
@@ -530,7 +535,11 @@ export class TradeController {
         }
 
         document.getElementById('aiProposalSummary').innerHTML = UIRenderer.aiTradeProposalSummary({ userGivesValue, aiGivesValue });
-        document.getElementById('aiTradeProposalModal').classList.remove('hidden');
+        if (window._reactOpenAiTrade) {
+            window._reactOpenAiTrade();
+        } else {
+            document.getElementById('aiTradeProposalModal').classList.remove('hidden');
+        }
     }
 
     acceptAiTradeProposal() {
@@ -587,6 +596,7 @@ export class TradeController {
             });
         }
 
+        if (window._reactCloseAiTrade) window._reactCloseAiTrade();
         document.getElementById('aiTradeProposalModal').classList.add('hidden');
         helpers.updateUI();
 
@@ -618,6 +628,7 @@ export class TradeController {
         }
 
         gameState.pendingTradeProposal = null;
+        if (window._reactCloseAiTrade) window._reactCloseAiTrade();
         document.getElementById('aiTradeProposalModal').classList.add('hidden');
 
         const seasonComplete = gameState.schedule && gameState.schedule.every(g => g.played);

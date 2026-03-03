@@ -491,24 +491,29 @@ export class GameSimController {
         }
 
         const game = seriesResult.games[gameIdx];
+        let boxPayload;
         if (!game.boxScore) {
-            // No box score — show score-only view
-            document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore({
+            boxPayload = {
                 home: { city: game.homeTeam.city || '', name: game.homeTeam.name, score: game.homeScore, players: [] },
                 away: { city: game.awayTeam.city || '', name: game.awayTeam.name, score: game.awayScore, players: [] },
                 date: `Playoff Game ${game.gameNumber}`,
                 hasDetailedStats: false
-            });
+            };
         } else {
-            document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore({
+            boxPayload = {
                 home: game.boxScore.home,
                 away: game.boxScore.away,
                 date: `Playoff Game ${game.gameNumber}`,
                 hasDetailedStats: true,
                 quarterScores: game.boxScore.quarterScores
-            });
+            };
         }
-        document.getElementById('boxScoreModal').classList.remove('hidden');
+        if (window._reactShowBoxScore) {
+            window._reactShowBoxScore(boxPayload);
+        } else {
+            document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore(boxPayload);
+            document.getElementById('boxScoreModal').classList.remove('hidden');
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════

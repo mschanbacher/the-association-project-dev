@@ -8,32 +8,29 @@ export function FreeAgencyModal({ isOpen, data, onClose }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [posFilter, setPosFilter] = useState('ALL');
   const [offers, setOffers] = useState({}); // { playerId: { salary, years } }
-  const [phase, setPhase] = useState('select'); // 'select' | 'results'
-  const [results, setResults] = useState(null);
 
-  // Reset state when new data arrives
+  // Reset state when new select-phase data arrives
+  const dataPhase = data?.phase || 'select';
   useEffect(() => {
-    if (data) {
+    if (dataPhase === 'select' && data) {
       const initial = new Set();
       (data.formerPlayers || []).forEach(p => initial.add(String(p.id)));
       setSelectedIds(initial);
       setPosFilter('ALL');
       setOffers({});
-      setPhase(data.phase || 'select');
-      setResults(data.results || null);
     }
-  }, [data]);
+  }, [dataPhase]);
 
   if (!isOpen || !data) return null;
 
   const fc = data.formatCurrency || (v => `$${(v / 1e6).toFixed(1)}M`);
 
-  if (phase === 'results' && results) {
+  if (dataPhase === 'results' && data.results) {
     return (
       <Modal isOpen={isOpen} onClose={null} maxWidth={1000} zIndex={1300}>
         <ModalHeader>{'\ud83d\udcca'} Free Agency Results</ModalHeader>
         <ModalBody style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-          <ResultsView results={results} fc={fc} getTeamById={data.getTeamById} userOffers={data.userOffers} />
+          <ResultsView results={data.results} fc={fc} getTeamById={data.getTeamById} userOffers={data.userOffers} />
           <div style={{ textAlign: 'center', marginTop: 'var(--space-5)' }}>
             <Button variant="primary" onClick={() => window.continueFreeAgency?.()}>
               Continue to Season Setup
@@ -58,7 +55,7 @@ export function FreeAgencyModal({ isOpen, data, onClose }) {
    ══════════════════════════════════════════════════════════ */
 
 function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPosFilter, offers, setOffers }) {
-  const { formerPlayers, otherPlayers, hiddenCount, roster, capSpace, rosterSidebar } = data;
+  const { formerPlayers = [], otherPlayers = [], hiddenCount = 0, roster = [], capSpace = 0, rosterSidebar } = data;
 
   const allPlayers = useMemo(() => [...(formerPlayers || []), ...(otherPlayers || [])], [formerPlayers, otherPlayers]);
 

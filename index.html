@@ -3134,8 +3134,8 @@
         window.resetGame = () => getSaveLoadController().reset();
         window.downloadSave = () => getSaveLoadController().downloadSave();
         window.uploadSave = () => getSaveLoadController().uploadSave();
-        window.openGameMenu = () => document.getElementById('gameMenuModal').classList.remove('hidden');
-        window.closeGameMenu = () => document.getElementById('gameMenuModal').classList.add('hidden');
+        window.openGameMenu = () => { if (window._reactOpenGameMenu) window._reactOpenGameMenu(); else document.getElementById('gameMenuModal').classList.remove('hidden'); };
+        window.closeGameMenu = () => { if (window._reactCloseGameMenu) window._reactCloseGameMenu(); else document.getElementById('gameMenuModal').classList.add('hidden'); };
         window.selectInjuryOption = selectInjuryOption;
         window.selectTeam = selectTeam;
         window.selectTier = selectTier;
