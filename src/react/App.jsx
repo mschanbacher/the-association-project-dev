@@ -31,6 +31,7 @@ import { RosterModal } from './screens/RosterModal.jsx';
 import { FinanceDashboardModal } from './screens/FinanceDashboardModal.jsx';
 import { ChampionshipPlayoffModal } from './screens/ChampionshipPlayoffModal.jsx';
 import { PlayoffModal } from './screens/PlayoffModal.jsx';
+import { FreeAgencyModal } from './screens/FreeAgencyModal.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -57,6 +58,7 @@ function AppContent() {
   const [financeDashData, setFinanceDashData] = useState(null);
   const [championshipData, setChampionshipData] = useState(null);
   const [playoffData, setPlayoffData] = useState(null);
+  const [faData, setFaData] = useState(null);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -107,6 +109,8 @@ function AppContent() {
     window._reactCloseChampionship = () => setChampionshipData(null);
     window._reactShowPlayoff = (data) => setPlayoffData({...data});
     window._reactClosePlayoff = () => setPlayoffData(null);
+    window._reactShowFA = (data) => setFaData({...data});
+    window._reactCloseFA = () => setFaData(null);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -133,6 +137,8 @@ function AppContent() {
       delete window._reactCloseChampionship;
       delete window._reactShowPlayoff;
       delete window._reactClosePlayoff;
+      delete window._reactShowFA;
+      delete window._reactCloseFA;
     };
   }, []);
 
@@ -340,6 +346,11 @@ function AppContent() {
         isOpen={!!playoffData}
         data={playoffData}
         onClose={() => setPlayoffData(null)}
+      />
+      <FreeAgencyModal
+        isOpen={!!faData}
+        data={faData}
+        onClose={() => setFaData(null)}
       />
     </div>
   );
