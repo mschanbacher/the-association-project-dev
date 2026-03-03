@@ -375,8 +375,8 @@ function T3Bracket({ pd, userId, active }) {
       {!metro && pd.stage === 'metro-final' && active && (
         <div style={{ marginBottom: 'var(--space-4)' }}>
           <div style={styles.stageLabel}>Metro Final (Bo3)</div>
-          <MatchupCard higher={{ id: active.higherId, name: '?', wins: 0, losses: 0 }}
-            lower={{ id: active.lowerId, name: '?', wins: 0, losses: 0 }}
+          <MatchupCard higher={{ id: active.higherId, name: active.higherName || 'TBD', wins: 0, losses: 0 }}
+            lower={{ id: active.lowerId, name: active.lowerName || 'TBD', wins: 0, losses: 0 }}
             hSeed="#1" lSeed="#2" userId={userId} activeInfo={active} />
         </div>
       )}
@@ -403,8 +403,8 @@ function T3Bracket({ pd, userId, active }) {
           ) : pd.stage === 'regional' && active ? (
             <>
               <div style={styles.stageLabel}>Regional Round (Play-In, Bo3)</div>
-              <MatchupCard higher={{ id: active.higherId, name: '?', wins: 0, losses: 0 }}
-                lower={{ id: active.lowerId, name: '?', wins: 0, losses: 0 }}
+              <MatchupCard higher={{ id: active.higherId, name: active.higherName || 'TBD', wins: 0, losses: 0 }}
+                lower={{ id: active.lowerId, name: active.lowerName || 'TBD', wins: 0, losses: 0 }}
                 hSeed="" lSeed="" userId={userId} activeInfo={active} />
             </>
           ) : null}
@@ -415,7 +415,9 @@ function T3Bracket({ pd, userId, active }) {
         <SectionHeader title="National Tournament" color="#cd7f32" />
         <div style={styles.rounds}>
           {stages.map((stage, r) => {
-            const roundData = ir[stage] || null;
+            let roundData = ir[stage] || null;
+            // championship is stored as single object, normalize to array
+            if (roundData && !Array.isArray(roundData)) roundData = [roundData];
             return (
               <RoundColumn key={r} label={stageNames[r]}>
                 {roundData && roundData.length > 0 ? (

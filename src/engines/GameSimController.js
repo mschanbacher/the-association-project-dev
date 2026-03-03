@@ -412,6 +412,8 @@ export class GameSimController {
                 playoffWatch: this._playoffWatch ? {
                     higherId: this._playoffWatch.higherSeed?.id,
                     lowerId: this._playoffWatch.lowerSeed?.id,
+                    higherName: this._playoffWatch.higherSeed?.name,
+                    lowerName: this._playoffWatch.lowerSeed?.name,
                     higherWins: this._playoffWatch.higherWins,
                     lowerWins: this._playoffWatch.lowerWins,
                 } : null,
