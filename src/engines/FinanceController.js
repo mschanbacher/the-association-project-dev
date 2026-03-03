@@ -202,8 +202,21 @@ export class FinanceController {
                 }
             };
             window._reactShowOwnerMode({
-                html,
-                onMount: () => updateTicketPriceEffect(Math.round((f.ticketPriceMultiplier || 1.0) * 100)),
+                team,
+                finances: f,
+                summary,
+                arena,
+                tier,
+                isT1,
+                expansionCost,
+                renovationCost,
+                expansionSeats,
+                sponsorships: [...f.sponsorships],
+                pendingSponsorOffers: [...f.pendingSponsorOffers],
+                revFor1Pct,
+                revFor3Pct,
+                revFor5Pct,
+                formatCurrency: helpers.formatCurrency,
             });
             return;
         }
@@ -271,8 +284,10 @@ export class FinanceController {
         const team = this.ctx.helpers.getUserTeam();
         if (!team || !team.finances) return;
         team.finances.ticketPriceMultiplier = parseInt(value) / 100;
-        document.getElementById('ticketPriceDisplay').textContent = value + '%';
-        updateTicketPriceEffect(parseInt(value));
+        // Legacy DOM updates
+        const dispEl = document.getElementById('ticketPriceDisplay');
+        if (dispEl) dispEl.textContent = value + '%';
+        if (typeof updateTicketPriceEffect === 'function') updateTicketPriceEffect(parseInt(value));
     }
 
     setMarketingBudget(amount) {
@@ -280,6 +295,9 @@ export class FinanceController {
         const team = helpers.getUserTeam();
         if (!team || !team.finances) return;
         team.finances.marketingBudget = amount;
+
+        // In React mode, the component manages its own state — no re-render needed
+        if (window._wgRefs || window._reactShowOwnerMode) return;
 
         const effectEl = document.getElementById('marketingEffect');
         if (effectEl) {
@@ -297,8 +315,17 @@ export class FinanceController {
         team.finances.spendingRatio = parseInt(value) / 100;
 
         const newLimit = engines.FinanceEngine.getSpendingLimit(team);
-        document.getElementById('ownerSpendingDisplay').textContent = value + '%';
-        document.getElementById('ownerLimitDisplay').textContent = helpers.formatCurrency(newLimit);
+
+        // Push to React if available
+        if (window._ownerSpendingLimitUpdate) {
+            window._ownerSpendingLimitUpdate(newLimit);
+        }
+
+        // Legacy DOM updates
+        const dispEl = document.getElementById('ownerSpendingDisplay');
+        if (dispEl) dispEl.textContent = value + '%';
+        const limEl = document.getElementById('ownerLimitDisplay');
+        if (limEl) limEl.textContent = helpers.formatCurrency(newLimit);
     }
 
     toggleOwnerMode() {
