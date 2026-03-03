@@ -1958,6 +1958,55 @@
         // ============================================
         
         function openCalendarView() {
+            if (window._reactShowCalendar) {
+                if (!gameState || !gameState.currentDate) return;
+                const currentDate = gameState.currentDate;
+                const startYear = gameState.seasonStartYear || 2025;
+                const seasonDates = CalendarEngine.getSeasonDates(startYear);
+                const months = [];
+                for (let m = 9; m <= 11; m++) months.push({ year: startYear, month: m });
+                for (let m = 0; m <= 3; m++) months.push({ year: startYear + 1, month: m });
+                const userTeamId = gameState.userTeamId;
+                const userTier = gameState.currentTier;
+                const userSchedule = userTier === 1 ? gameState.tier1Schedule :
+                                     userTier === 2 ? gameState.tier2Schedule : gameState.tier3Schedule;
+                const allTeams = [...(gameState.tier1Teams || []), ...(gameState.tier2Teams || []), ...(gameState.tier3Teams || [])];
+                const userGamesByDate = {};
+                if (userSchedule) {
+                    userSchedule.forEach(game => {
+                        if (game.date && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId)) {
+                            const isHome = game.homeTeamId === userTeamId;
+                            const opponentId = isHome ? game.awayTeamId : game.homeTeamId;
+                            const opponent = allTeams.find(t => t.id === opponentId);
+                            userGamesByDate[game.date] = { isHome, opponent, played: game.played, game };
+                        }
+                    });
+                }
+                const allGamesByDate = {};
+                [gameState.tier1Schedule, gameState.tier2Schedule, gameState.tier3Schedule].forEach((sched, idx) => {
+                    if (!sched) return;
+                    sched.forEach(game => {
+                        if (game.date) {
+                            if (!allGamesByDate[game.date]) allGamesByDate[game.date] = { total: 0, t1: 0, t2: 0, t3: 0 };
+                            allGamesByDate[game.date].total++;
+                            if (idx === 0) allGamesByDate[game.date].t1++;
+                            else if (idx === 1) allGamesByDate[game.date].t2++;
+                            else allGamesByDate[game.date].t3++;
+                        }
+                    });
+                });
+                const calSeasonDates = {
+                    allStarStart: CalendarEngine.toDateString(seasonDates.allStarStart),
+                    allStarEnd: CalendarEngine.toDateString(seasonDates.allStarEnd),
+                    tradeDeadline: CalendarEngine.toDateString(seasonDates.tradeDeadline),
+                    tier1End: CalendarEngine.toDateString(seasonDates.tier1End)
+                };
+                window._reactShowCalendar({
+                    months, currentDate, userGamesByDate, allGamesByDate,
+                    seasonDates: calSeasonDates, startYear, allTeams, userTeamId, gameState
+                });
+                return;
+            }
             const modal = document.getElementById('calendarModal');
             const content = document.getElementById('calendarContent');
             
@@ -3001,6 +3050,7 @@
         window.selectTeam = selectTeam;
         window.selectTier = selectTier;
         window.showBoxScore = showBoxScore;
+        window.CalendarEngine = CalendarEngine;
         window.showCalendarDayDetail = showCalendarDayDetail;
         window.showCoachMarket = () => getCoachManagementController().showMarket();
         window.showCoachTab = (tab) => getCoachManagementController().showTab(tab);

@@ -22,7 +22,6 @@ const MODAL_IDS = [
   { id: 'rosterModal',                maxWidth: 1600 },
   { id: 'bracketViewerModal',         maxWidth: 1400 },
   { id: 'coachModal',                 maxWidth: 1100 },
-  { id: 'calendarModal',              maxWidth: 1100 },
 ];
 
 // Module-level state for the classList interceptors
