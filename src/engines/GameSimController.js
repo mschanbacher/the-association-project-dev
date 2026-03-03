@@ -957,6 +957,11 @@ export class GameSimController {
             };
             window._seasonEndStayCallback = () => {
                 self.closeSeasonEnd();
+                // Trigger React refresh so TopBar shows offseason controls
+                if (window._notifyReact) {
+                    window._reactGameState = gameState;
+                    window._notifyReact();
+                }
             };
             window._reactShowSeasonEnd(seasonEndPayload);
             return;
