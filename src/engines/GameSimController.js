@@ -130,7 +130,10 @@ export class GameSimController {
             homeName: this._watchHomeName, awayName: this._watchAwayName
         });
         if (window._reactShowWatchGame) {
-            window._reactShowWatchGame({ html: layoutHtml });
+            window._reactShowWatchGame({
+                homeName: this._watchHomeName,
+                awayName: this._watchAwayName,
+            });
         } else {
             document.getElementById('watchGameContent').innerHTML = layoutHtml;
             document.getElementById('watchGameModal').classList.remove('hidden');
@@ -176,7 +179,7 @@ export class GameSimController {
     }
 
     _renderWatchEvents(events) {
-        const container = document.getElementById('wg-plays');
+        const container = window._wgRefs?.plays || document.getElementById('wg-plays');
         if (!container) return;
         for (const event of events) {
             const html = UIRenderer.watchGamePlayEntry(event);
@@ -194,16 +197,17 @@ export class GameSimController {
     _updateWatchScoreboard() {
         if (!this._watchGame) return;
         const state = this._watchGame.getState();
+        const refs = window._wgRefs;
 
-        const homeEl = document.getElementById('wg-home-score');
-        const awayEl = document.getElementById('wg-away-score');
+        const homeEl = refs?.homeScore || document.getElementById('wg-home-score');
+        const awayEl = refs?.awayScore || document.getElementById('wg-away-score');
         if (homeEl) homeEl.textContent = state.homeScore;
         if (awayEl) awayEl.textContent = state.awayScore;
 
-        const clockEl = document.getElementById('wg-clock');
+        const clockEl = refs?.clock || document.getElementById('wg-clock');
         if (clockEl) clockEl.textContent = state.clock.display;
 
-        const qEl = document.getElementById('wg-quarter-scores');
+        const qEl = refs?.quarterScores || document.getElementById('wg-quarter-scores');
         if (qEl && state.quarterScores) {
             const qs = state.quarterScores;
             let qText = '';
@@ -214,7 +218,7 @@ export class GameSimController {
             qEl.textContent = qText.trim();
         }
 
-        const mEl = document.getElementById('wg-momentum');
+        const mEl = refs?.momentum || document.getElementById('wg-momentum');
         if (mEl) {
             const normalized = state.momentum / 10;
             if (normalized >= 0) {
@@ -229,7 +233,7 @@ export class GameSimController {
             }
         }
 
-        const leadersEl = document.getElementById('wg-leaders');
+        const leadersEl = refs?.leaders || document.getElementById('wg-leaders');
         if (leadersEl && (this._watchSpeed <= 3 || Math.random() < 0.1)) {
             const result = this._watchGame.getResult();
             leadersEl.innerHTML = UIRenderer.watchGameLeaders(
@@ -245,22 +249,32 @@ export class GameSimController {
         const userTeam = helpers.getUserTeam();
         const userWon = result.winner.id === userTeam.id;
 
-        const finalEl = document.getElementById('wg-final-text');
-        if (finalEl) {
-            finalEl.innerHTML = `<span style="color: ${userWon ? '#4ecdc4' : '#ff6b6b'};">${userWon ? '🎉 VICTORY' : '😤 DEFEAT'}</span> — FINAL${result.isOvertime ? ' (OT)' : ''}: ${result.awayScore} - ${result.homeScore}`;
+        const text = `<span style="color: ${userWon ? 'var(--color-win, #4ecdc4)' : 'var(--color-loss, #ff6b6b)'};">${userWon ? '🎉 VICTORY' : '😤 DEFEAT'}</span> — FINAL${result.isOvertime ? ' (OT)' : ''}: ${result.awayScore} - ${result.homeScore}`;
+
+        if (window._wgRefs?.setGameOver) {
+            window._wgRefs.setGameOver(text);
+        } else {
+            const finalEl = document.getElementById('wg-final-text');
+            if (finalEl) finalEl.innerHTML = text;
+            const goEl = document.getElementById('wg-gameover');
+            if (goEl) goEl.style.display = 'block';
         }
-        document.getElementById('wg-gameover').style.display = 'block';
     }
 
     watchGameSetSpeed(speed) {
         this._watchSpeed = speed;
-        ['1', '3', '10', 'max'].forEach(s => {
-            const btn = document.getElementById(`wg-speed-${s}`);
-            if (btn) btn.style.background = 'rgba(255,255,255,0.1)';
-        });
-        const key = speed === 999 ? 'max' : String(speed);
-        const activeBtn = document.getElementById(`wg-speed-${key}`);
-        if (activeBtn) activeBtn.style.background = 'rgba(102,126,234,0.6)';
+
+        if (window._wgRefs?.setSpeed) {
+            window._wgRefs.setSpeed(speed);
+        } else {
+            ['1', '3', '10', 'max'].forEach(s => {
+                const btn = document.getElementById(`wg-speed-${s}`);
+                if (btn) btn.style.background = 'rgba(255,255,255,0.1)';
+            });
+            const key = speed === 999 ? 'max' : String(speed);
+            const activeBtn = document.getElementById(`wg-speed-${key}`);
+            if (activeBtn) activeBtn.style.background = 'rgba(102,126,234,0.6)';
+        }
 
         if (!this._watchPaused && this._watchGame && !this._watchGame.isComplete) {
             this._startWatchTimer();
@@ -269,11 +283,17 @@ export class GameSimController {
 
     watchGameTogglePause() {
         this._watchPaused = !this._watchPaused;
-        const btn = document.getElementById('wg-pause');
-        if (btn) {
-            btn.textContent = this._watchPaused ? '▶ Play' : '⏸ Pause';
-            btn.style.background = this._watchPaused ? 'rgba(78,205,196,0.3)' : 'rgba(255,255,255,0.1)';
+
+        if (window._wgRefs?.setPaused) {
+            window._wgRefs.setPaused(this._watchPaused);
+        } else {
+            const btn = document.getElementById('wg-pause');
+            if (btn) {
+                btn.textContent = this._watchPaused ? '▶ Play' : '⏸ Pause';
+                btn.style.background = this._watchPaused ? 'rgba(78,205,196,0.3)' : 'rgba(255,255,255,0.1)';
+            }
         }
+
         if (!this._watchPaused && this._watchGame && !this._watchGame.isComplete) {
             this._startWatchTimer();
         }
@@ -597,24 +617,15 @@ export class GameSimController {
             return;
         }
 
+        // Legacy fallback
         const html = UIRenderer.playoffSeriesWatchPage({
-            higherSeed: pw.higherSeed,
-            lowerSeed: pw.lowerSeed,
-            higherWins: pw.higherWins,
-            lowerWins: pw.lowerWins,
-            bestOf: pw.bestOf,
-            nextGameNum: pw.gameNum + 1,
-            games: pw.games,
-            userTeam,
-            isHigherHome: pw.homePattern[pw.gameNum]
+            higherSeed: pw.higherSeed, lowerSeed: pw.lowerSeed,
+            higherWins: pw.higherWins, lowerWins: pw.lowerWins,
+            bestOf: pw.bestOf, nextGameNum: pw.gameNum + 1,
+            games: pw.games, userTeam, isHigherHome: pw.homePattern[pw.gameNum]
         });
-
-        if (window._reactShowChampionship) {
-            window._reactShowChampionship({ mode: 'html', html });
-        } else {
-            document.getElementById('championshipPlayoffContent').innerHTML = html;
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
-        }
+        document.getElementById('championshipPlayoffContent').innerHTML = html;
+        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     watchPlayoffGame() {
@@ -648,7 +659,11 @@ export class GameSimController {
             playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`
         });
         if (window._reactShowWatchGame) {
-            window._reactShowWatchGame({ html: playoffLayoutHtml });
+            window._reactShowWatchGame({
+                homeName: this._watchHomeName,
+                awayName: this._watchAwayName,
+                playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`,
+            });
         } else {
             document.getElementById('watchGameContent').innerHTML = playoffLayoutHtml;
             document.getElementById('watchGameModal').classList.remove('hidden');
@@ -1359,16 +1374,13 @@ export class GameSimController {
             });
             return;
         }
+        // Legacy fallback
         const html = UIRenderer.championshipRoundPage({
             roundName, roundNumber, eastSeries, westSeries, finalsSeries,
             userTeam, roundResults
         });
-        if (window._reactShowChampionship) {
-            window._reactShowChampionship({ mode: 'html', html });
-        } else {
-            document.getElementById('championshipPlayoffContent').innerHTML = html;
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
-        }
+        document.getElementById('championshipPlayoffContent').innerHTML = html;
+        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     continueAfterChampionshipRound() {
