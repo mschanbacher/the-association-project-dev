@@ -638,6 +638,11 @@
             }
             return _offseasonController;
         }
+        // Expose for React modal callbacks
+        Object.defineProperty(window, '_offseasonController', {
+            get: () => getOffseasonController(),
+            configurable: true
+        });
 
         // ─── TradeController (lazy init) ───
         let _tradeController = null;

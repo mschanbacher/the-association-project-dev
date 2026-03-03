@@ -1078,7 +1078,10 @@ export class OffseasonController {
         console.log(`   Spending Limit: ${helpers.formatCurrency(engines.FinanceEngine.getSpendingLimit(team))}`);
         console.log('═══════════════════════════════════════════════════════');
 
-        document.getElementById('financeDashboardModal').classList.add('hidden');
+        // Close modal (React or legacy)
+        if (window._reactCloseOwnerMode) window._reactCloseOwnerMode();
+        const legacyModal = document.getElementById('financeDashboardModal');
+        if (legacyModal) legacyModal.classList.add('hidden');
 
         helpers.saveGameState();
         this.continueToSeasonSetup();

@@ -186,12 +186,31 @@ export class FinanceController {
         const revFor3Pct = Math.round(summary.totalRevenue * 0.03);
         const revFor5Pct = Math.round(summary.totalRevenue * 0.05);
 
-        const content = document.getElementById('financeDashboardContent');
-        content.innerHTML = UIRenderer.ownerModeModal({
+        const html = UIRenderer.ownerModeModal({
             formatCurrency: helpers.formatCurrency, team, f, summary, arena, tier, isT1,
             expansionCost, renovationCost, expansionSeats,
             sponsorHtml, activeSponsorsHtml, revFor1Pct, revFor3Pct, revFor5Pct
         });
+
+        // Route to React owner mode modal
+        if (window._reactShowOwnerMode) {
+            window._ownerModeConfirmCallback = () => {
+                delete window._ownerModeConfirmCallback;
+                // Call the offseason controller's confirm
+                if (window._offseasonController) {
+                    window._offseasonController.confirmOffseasonDecisions();
+                }
+            };
+            window._reactShowOwnerMode({
+                html,
+                onMount: () => updateTicketPriceEffect(Math.round((f.ticketPriceMultiplier || 1.0) * 100)),
+            });
+            return;
+        }
+
+        // Legacy fallback
+        const content = document.getElementById('financeDashboardContent');
+        content.innerHTML = html;
 
         document.getElementById('financeDashboardModal').classList.remove('hidden');
         const closeBtn = document.getElementById('financeDashboardCloseBtn');

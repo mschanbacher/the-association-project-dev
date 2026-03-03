@@ -29,6 +29,7 @@ import { CalendarModal } from './screens/CalendarModal.jsx';
 import { CoachModal } from './screens/CoachModal.jsx';
 import { RosterModal } from './screens/RosterModal.jsx';
 import { FinanceDashboardModal } from './screens/FinanceDashboardModal.jsx';
+import { OwnerModeModal } from './screens/OwnerModeModal.jsx';
 import { ChampionshipPlayoffModal } from './screens/ChampionshipPlayoffModal.jsx';
 import { PlayoffModal } from './screens/PlayoffModal.jsx';
 import { FreeAgencyModal } from './screens/FreeAgencyModal.jsx';
@@ -63,6 +64,7 @@ function AppContent() {
   const [coachData, setCoachData] = useState(null);
   const [rosterData, setRosterData] = useState(null);
   const [financeDashData, setFinanceDashData] = useState(null);
+  const [ownerModeData, setOwnerModeData] = useState(null);
   const [championshipData, setChampionshipData] = useState(null);
   const [playoffData, setPlayoffData] = useState(null);
   const [faData, setFaData] = useState(null);
@@ -122,6 +124,8 @@ function AppContent() {
     window._reactShowCoach = (data) => setCoachData(data);
     window._reactShowRoster = (data) => setRosterData(data);
     window._reactShowFinanceDashboard = (data) => setFinanceDashData(data);
+    window._reactShowOwnerMode = (data) => setOwnerModeData(data);
+    window._reactCloseOwnerMode = () => setOwnerModeData(null);
     window._reactShowChampionship = (data) => setChampionshipData({...data});
     window._reactCloseChampionship = () => setChampionshipData(null);
     window._reactShowPlayoff = (data) => setPlayoffData({...data});
@@ -167,6 +171,8 @@ function AppContent() {
       delete window._reactShowCoach;
       delete window._reactShowRoster;
       delete window._reactShowFinanceDashboard;
+      delete window._reactShowOwnerMode;
+      delete window._reactCloseOwnerMode;
       delete window._reactShowChampionship;
       delete window._reactCloseChampionship;
       delete window._reactShowPlayoff;
@@ -380,6 +386,11 @@ function AppContent() {
           window._rosterCloseCallback?.();
         }}
       />
+      {/* Owner Mode Modal (offseason financial decisions) */}
+      {ownerModeData && (
+        <OwnerModeModal data={ownerModeData} onClose={() => setOwnerModeData(null)} />
+      )}
+
       <FinanceDashboardModal
         isOpen={!!financeDashData}
         data={financeDashData}
