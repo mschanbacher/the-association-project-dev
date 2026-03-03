@@ -16,6 +16,7 @@ import { useGame } from '../hooks/GameBridge.jsx';
 const MODAL_IDS = [
   { id: 'championshipPlayoffModal',   maxWidth: 1000 },
   { id: 'playoffModal',               maxWidth: 1000 },
+  { id: 'draftResultsModal',          maxWidth: 1200 },
   { id: 'freeAgencyModal',            maxWidth: 1100 },
   { id: 'collegeGradFAModal',         maxWidth: 1000 },
   { id: 'financeDashboardModal',      maxWidth: 1100 },
@@ -70,7 +71,9 @@ export function OffseasonModals() {
     restoreNode();
     // Make sure overlay is visible (might have been hidden by closeOverlay)
     if (_overlayEl) _overlayEl.style.display = '';
-    setActiveCfg(cfg);
+    // Always create a new object so React detects a state change
+    // even when the same modal is re-shown (e.g. championship playoff rounds)
+    setActiveCfg({ ...cfg });
   }, [restoreNode]);
 
   // Keep module-level refs in sync
