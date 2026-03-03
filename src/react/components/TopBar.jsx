@@ -102,7 +102,6 @@ function SimControls({ gameState }) {
 
   // ── Offseason mode: show "Continue Offseason" button ──
   if (inOffseason) {
-    console.log('🔧 SimControls: inOffseason=true, phase=', offPhase);
     const PHASE_LABELS = {
       season_ended: 'Review Season',
       postseason: 'Playoffs',
@@ -154,7 +153,6 @@ function SimControls({ gameState }) {
   }
 
   // ── Regular season mode ──
-  console.log('🔧 SimControls: inOffseason=false, offPhase=', offPhase, 'isComplete=', isComplete);
   return (
     <div style={{
       display: 'flex',

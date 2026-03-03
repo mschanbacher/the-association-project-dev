@@ -396,35 +396,40 @@ export class GameSimController {
     openBracketViewer() {
         const { gameState, helpers } = this.ctx;
         const userTeam = helpers.getUserTeam();
-        let html = '';
-
-        if (gameState.currentTier === 1 && gameState.championshipPlayoffData) {
-            html = UIRenderer.t1BracketViewer({
-                playoffData: gameState.championshipPlayoffData,
-                userTeam,
-                playoffWatch: this._playoffWatch
-            });
-        } else if (gameState.currentTier === 2 && gameState.t2PlayoffData) {
-            html = UIRenderer.t2BracketViewer({
-                playoffData: gameState.t2PlayoffData,
-                userTeam,
-                playoffWatch: this._playoffWatch
-            });
-        } else if (gameState.currentTier === 3 && gameState.t3PlayoffData) {
-            html = UIRenderer.t3BracketViewer({
-                playoffData: gameState.t3PlayoffData,
-                userTeam,
-                playoffWatch: this._playoffWatch
-            });
-        } else {
-            html = '<div style="padding:40px;text-align:center;opacity:0.7;">No active playoff bracket</div>';
-        }
 
         if (window._reactShowBracket) {
-            window._reactShowBracket({ html });
+            let bracketData = null;
+            if (gameState.currentTier === 1 && gameState.championshipPlayoffData) {
+                bracketData = { tier: 1, playoffData: gameState.championshipPlayoffData };
+            } else if (gameState.currentTier === 2 && gameState.t2PlayoffData) {
+                bracketData = { tier: 2, playoffData: gameState.t2PlayoffData };
+            } else if (gameState.currentTier === 3 && gameState.t3PlayoffData) {
+                bracketData = { tier: 3, playoffData: gameState.t3PlayoffData };
+            }
+            window._reactShowBracket({
+                bracketData,
+                userTeamId: userTeam?.id,
+                playoffWatch: this._playoffWatch ? {
+                    higherId: this._playoffWatch.higherSeed?.id,
+                    lowerId: this._playoffWatch.lowerSeed?.id,
+                    higherWins: this._playoffWatch.higherWins,
+                    lowerWins: this._playoffWatch.lowerWins,
+                } : null,
+            });
             return;
         }
 
+        // Legacy fallback
+        let html = '';
+        if (gameState.currentTier === 1 && gameState.championshipPlayoffData) {
+            html = UIRenderer.t1BracketViewer({ playoffData: gameState.championshipPlayoffData, userTeam, playoffWatch: this._playoffWatch });
+        } else if (gameState.currentTier === 2 && gameState.t2PlayoffData) {
+            html = UIRenderer.t2BracketViewer({ playoffData: gameState.t2PlayoffData, userTeam, playoffWatch: this._playoffWatch });
+        } else if (gameState.currentTier === 3 && gameState.t3PlayoffData) {
+            html = UIRenderer.t3BracketViewer({ playoffData: gameState.t3PlayoffData, userTeam, playoffWatch: this._playoffWatch });
+        } else {
+            html = '<div style="padding:40px;text-align:center;opacity:0.7;">No active playoff bracket</div>';
+        }
         document.getElementById('bracketViewerContent').innerHTML = html;
         document.getElementById('bracketViewerModal').classList.remove('hidden');
     }
