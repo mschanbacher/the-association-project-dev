@@ -126,10 +126,15 @@ export class GameSimController {
             tier: gameState.currentTier
         });
 
-        document.getElementById('watchGameContent').innerHTML = UIRenderer.watchGameLayout({
+        const layoutHtml = UIRenderer.watchGameLayout({
             homeName: this._watchHomeName, awayName: this._watchAwayName
         });
-        document.getElementById('watchGameModal').classList.remove('hidden');
+        if (window._reactShowWatchGame) {
+            window._reactShowWatchGame({ html: layoutHtml });
+        } else {
+            document.getElementById('watchGameContent').innerHTML = layoutHtml;
+            document.getElementById('watchGameModal').classList.remove('hidden');
+        }
 
         this._watchPaused = false;
         this._watchSpeed = 1;
@@ -365,6 +370,7 @@ export class GameSimController {
 
         gameState.currentDate = engines.CalendarEngine.addDays(this._watchDate, 1);
 
+        if (window._reactCloseWatchGame) window._reactCloseWatchGame();
         document.getElementById('watchGameModal').classList.add('hidden');
         this._watchGame = null;
 
@@ -609,11 +615,16 @@ export class GameSimController {
             tier: gameState.currentTier
         });
 
-        document.getElementById('watchGameContent').innerHTML = UIRenderer.watchGameLayout({
+        const playoffLayoutHtml = UIRenderer.watchGameLayout({
             homeName: this._watchHomeName, awayName: this._watchAwayName,
             playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`
         });
-        document.getElementById('watchGameModal').classList.remove('hidden');
+        if (window._reactShowWatchGame) {
+            window._reactShowWatchGame({ html: playoffLayoutHtml });
+        } else {
+            document.getElementById('watchGameContent').innerHTML = playoffLayoutHtml;
+            document.getElementById('watchGameModal').classList.remove('hidden');
+        }
 
         this._watchPaused = false;
         this._watchSpeed = 1;
@@ -678,6 +689,7 @@ export class GameSimController {
         });
         pw.gameNum++;
 
+        if (window._reactCloseWatchGame) window._reactCloseWatchGame();
         document.getElementById('watchGameModal').classList.add('hidden');
         this._watchGame = null;
         this._isPlayoffWatch = false;
