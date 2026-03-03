@@ -249,11 +249,16 @@ export class GameSimController {
         const userTeam = helpers.getUserTeam();
         const userWon = result.winner.id === userTeam.id;
 
-        const text = `<span style="color: ${userWon ? 'var(--color-win, #4ecdc4)' : 'var(--color-loss, #ff6b6b)'};">${userWon ? '🎉 VICTORY' : '😤 DEFEAT'}</span> — FINAL${result.isOvertime ? ' (OT)' : ''}: ${result.awayScore} - ${result.homeScore}`;
-
         if (window._wgRefs?.setGameOver) {
-            window._wgRefs.setGameOver(text);
+            window._wgRefs.setGameOver({
+                won: userWon,
+                color: userWon ? 'var(--color-win, #4ecdc4)' : 'var(--color-loss, #ff6b6b)',
+                isOvertime: result.isOvertime,
+                awayScore: result.awayScore,
+                homeScore: result.homeScore,
+            });
         } else {
+            const text = `<span style="color: ${userWon ? '#4ecdc4' : '#ff6b6b'};">${userWon ? '🎉 VICTORY' : '😤 DEFEAT'}</span> — FINAL${result.isOvertime ? ' (OT)' : ''}: ${result.awayScore} - ${result.homeScore}`;
             const finalEl = document.getElementById('wg-final-text');
             if (finalEl) finalEl.innerHTML = text;
             const goEl = document.getElementById('wg-gameover');

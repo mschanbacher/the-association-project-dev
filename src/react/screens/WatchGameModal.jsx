@@ -17,7 +17,7 @@ export function WatchGameModal({ isOpen, data, onClose }) {
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
   const [gameOver, setGameOver] = useState(false);
-  const [finalText, setFinalText] = useState('');
+  const [finalData, setFinalData] = useState(null);
 
   // Refs for imperative DOM updates from game loop
   const homeScoreRef = useRef(null);
@@ -40,7 +40,7 @@ export function WatchGameModal({ isOpen, data, onClose }) {
         plays: playsRef.current,
         leaders: leadersRef.current,
         // Callbacks for state changes that need React re-render
-        setGameOver: (text) => { setGameOver(true); setFinalText(text); },
+        setGameOver: (resultData) => { setGameOver(true); setFinalData(resultData); },
         setSpeed: (s) => setSpeed(s),
         setPaused: (p) => setPaused(p),
       };
@@ -54,7 +54,7 @@ export function WatchGameModal({ isOpen, data, onClose }) {
       setSpeed(1);
       setPaused(false);
       setGameOver(false);
-      setFinalText('');
+      setFinalData(null);
       // Clear plays feed
       if (playsRef.current) playsRef.current.innerHTML = '';
       if (leadersRef.current) leadersRef.current.innerHTML = '';
@@ -152,7 +152,12 @@ export function WatchGameModal({ isOpen, data, onClose }) {
           {/* Game over bar */}
           {gameOver && (
             <div style={S.gameOverBar}>
-              <div style={S.finalText} dangerouslySetInnerHTML={{ __html: finalText }} />
+              {finalData && (
+                <div style={S.finalText}>
+                  <span style={{ color: finalData.color }}>{finalData.won ? '🎉 VICTORY' : '😤 DEFEAT'}</span>
+                  {' — FINAL'}{finalData.isOvertime ? ' (OT)' : ''}: {finalData.awayScore} - {finalData.homeScore}
+                </div>
+              )}
               <Button variant="primary" onClick={() => window.watchGameClose?.()}>
                 Continue
               </Button>

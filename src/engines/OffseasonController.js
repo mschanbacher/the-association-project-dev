@@ -211,10 +211,22 @@ export class OffseasonController {
         }
 
         // Otherwise show static postseason results summary
-        const html = engines.PlayoffEngine.generatePostseasonHTML(postseasonResults, gameState.userTeamId);
         if (window._reactShowChampionship) {
-            window._reactShowChampionship({ mode: 'postseason', resultsHTML: html });
+            window._reactShowChampionship({
+                mode: 'postseason',
+                t1Champion: postseasonResults.t1?.champion || null,
+                t2Champion: postseasonResults.t2?.champion || null,
+                t3Champion: postseasonResults.t3?.champion || null,
+                t1Finals: postseasonResults.t1?.rounds?.[3]?.[0] || null,
+                promotedToT1: postseasonResults.promoted?.toT1 || [],
+                promotedToT2: postseasonResults.promoted?.toT2 || [],
+                relegatedFromT1: postseasonResults.relegated?.fromT1 || [],
+                relegatedFromT2: postseasonResults.relegated?.fromT2 || [],
+                t1Relegation: postseasonResults.t1Relegation || null,
+                t2Relegation: postseasonResults.t2Relegation || null,
+            });
         } else {
+            const html = engines.PlayoffEngine.generatePostseasonHTML(postseasonResults, gameState.userTeamId);
             document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.postseasonContinue({ resultsHTML: html });
             document.getElementById('championshipPlayoffModal').classList.remove('hidden');
         }

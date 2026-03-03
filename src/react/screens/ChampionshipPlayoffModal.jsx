@@ -25,7 +25,7 @@ export function ChampionshipPlayoffModal({ isOpen, data, onClose }) {
         {mode === 't3-national-result' && <T3NationalRoundView data={data} />}
         {mode === 't3-elimination' && <T3EliminationView data={data} />}
         {mode === 't3-complete' && <T3CompleteView data={data} />}
-        {mode === 'html' && <HtmlView data={data} />}
+        {mode === 'html' && <div style={{ textAlign: 'center', padding: 'var(--space-6)', opacity: 0.5 }}>Legacy view — this should not appear.</div>}
       </ModalBody>
     </Modal>
   );
@@ -543,22 +543,138 @@ function T3CompleteView({ data }) {
   );
 }
 
-/* ── Generic HTML View (legacy fallback — T2 playoff pages) ── */
-function HtmlView({ data }) {
-  return (
-    <div dangerouslySetInnerHTML={{ __html: data.html || '' }} />
-  );
-}
-
-/* ── Postseason Results Summary ── */
+/* ── Postseason Results Summary (native React) ── */
 function PostseasonView({ data }) {
+  const {
+    t1Champion, t2Champion, t3Champion, t1Finals,
+    promotedToT1, promotedToT2, relegatedFromT1, relegatedFromT2,
+    t1Relegation, t2Relegation,
+  } = data;
+
   return (
-    <div>
-      <div style={{ textAlign: 'center' }} dangerouslySetInnerHTML={{ __html: data.resultsHTML || '' }} />
-      <div style={{ textAlign: 'center', marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border-subtle)' }}>
+    <div style={{ textAlign: 'center', maxHeight: '75vh', overflowY: 'auto', padding: 'var(--space-5)' }}>
+      <div style={{ fontSize: '2.5em', marginBottom: 'var(--space-5)' }}>🏆 Postseason Results</div>
+
+      {/* Champions */}
+      {t1Champion && (
+        <ChampionBanner
+          tier="Tier 1 — NAPL Champion" name={t1Champion.name}
+          bg="linear-gradient(135deg, var(--color-accent), #d4a843)"
+          color="var(--color-bg)"
+          subtitle={t1Finals ? `Finals: ${t1Finals.result.higherWins}-${t1Finals.result.lowerWins}` : null}
+        />
+      )}
+      {t2Champion && (
+        <ChampionBanner tier="Tier 2 — NARBL Champion" name={t2Champion.name}
+          bg="rgba(192,192,192,0.1)" border="1px solid rgba(192,192,192,0.25)"
+          tierColor="#c0c0c0"
+        />
+      )}
+      {t3Champion && (
+        <ChampionBanner tier="Tier 3 — MBL Champion" name={t3Champion.name}
+          bg="rgba(205,127,50,0.1)" border="1px solid rgba(205,127,50,0.25)"
+          tierColor="#cd7f32"
+        />
+      )}
+
+      {/* Promotion / Relegation */}
+      <div style={{
+        background: 'var(--color-bg-sunken)', padding: 'var(--space-5)',
+        borderRadius: 'var(--radius-lg)', margin: 'var(--space-5) 0',
+      }}>
+        <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-4)' }}>
+          ⬆️⬇️ Promotion & Relegation
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+          <ProRelBox title="⬆️ Promoted to Tier 1" color="var(--color-win, #34a853)" teams={promotedToT1} iconFirst="👑" iconRest="⬆️" />
+          <ProRelBox title="⬇️ Relegated from Tier 1" color="var(--color-loss, #ea4335)" teams={relegatedFromT1} iconFirst="💀" iconRest="⬇️" autoFirst />
+          <ProRelBox title="⬆️ Promoted to Tier 2" color="var(--color-win, #34a853)" teams={promotedToT2} iconFirst="👑" iconRest="⬆️" />
+          <ProRelBox title="⬇️ Relegated from Tier 2" color="var(--color-loss, #ea4335)" teams={relegatedFromT2} iconFirst="💀" iconRest="⬇️" autoFirst />
+        </div>
+      </div>
+
+      {/* Relegation Bracket Details */}
+      {t1Relegation?.completed && <RelegationBracket bracket={t1Relegation} tierName="Tier 1" />}
+      {t2Relegation?.completed && <RelegationBracket bracket={t2Relegation} tierName="Tier 2" />}
+
+      {/* Continue */}
+      <div style={{ marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border-subtle)' }}>
         <Button variant="primary" size="lg" onClick={() => window.continueAfterPostseason?.()}>
           Continue to Off-Season {'\u2192'}
         </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Champion Banner ── */
+function ChampionBanner({ tier, name, subtitle, bg, color, border, tierColor }) {
+  return (
+    <div style={{
+      margin: 'var(--space-4) 0', padding: 'var(--space-5)',
+      background: bg || 'var(--color-bg-sunken)',
+      borderRadius: 'var(--radius-lg)',
+      color: color || 'var(--color-text)',
+      border: border || 'none',
+    }}>
+      <div style={{ fontSize: 'var(--text-md)', opacity: 0.8, marginBottom: 'var(--space-1)', color: tierColor || 'inherit' }}>
+        {tier}
+      </div>
+      <div style={{ fontSize: '2.2em', fontWeight: 'var(--weight-bold)', margin: 'var(--space-1) 0' }}>
+        🏆 {name}
+      </div>
+      {subtitle && <div style={{ fontSize: 'var(--text-md)', opacity: 0.9 }}>{subtitle}</div>}
+    </div>
+  );
+}
+
+/* ── Promotion/Relegation Box ── */
+function ProRelBox({ title, color, teams, iconFirst, iconRest, autoFirst }) {
+  if (!teams || teams.length === 0) return null;
+  return (
+    <div style={{
+      padding: 'var(--space-3)', background: color + '08',
+      borderRadius: 'var(--radius-md)', textAlign: 'left',
+    }}>
+      <div style={{ color, fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+        {title}
+      </div>
+      {teams.map((t, i) => (
+        <div key={i} style={{ margin: '4px 0', fontSize: 'var(--text-sm)' }}>
+          {i === 0 ? iconFirst : iconRest} {t.name}{i === 0 && autoFirst ? ' (auto)' : ''}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Relegation Bracket Detail ── */
+function RelegationBracket({ bracket, tierName }) {
+  return (
+    <div style={{
+      background: 'var(--color-loss, #ea4335)05', padding: 'var(--space-4)',
+      borderRadius: 'var(--radius-lg)', margin: 'var(--space-3) 0', textAlign: 'left',
+    }}>
+      <div style={{ color: 'var(--color-loss, #ea4335)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-3)' }}>
+        ⬇️ {tierName} Relegation Bracket
+      </div>
+      <div style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+        <span style={{ opacity: 0.7 }}>Auto-relegated:</span>{' '}
+        <strong>{bracket.autoRelegated.name}</strong> (last place)
+      </div>
+      <div style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+        <span style={{ opacity: 0.7 }}>Round 1 (Bo5):</span>{' '}
+        <strong>{bracket.round1Higher.name}</strong> vs <strong>{bracket.round1Lower.name}</strong>
+        {' → '}{bracket.round1Result.winner.name} wins {bracket.round1Result.higherWins}-{bracket.round1Result.lowerWins}
+        {' '}<span style={{ color: 'var(--color-loss, #ea4335)' }}>({bracket.round1Result.loser.name} relegated)</span>
+      </div>
+      <div style={{ fontSize: 'var(--text-sm)' }}>
+        <span style={{ opacity: 0.7 }}>Round 2 (Bo5):</span>{' '}
+        <strong>{bracket.byeTeam.name}</strong> vs <strong>{bracket.round1Result.winner.name}</strong>
+        {' → '}{bracket.round2Result.winner.name} wins {bracket.round2Result.higherWins}-{bracket.round2Result.lowerWins}
+        {' '}<span style={{ color: bracket.survived ? 'var(--color-win, #34a853)' : 'var(--color-loss, #ea4335)' }}>
+          ({bracket.survived?.name} survives!)
+        </span>
       </div>
     </div>
   );
