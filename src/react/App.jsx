@@ -36,6 +36,7 @@ import { CollegeGradFAModal } from './screens/CollegeGradFAModal.jsx';
 import { BracketViewerModal } from './screens/BracketViewerModal.jsx';
 import { LotteryModal } from './screens/LotteryModal.jsx';
 import { UserDraftPickModal } from './screens/UserDraftPickModal.jsx';
+import { FranchiseHistoryModal } from './screens/FranchiseHistoryModal.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -67,6 +68,7 @@ function AppContent() {
   const [bracketData, setBracketData] = useState(null);
   const [lotteryData, setLotteryData] = useState(null);
   const [draftPickData, setDraftPickData] = useState(null);
+  const [franchiseData, setFranchiseData] = useState(null);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -130,6 +132,8 @@ function AppContent() {
     window._reactCloseLottery = () => setLotteryData(null);
     window._reactShowDraftPick = (data) => setDraftPickData({...data});
     window._reactCloseDraftPick = () => setDraftPickData(null);
+    window._reactShowFranchise = (data) => setFranchiseData({...data});
+    window._reactCloseFranchise = () => setFranchiseData(null);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -169,6 +173,8 @@ function AppContent() {
       delete window._reactCloseLottery;
       delete window._reactShowDraftPick;
       delete window._reactCloseDraftPick;
+      delete window._reactShowFranchise;
+      delete window._reactCloseFranchise;
     };
   }, []);
 
@@ -401,6 +407,11 @@ function AppContent() {
         isOpen={!!draftPickData}
         data={draftPickData}
         onClose={() => setDraftPickData(null)}
+      />
+      <FranchiseHistoryModal
+        isOpen={!!franchiseData}
+        data={franchiseData}
+        onClose={() => setFranchiseData(null)}
       />
     </div>
   );

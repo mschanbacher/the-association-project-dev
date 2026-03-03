@@ -372,6 +372,12 @@ export class DashboardController {
         const { UIRenderer } = engines;
 
         const history = gameState._fullSeasonHistory || gameState.fullSeasonHistory || [];
+
+        if (window._reactShowFranchise) {
+            window._reactShowFranchise({ history });
+            return;
+        }
+
         document.getElementById('franchiseHistoryContent').innerHTML = UIRenderer.franchiseHistory({
             history,
             getRankSuffix: helpers.getRankSuffix
