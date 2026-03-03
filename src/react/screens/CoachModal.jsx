@@ -35,9 +35,7 @@ export function CoachModal({ isOpen, data, onClose }) {
   };
 
   const handleBrowseMarket = () => {
-    if (window.showCoachMarket) window.showCoachMarket();
     setMarketOpen(true);
-    setRefreshKey(k => k + 1);
   };
 
   return (
