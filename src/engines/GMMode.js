@@ -1136,6 +1136,17 @@ export class GMMode {
             const t2Gave = trade.team2Gave.map(p => `${p.name} (${p.position}, ${p.rating} OVR)`).join(', ');
             const tierLabel = trade.tier === 1 ? 'NAPL' : trade.tier === 2 ? 'NARBL' : 'MBL';
 
+            if (window._reactShowBreakingNews) {
+                window._reactShowBreakingNews({
+                    team1Name: trade.team1.name,
+                    team2Name: trade.team2.name,
+                    t1Gave,
+                    t2Gave,
+                    tierLabel,
+                }, resolve);
+                return;
+            }
+
             const overlay = document.createElement('div');
             overlay.id = 'breakingNewsOverlay';
             overlay.style.cssText = `

@@ -38,6 +38,7 @@ import { LotteryModal } from './screens/LotteryModal.jsx';
 import { UserDraftPickModal } from './screens/UserDraftPickModal.jsx';
 import { FranchiseHistoryModal } from './screens/FranchiseHistoryModal.jsx';
 import { WatchGameModal } from './screens/WatchGameModal.jsx';
+import { BreakingNewsModal } from './screens/BreakingNewsModal.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -71,6 +72,7 @@ function AppContent() {
   const [draftPickData, setDraftPickData] = useState(null);
   const [franchiseData, setFranchiseData] = useState(null);
   const [watchGameData, setWatchGameData] = useState(null);
+  const [breakingNewsData, setBreakingNewsData] = useState(null);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -138,6 +140,7 @@ function AppContent() {
     window._reactCloseFranchise = () => setFranchiseData(null);
     window._reactShowWatchGame = (data) => setWatchGameData({...data});
     window._reactCloseWatchGame = () => setWatchGameData(null);
+    window._reactShowBreakingNews = (data, resolve) => { setBreakingNewsData({ ...data, _resolve: resolve }); };
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -181,6 +184,7 @@ function AppContent() {
       delete window._reactCloseFranchise;
       delete window._reactShowWatchGame;
       delete window._reactCloseWatchGame;
+      delete window._reactShowBreakingNews;
     };
   }, []);
 
@@ -423,6 +427,15 @@ function AppContent() {
         isOpen={!!watchGameData}
         data={watchGameData}
         onClose={() => setWatchGameData(null)}
+      />
+      <BreakingNewsModal
+        isOpen={!!breakingNewsData}
+        data={breakingNewsData}
+        onClose={() => {
+          const resolve = breakingNewsData?._resolve;
+          setBreakingNewsData(null);
+          if (resolve) resolve();
+        }}
       />
     </div>
   );

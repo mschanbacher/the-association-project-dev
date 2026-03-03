@@ -212,8 +212,12 @@ export class OffseasonController {
 
         // Otherwise show static postseason results summary
         const html = engines.PlayoffEngine.generatePostseasonHTML(postseasonResults, gameState.userTeamId);
-        document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.postseasonContinue({ resultsHTML: html });
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'postseason', resultsHTML: html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.postseasonContinue({ resultsHTML: html });
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -224,6 +228,7 @@ export class OffseasonController {
         const { gameState, eventBus, GameEvents, engines, helpers } = this.ctx;
         const P = OffseasonController.PHASES;
 
+        if (window._reactCloseChampionship) window._reactCloseChampionship();
         document.getElementById('championshipPlayoffModal').classList.add('hidden');
         this.setPhase(P.PROMO_REL);
 

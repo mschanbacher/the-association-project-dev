@@ -13,6 +13,9 @@ export function ChampionshipPlayoffModal({ isOpen, data, onClose }) {
         {mode === 'missed' && <MissedView data={data} />}
         {mode === 'round' && <RoundView data={data} />}
         {mode === 'complete' && <CompleteView data={data} />}
+        {mode === 'series' && <SeriesWatchView data={data} />}
+        {mode === 'postseason' && <PostseasonView data={data} />}
+        {mode === 'html' && <HtmlView data={data} />}
       </ModalBody>
     </Modal>
   );
@@ -150,6 +153,107 @@ function CompleteView({ data }) {
         </Button>
         <Button variant="primary" onClick={() => window.skipChampionshipPlayoffs?.()}>
           Continue to Off-Season
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Playoff Series Watch Page ── */
+function SeriesWatchView({ data }) {
+  const { higherSeed, lowerSeed, higherWins, lowerWins, bestOf, nextGameNum, games, userTeamId, isHigherHome } = data;
+  const userIsHigher = userTeamId === higherSeed.id;
+  const opponent = userIsHigher ? lowerSeed : higherSeed;
+  const userHome = (userIsHigher && isHigherHome) || (!userIsHigher && !isHigherHome);
+
+  return (
+    <div>
+      <div style={{ textAlign: 'center', marginBottom: 'var(--space-2)' }}>
+        <div style={{ fontSize: '2em', fontWeight: 'var(--weight-bold)' }}>{'\ud83c\udfc0'} Playoff Series</div>
+        <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-md)' }}>Best of {bestOf}</div>
+      </div>
+
+      {/* Scoreboard */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-6)', marginBottom: 'var(--space-5)' }}>
+        <div style={{ textAlign: 'center', flex: 1, maxWidth: 200 }}>
+          <div style={{ fontSize: '3em', fontWeight: 'var(--weight-bold)', color: userIsHigher ? 'var(--color-win)' : 'var(--color-loss)' }}>{higherWins}</div>
+          <div style={{ fontSize: 'var(--text-md)', marginTop: 'var(--space-1)', fontWeight: userIsHigher ? 'var(--weight-bold)' : 'var(--weight-normal)', opacity: userIsHigher ? 1 : 0.8 }}>{higherSeed.name}</div>
+          {userIsHigher && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-win)' }}>YOUR TEAM</div>}
+        </div>
+        <div style={{ fontSize: 'var(--text-lg)', color: 'var(--color-text-tertiary)' }}>vs</div>
+        <div style={{ textAlign: 'center', flex: 1, maxWidth: 200 }}>
+          <div style={{ fontSize: '3em', fontWeight: 'var(--weight-bold)', color: !userIsHigher ? 'var(--color-win)' : 'var(--color-loss)' }}>{lowerWins}</div>
+          <div style={{ fontSize: 'var(--text-md)', marginTop: 'var(--space-1)', fontWeight: !userIsHigher ? 'var(--weight-bold)' : 'var(--weight-normal)', opacity: !userIsHigher ? 1 : 0.8 }}>{lowerSeed.name}</div>
+          {!userIsHigher && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-win)' }}>YOUR TEAM</div>}
+        </div>
+      </div>
+
+      {/* Game results */}
+      {games && games.length > 0 && (
+        <div style={{ maxWidth: 500, margin: '0 auto var(--space-5)', background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-2)' }}>
+          {games.map((game, i) => {
+            const userWon = game.winner.id === userTeamId;
+            return (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: 'var(--space-2) var(--space-3)',
+                borderBottom: i < games.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)' }}>Game {game.gameNumber}</span>
+                <span style={{ color: userWon ? 'var(--color-win)' : 'var(--color-loss)', fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>
+                  {game.homeTeam.name} {game.homeScore} - {game.awayScore} {game.awayTeam.name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Next game info */}
+      <div style={{
+        textAlign: 'center', padding: 'var(--space-4)',
+        background: 'var(--color-accent)10', borderRadius: 'var(--radius-lg)',
+        marginBottom: 'var(--space-4)', border: '1px solid var(--color-accent)20',
+      }}>
+        <div style={{ fontSize: 'var(--text-md)', marginBottom: 'var(--space-2)' }}>
+          Game {nextGameNum} — {userHome ? '\ud83c\udfe0 Home' : '\u2708\ufe0f Away'}
+        </div>
+        <div style={{ color: 'var(--color-text-secondary)' }}>
+          {(userIsHigher ? higherSeed : lowerSeed).name} {userHome ? 'vs' : '@'} {opponent.name}
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
+        <Button variant="ghost" onClick={() => window.openBracketViewer?.()} style={{ opacity: 0.6 }}>
+          {'\ud83d\udcca'} View Bracket
+        </Button>
+        <Button variant="secondary" onClick={() => window.simRestOfPlayoffSeries?.()} style={{ opacity: 0.7 }}>
+          Sim Rest of Series
+        </Button>
+        <Button variant="primary" size="lg" onClick={() => window.watchPlayoffGame?.()}>
+          {'\ud83c\udfc0'} Watch Game {nextGameNum}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Generic HTML View (T2/T3 playoff pages with pre-rendered HTML) ── */
+function HtmlView({ data }) {
+  return (
+    <div dangerouslySetInnerHTML={{ __html: data.html || '' }} />
+  );
+}
+
+/* ── Postseason Results Summary ── */
+function PostseasonView({ data }) {
+  return (
+    <div>
+      <div style={{ textAlign: 'center' }} dangerouslySetInnerHTML={{ __html: data.resultsHTML || '' }} />
+      <div style={{ textAlign: 'center', marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border-subtle)' }}>
+        <Button variant="primary" size="lg" onClick={() => window.continueAfterPostseason?.()}>
+          Continue to Off-Season {'\u2192'}
         </Button>
       </div>
     </div>

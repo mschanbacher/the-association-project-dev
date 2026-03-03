@@ -574,6 +574,22 @@ export class GameSimController {
             return;
         }
 
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({
+                mode: 'series',
+                higherSeed: pw.higherSeed,
+                lowerSeed: pw.lowerSeed,
+                higherWins: pw.higherWins,
+                lowerWins: pw.lowerWins,
+                bestOf: pw.bestOf,
+                nextGameNum: pw.gameNum + 1,
+                games: pw.games,
+                userTeamId: userTeam.id,
+                isHigherHome: pw.homePattern[pw.gameNum],
+            });
+            return;
+        }
+
         const html = UIRenderer.playoffSeriesWatchPage({
             higherSeed: pw.higherSeed,
             lowerSeed: pw.lowerSeed,
@@ -586,8 +602,12 @@ export class GameSimController {
             isHigherHome: pw.homePattern[pw.gameNum]
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     watchPlayoffGame() {
@@ -601,6 +621,7 @@ export class GameSimController {
         const awayTeam = isHigherHome ? pw.lowerSeed : pw.higherSeed;
 
         // Hide the playoff modal while watching
+        if (window._reactCloseChampionship) window._reactCloseChampionship();
         document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         this._watchHomeTeam = homeTeam;
@@ -1160,6 +1181,7 @@ export class GameSimController {
         if (window._reactShowChampionship) {
             window._reactCloseChampionship?.();
         }
+        if (window._reactCloseChampionship) window._reactCloseChampionship();
         document.getElementById('championshipPlayoffModal').classList.add('hidden');
         // Update T1 champion from interactive results if available
         const playoffData = gameState.championshipPlayoffData;
@@ -1323,8 +1345,12 @@ export class GameSimController {
             roundName, roundNumber, eastSeries, westSeries, finalsSeries,
             userTeam, roundResults
         });
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     continueAfterChampionshipRound() {
@@ -1333,6 +1359,7 @@ export class GameSimController {
         if (window._reactShowChampionship) {
             window._reactCloseChampionship?.();
         }
+        if (window._reactCloseChampionship) window._reactCloseChampionship();
         document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         if (playoffData.currentRound < 4) {
@@ -1449,8 +1476,12 @@ export class GameSimController {
             }
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     continueT2AfterDivisionSemis() {
@@ -1500,8 +1531,12 @@ export class GameSimController {
             }
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     continueT2AfterDivisionFinal() {
@@ -1648,8 +1683,12 @@ export class GameSimController {
             }
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     continueT2AfterNationalRound() {
@@ -1683,8 +1722,12 @@ export class GameSimController {
         const postseason = gameState.postseasonResults;
 
         // The background simulation already has all results — just use those
-        document.getElementById('championshipPlayoffContent').innerHTML =
-            UIRenderer.t2PlayoffCompleteQuick({ champion: postseason.t2.champion });
+        const t2CompleteHtml = UIRenderer.t2PlayoffCompleteQuick({ champion: postseason.t2.champion });
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html: t2CompleteHtml });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = t2CompleteHtml;
+        }
     }
 
     _showT2EliminationAndSummary(eliminatedIn) {
@@ -1698,11 +1741,16 @@ export class GameSimController {
             champion: postseason.t2.champion
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+        }
     }
 
     _finishT2Playoffs() {
         const { gameState, helpers } = this.ctx;
+        if (window._reactCloseChampionship) window._reactCloseChampionship();
         document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         const offseasonCtrl = helpers.getOffseasonController ? helpers.getOffseasonController() : null;
@@ -1829,8 +1877,12 @@ export class GameSimController {
             formatSeriesResult: (sr) => UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: true, isFinals: true, seriesKey: 't3-metroFinal' })
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     continueT3AfterMetroFinal() {
@@ -1947,8 +1999,12 @@ export class GameSimController {
             formatSeriesResult: (sr) => UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: true, isFinals: false, seriesKey: userRegIdx >= 0 ? `t3-regional-${userRegIdx}` : undefined })
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     continueT3AfterRegionalRound() {
@@ -2071,8 +2127,12 @@ export class GameSimController {
             }
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     continueT3AfterNationalRound() {
@@ -2112,8 +2172,12 @@ export class GameSimController {
     simAllT3Rounds() {
         const { gameState } = this.ctx;
         const postseason = gameState.postseasonResults;
-        document.getElementById('championshipPlayoffContent').innerHTML =
-            UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
+        const t3CompleteHtml = UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html: t3CompleteHtml });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = t3CompleteHtml;
+        }
     }
 
     _showT3EliminationAndSummary(eliminatedIn) {
@@ -2127,20 +2191,29 @@ export class GameSimController {
             champion: postseason.t3.champion
         });
 
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = html;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     _showT3PostseasonSummary() {
         const { gameState } = this.ctx;
         const postseason = gameState.postseasonResults;
-        document.getElementById('championshipPlayoffContent').innerHTML =
-            UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        const t3SummaryHtml = UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
+        if (window._reactShowChampionship) {
+            window._reactShowChampionship({ mode: 'html', html: t3SummaryHtml });
+        } else {
+            document.getElementById('championshipPlayoffContent').innerHTML = t3SummaryHtml;
+            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        }
     }
 
     _finishT3Playoffs() {
         const { gameState, helpers } = this.ctx;
+        if (window._reactCloseChampionship) window._reactCloseChampionship();
         document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         const offseasonCtrl = helpers.getOffseasonController ? helpers.getOffseasonController() : null;
