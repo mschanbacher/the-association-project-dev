@@ -284,7 +284,9 @@ function FAPlayerRow({ player, isFormer, isWatched, isChecked, onToggle }) {
       <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontWeight: 'var(--weight-bold)', color: p._fitColor || 'var(--color-text)' }}>{p._fitGrade || '-'}</td>
       <td style={{ padding: 'var(--space-2)', textAlign: 'center' }}>{p.position}</td>
       <td style={{ padding: 'var(--space-2)', textAlign: 'center' }}>{p.age}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'right', fontSize: 'var(--text-xs)' }} dangerouslySetInnerHTML={{ __html: p._marketDisplayHtml || '' }} />
+      <td style={{ padding: 'var(--space-2)', textAlign: 'right', fontSize: 'var(--text-xs)' }}>
+        <MarketDisplay data={p._marketData} />
+      </td>
       <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
         {isFormer ? <span style={{ color: 'var(--color-warning)', fontWeight: 'var(--weight-bold)' }}>{p._fromTeamName}</span> : (p._fromTeamName || 'N/A')}
       </td>
@@ -324,7 +326,9 @@ function OfferCard({ player, fc, offer, onChange }) {
           {isFormer && <span style={{ color: 'var(--color-warning)', marginLeft: 8, fontWeight: 'var(--weight-bold)' }}>{'\u2b50'} YOUR PLAYER</span>}
           <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'var(--space-2)' }}>{p.position} | {p.rating} OVR | Age {p.age}</span>
         </div>
-        <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }} dangerouslySetInnerHTML={{ __html: p._marketDisplayHtml || '' }} />
+        <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>
+          <MarketDisplay data={p._marketData} />
+        </span>
       </div>
 
       {isAboveTier && (
@@ -495,5 +499,30 @@ function ResultRow({ player, fc, children }) {
       </div>
       <div style={{ textAlign: 'right' }}>{children}</div>
     </div>
+  );
+}
+
+/* ── Market Display (replaces formatMarketDisplay HTML) ── */
+function MarketDisplay({ data }) {
+  if (!data) return null;
+  return (
+    <span>
+      {data.value}{' '}
+      <span style={{
+        background: data.badgeColor, color: '#fff',
+        padding: '1px 6px', borderRadius: 3,
+        fontSize: '0.75em', fontWeight: 'bold', marginLeft: 4,
+      }}>
+        T{data.natTier}
+      </span>
+      {data.crossTierValue && (
+        <>
+          <br />
+          <span style={{ fontSize: '0.8em', color: '#ff6b6b', opacity: 0.9 }}>
+            T{data.natTier} value: {data.crossTierValue}
+          </span>
+        </>
+      )}
+    </span>
   );
 }

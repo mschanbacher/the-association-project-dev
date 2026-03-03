@@ -82,6 +82,16 @@ export class FreeAgencyController {
                 p._isFormer = isFormer;
                 p._isWatched = this._isOnWatchList(p.id);
                 p._marketDisplayHtml = UIRenderer.formatMarketDisplay(p, userTeam.tier);
+                // Structured market data for React rendering
+                const TF = window.TeamFactory;
+                const tierValue = TF ? TF.getMarketValue(p, userTeam.tier) : (p.salary || 0);
+                const natTierColors = { 1: '#ff6b6b', 2: '#4ecdc4', 3: '#95afc0' };
+                p._marketData = {
+                    value: UIRenderer.formatCurrency(tierValue),
+                    natTier: natTier,
+                    badgeColor: natTierColors[natTier] || '#95afc0',
+                    crossTierValue: (natTier < userTeam.tier && TF) ? UIRenderer.formatCurrency(TF.getNaturalMarketValue(p)) : null,
+                };
                 p._fromTeamName = isFormer ? userTeam.name : (previousTeam ? previousTeam.name : (p.isCollegeGrad ? '🎓 ' + p.college : 'N/A'));
                 return p;
             };
