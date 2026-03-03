@@ -35,6 +35,15 @@ export class DraftController {
     showLotteryResults(lotteryData) {
         const { helpers } = this.ctx;
         const userTeam = helpers.getUserTeam();
+
+        if (window._reactShowLottery) {
+            window._reactShowLottery({
+                lotteryResults: lotteryData.lotteryResults,
+                userTeamId: userTeam.id,
+            });
+            return;
+        }
+
         const html = UIRenderer.lotteryResults({
             lotteryResults: lotteryData.lotteryResults,
             userTeamId: userTeam.id
@@ -44,6 +53,7 @@ export class DraftController {
     }
 
     closeLotteryModal() {
+        if (window._reactCloseLottery) window._reactCloseLottery();
         document.getElementById('lotteryModal').classList.add('hidden');
         if (window.pendingDraftData) {
             this.startDraftAfterLottery();

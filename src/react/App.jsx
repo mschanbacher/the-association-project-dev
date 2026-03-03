@@ -34,6 +34,7 @@ import { PlayoffModal } from './screens/PlayoffModal.jsx';
 import { FreeAgencyModal } from './screens/FreeAgencyModal.jsx';
 import { CollegeGradFAModal } from './screens/CollegeGradFAModal.jsx';
 import { BracketViewerModal } from './screens/BracketViewerModal.jsx';
+import { LotteryModal } from './screens/LotteryModal.jsx';
 
 function AppContent() {
   const { isReady, gameState, refresh } = useGame();
@@ -63,6 +64,7 @@ function AppContent() {
   const [faData, setFaData] = useState(null);
   const [cgData, setCgData] = useState(null);
   const [bracketData, setBracketData] = useState(null);
+  const [lotteryData, setLotteryData] = useState(null);
 
   // Hide the legacy game container elements once React takes over
   useEffect(() => {
@@ -122,6 +124,8 @@ function AppContent() {
     window._reactCloseCG = () => setCgData(null);
     window._reactShowBracket = (data) => setBracketData({...data});
     window._reactCloseBracket = () => setBracketData(null);
+    window._reactShowLottery = (data) => setLotteryData({...data});
+    window._reactCloseLottery = () => setLotteryData(null);
 
     return () => {
       window.removeEventListener('reactShowPostGame', handlePostGame);
@@ -157,6 +161,8 @@ function AppContent() {
       delete window._reactCloseCG;
       delete window._reactShowBracket;
       delete window._reactCloseBracket;
+      delete window._reactShowLottery;
+      delete window._reactCloseLottery;
     };
   }, []);
 
@@ -379,6 +385,11 @@ function AppContent() {
         isOpen={!!bracketData}
         data={bracketData}
         onClose={() => setBracketData(null)}
+      />
+      <LotteryModal
+        isOpen={!!lotteryData}
+        data={lotteryData}
+        onClose={() => setLotteryData(null)}
       />
     </div>
   );
