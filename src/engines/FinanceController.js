@@ -79,6 +79,31 @@ export class FinanceController {
         const revVsAvgLabel = parseInt(revVsAvg) > 0 ? `+${revVsAvg}% above` : `${revVsAvg}% below`;
         const revVsAvgColor = parseInt(revVsAvg) >= 0 ? '#34a853' : '#ea4335';
 
+        if (window._reactShowFinanceDashboard) {
+            window._reactShowFinanceDashboard({
+                formatCurrency: helpers.formatCurrency, totalRev, trendHtml, capLabel,
+                spendingLimit: summary.spendingLimit, capSpace: summary.capSpace,
+                stabilityColor, stabilityLabel, usagePct: summary.usagePct,
+                currentSalary: summary.currentSalary, salaryFloor: summary.salaryFloor,
+                capExplain, rev: r, barPct, tier: team.tier,
+                fanbase: summary.fanbase, fanLabel, fanMultiple, tierAvgFanbase,
+                revVsAvgColor, revVsAvgLabel, tierAvgRevenue,
+                marketLabel: summary.marketSize >= 1.2 ? '\u{1F3D9}\uFE0F Major' : summary.marketSize >= 1.0 ? '\u{1F3D8}\uFE0F Mid-size' : summary.marketSize >= 0.8 ? '\u{1F3E1} Small' : '\u{1F3DA}\uFE0F Tiny',
+                marketSize: summary.marketSize,
+                metroPopStr: summary.metroPopulation ? ` \u00B7 ${summary.metroPopulation >= 1 ? summary.metroPopulation.toFixed(1) + 'M' : Math.round(summary.metroPopulation * 1000) + 'K'} metro pop.` : '',
+                isHardCap, spendingRatio: summary.spendingRatio, spendingRatioPct: Math.round(summary.spendingRatio * 100),
+                ratioWarning: summary.spendingRatio >= 0.85 ? '\u26A0\uFE0F High risk' : summary.spendingRatio >= 0.80 ? '\u26A1 Aggressive' : '',
+                lp, seasonsInCurrentTier: team.finances.seasonsInCurrentTier || 0,
+                ownerMode: team.finances.ownerMode,
+                arenaCapacity: team.finances.arena.capacity, arenaCondition: team.finances.arena.condition,
+                sponsorCount: team.finances.sponsorships.length,
+                sponsorRevenue: team.finances.sponsorships.reduce((s, d) => s + d.annualValue, 0),
+                ticketPct: Math.round((team.finances.ticketPriceMultiplier || 1.0) * 100),
+                marketingBudget: team.finances.marketingBudget,
+            });
+            return;
+        }
+
         content.innerHTML = UIRenderer.financeDashboard({
             formatCurrency: helpers.formatCurrency, totalRev, trendHtml, capLabel,
             spendingLimit: summary.spendingLimit, capSpace: summary.capSpace,

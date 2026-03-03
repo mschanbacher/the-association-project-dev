@@ -18,7 +18,6 @@ const MODAL_IDS = [
   { id: 'playoffModal',               maxWidth: 1000 },
   { id: 'freeAgencyModal',            maxWidth: 1100 },
   { id: 'collegeGradFAModal',         maxWidth: 1000 },
-  { id: 'financeDashboardModal',      maxWidth: 1100 },
   { id: 'bracketViewerModal',         maxWidth: 1400 },
 ];
 
