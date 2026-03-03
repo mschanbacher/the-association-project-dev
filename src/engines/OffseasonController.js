@@ -362,24 +362,21 @@ export class OffseasonController {
         };
 
         if (window._reactShowFinancialTransition) {
+            const self = this;
             window._financialTransitionContinueCallback = () => {
-                document.getElementById('financialTransitionModal').classList.add('hidden');
                 helpers.saveGameState();
-                console.log('Proceeding to draft/development after transition briefing...');
-                helpers.proceedToDraftOrDevelopment();
+                self.proceedToDraftOrDevelopment();
             };
             window._financialTransitionSpendingCallback = (pct) => {
-                const userTeam = helpers.getUserTeam();
-                if (userTeam && userTeam.finances) {
-                    userTeam.finances.spendingRatio = pct / 100;
-                    engines.FinanceEngine.recalculateSpendingLimit(userTeam);
-                }
+                const ratio = parseInt(pct) / 100;
+                team.finances.spendingRatio = ratio;
             };
             window._reactShowFinancialTransition(briefingData);
             return;
         }
 
         document.getElementById('financialTransitionContent').innerHTML = UIRenderer.financialTransitionBriefing(briefingData);
+
         document.getElementById('financialTransitionModal').classList.remove('hidden');
     }
 
@@ -995,10 +992,10 @@ export class OffseasonController {
 
         if (window._reactShowCompliance) {
             window._complianceManageRosterCallback = () => {
-                window.openRosterManagementFromCompliance?.();
+                window.openRosterManagementFromCompliance && window.openRosterManagementFromCompliance();
             };
             window._complianceRecheckCallback = () => {
-                window.recheckRosterCompliance?.();
+                window.recheckRosterCompliance && window.recheckRosterCompliance();
             };
             window._reactShowCompliance({
                 isOverCap, isUnderMinimum, isOverMaximum,
