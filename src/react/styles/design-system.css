@@ -49,6 +49,11 @@
   --color-tier3:          #b37340;
   --color-tier3-bg:       #faf2ea;
 
+  /* Watch Game */
+  --color-home:           #4ecdc4;
+  --color-away:           #ff6b6b;
+  --color-highlight-bg:   rgba(255, 215, 0, 0.08);
+
   /* Rating Colors */
   --color-rating-elite:   #2d8a56;
   --color-rating-good:    #3574c4;

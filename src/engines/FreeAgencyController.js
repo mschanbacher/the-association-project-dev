@@ -81,16 +81,15 @@ export class FreeAgencyController {
                 p._isAboveTier = natTier < userTeam.tier;
                 p._isFormer = isFormer;
                 p._isWatched = this._isOnWatchList(p.id);
-                p._marketDisplayHtml = UIRenderer.formatMarketDisplay(p, userTeam.tier);
                 // Structured market data for React rendering
                 const TF = window.TeamFactory;
                 const tierValue = TF ? TF.getMarketValue(p, userTeam.tier) : (p.salary || 0);
                 const natTierColors = { 1: '#ff6b6b', 2: '#4ecdc4', 3: '#95afc0' };
                 p._marketData = {
-                    value: UIRenderer.formatCurrency(tierValue),
+                    value: formatCurrency(tierValue),
                     natTier: natTier,
                     badgeColor: natTierColors[natTier] || '#95afc0',
-                    crossTierValue: (natTier < userTeam.tier && TF) ? UIRenderer.formatCurrency(TF.getNaturalMarketValue(p)) : null,
+                    crossTierValue: (natTier < userTeam.tier && TF) ? formatCurrency(TF.getNaturalMarketValue(p)) : null,
                 };
                 p._fromTeamName = isFormer ? userTeam.name : (previousTeam ? previousTeam.name : (p.isCollegeGrad ? '🎓 ' + p.college : 'N/A'));
                 return p;
@@ -173,10 +172,10 @@ export class FreeAgencyController {
         const baseCap = SalaryCapEngine.getSalaryCap(team.tier);
         const totalSalary = SalaryCapEngine.calculateTeamSalary(team);
 
-        return UIRenderer.currentRosterSidebar({
-            roster: team.roster, byPosition, teamEffCap, baseCap,
-            tier: team.tier, totalSalary, formatCurrency
-        });
+        // [LEGACY REMOVED] return UIRenderer.currentRosterSidebar({
+            // roster: team.roster, byPosition, teamEffCap, baseCap,
+            // tier: team.tier, totalSalary, formatCurrency
+        // });
     }
 
     /**
@@ -236,7 +235,6 @@ export class FreeAgencyController {
                 const previousTeamName = previousTeam ? previousTeam.name
                     : (player.isCollegeGrad ? `🎓 ${player.college}` : 'N/A');
                 const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
-                player._marketDisplay = UIRenderer.formatMarketDisplay(player, userTeam.tier);
                 // [LEGACY REMOVED] html += UIRenderer.faPlayerRow({
                     // player, isChecked: selected.has(String(player.id)),
                     // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
@@ -267,7 +265,7 @@ export class FreeAgencyController {
             const previousTeamName = previousTeam ? previousTeam.name
                 : (player.isCollegeGrad ? `🎓 ${player.college}` : 'N/A');
             const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
-            player._marketDisplay = UIRenderer.formatMarketDisplay(player, userTeam.tier);
+            // [DEAD] player._marketDisplay = UIRenderer.formatMarketDisplay(player, userTeam.tier);
             // [LEGACY REMOVED] html += UIRenderer.faPlayerRow({
                 // player, isChecked: selected.has(String(player.id)),
                 // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),

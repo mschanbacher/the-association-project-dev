@@ -4,7 +4,6 @@
 //          draft results display, college graduate free agency
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { UIRenderer } from './UIRenderer.js';
 
 export class DraftController {
     /**
@@ -495,14 +494,6 @@ export class DraftController {
             return;
         }
 
-        window.cgSelectedIds = new Set();
-
-        if (!window._cgModalOriginalHTML) {
-            const cgModal = document.getElementById('collegeGradFAModal');
-            const cgContent = cgModal?.querySelector('.modal-content');
-            if (cgContent) window._cgModalOriginalHTML = cgContent.innerHTML;
-        }
-
         this.showCollegeGradModal(graduates);
     }
 
@@ -536,22 +527,7 @@ export class DraftController {
                 formatCurrency: helpers.formatCurrency,
                 getRatingColor: helpers.getRatingColor,
             });
-            return;
         }
-
-        const modal = document.getElementById('collegeGradFAModal');
-        if (!document.getElementById('collegeGradSubtitle') && modal) {
-            const mc = modal.querySelector('.modal-content');
-            if (mc && window._cgModalOriginalHTML) mc.innerHTML = window._cgModalOriginalHTML;
-        }
-
-        const info = UIRenderer.collegeGradModalInfo({ graduateCount: graduates.length, season, capSpace, rosterSize: userTeam.roster.length, formatCurrency: helpers.formatCurrency });
-        document.getElementById('collegeGradSubtitle').innerHTML = info.subtitle;
-        document.getElementById('collegeGradCapInfo').innerHTML = info.capInfo;
-
-        window.cgAllGraduates = graduates;
-        this.filterCollegeGrads();
-        document.getElementById('collegeGradFAModal').classList.remove('hidden');
     }
 
     /**
@@ -591,129 +567,6 @@ export class DraftController {
                 phase: 'results',
                 results: { signed, lost, details },
             });
-        }
-    }
-
-    filterCollegeGrads() {
-        const { helpers, engines } = this.ctx;
-        const posFilter = document.getElementById('cgPositionFilter').value;
-        const sortBy = document.getElementById('cgSortBy').value;
-        const graduates = window.cgAllGraduates || [];
-        const selected = window.cgSelectedIds || new Set();
-
-        let filtered = graduates;
-        if (posFilter !== 'ALL') {
-            filtered = graduates.filter(g => g.position === posFilter);
-        }
-
-        if (sortBy === 'rating') filtered.sort((a, b) => b.rating - a.rating);
-        else if (sortBy === 'age') filtered.sort((a, b) => a.age - b.age || b.rating - a.rating);
-        else if (sortBy === 'salary') filtered.sort((a, b) => a.salary - b.salary);
-        else if (sortBy === 'potential') filtered.sort((a, b) => b.projectedCeiling - a.projectedCeiling);
-
-        document.getElementById('collegeGradList').innerHTML = UIRenderer.collegeGradTable({
-            filtered, selected, getRatingColor: helpers.getRatingColor, formatCurrency: helpers.formatCurrency, PlayerAttributes: engines.PlayerAttributes
-        });
-        this.updateCollegeGradTally();
-    }
-
-    toggleCollegeGradSelection(playerId) {
-        const selected = window.cgSelectedIds || new Set();
-        const cb = document.getElementById(`cg_${playerId}`);
-        if (cb && cb.checked) selected.add(String(playerId));
-        else selected.delete(String(playerId));
-
-        const row = cb ? cb.closest('tr') : null;
-        if (row) row.style.background = cb.checked ? 'rgba(52,168,83,0.15)' : '';
-
-        this.updateCollegeGradTally();
-    }
-
-    updateCollegeGradTally() {
-        const { helpers } = this.ctx;
-        const selected = window.cgSelectedIds || new Set();
-        const graduates = window.cgAllGraduates || [];
-        const userTeam = helpers.getUserTeam();
-
-        const selectedPlayers = graduates.filter(g => selected.has(String(g.id)));
-        const count = selectedPlayers.length;
-
-        document.getElementById('cgSelectedCount').textContent = count;
-        document.getElementById('cgSubmitBtn').disabled = count === 0;
-
-        const tallyEl = document.getElementById('collegeGradTally');
-        if (count === 0) { tallyEl.style.display = 'none'; return; }
-
-        tallyEl.style.display = 'block';
-        const estCost = selectedPlayers.reduce((sum, p) => sum + p.salary, 0);
-        const capSpace = helpers.getRemainingCap(userTeam);
-        const remaining = capSpace - estCost;
-
-        document.getElementById('cgOfferCount').textContent = count;
-        document.getElementById('cgOfferTotal').textContent = helpers.formatCurrency(estCost);
-        const remEl = document.getElementById('cgOfferRemaining');
-        remEl.textContent = helpers.formatCurrency(remaining);
-        remEl.style.color = remaining >= 0 ? '#34a853' : '#ea4335';
-    }
-
-    submitCollegeGradOffers() {
-        const { gameState, helpers } = this.ctx;
-        const selected = window.cgSelectedIds || new Set();
-        const graduates = window.cgAllGraduates || [];
-        const userTeam = helpers.getUserTeam();
-
-        const picks = graduates.filter(g => selected.has(String(g.id)));
-
-        if (picks.length === 0) { alert('Select at least one player.'); return; }
-
-        const totalCost = picks.reduce((sum, p) => sum + p.salary, 0);
-        const capSpace = helpers.getRemainingCap(userTeam);
-        if (totalCost > capSpace) {
-            alert(`Your selections cost ${helpers.formatCurrency(totalCost)} but you only have ${helpers.formatCurrency(capSpace)} in cap space.\n\nRemove some picks or target cheaper players.`);
-            return;
-        }
-
-        const rosterSpace = 15 - userTeam.roster.length;
-        if (picks.length > rosterSpace) {
-            alert(`You only have ${rosterSpace} roster spot${rosterSpace !== 1 ? 's' : ''} available.\n\nYou selected ${picks.length} players. Remove some picks.`);
-            return;
-        }
-
-        let signed = 0, lost = 0;
-        const results = [];
-
-        picks.forEach(player => {
-            const signChance = player.rating >= 72 ? 0.75 : player.rating >= 65 ? 0.85 : 0.95;
-            if (Math.random() < signChance) {
-                player.contractYears = helpers.determineContractLength(player.age, player.rating);
-                player.originalContractLength = player.contractYears;
-                player.salary = helpers.generateSalary(player.rating, userTeam.tier);
-                player.tier = userTeam.tier;
-                helpers.initializePlayerChemistry(player);
-                userTeam.roster.push(player);
-                userTeam.gamesSinceRosterChange = 0;
-
-                const idx = graduates.indexOf(player);
-                if (idx !== -1) graduates.splice(idx, 1);
-
-                signed++;
-                results.push({ player, signed: true });
-            } else {
-                lost++;
-                results.push({ player, signed: false });
-            }
-        });
-
-        // The .modal-content may have been moved to React overlay by OffseasonModals
-        const listEl = document.getElementById('collegeGradList');
-        if (listEl) listEl.innerHTML = '';
-        const modalEl = document.getElementById('collegeGradFAModal');
-        let contentNode = modalEl && modalEl.querySelector('.modal-content');
-        if (!contentNode && listEl) {
-            contentNode = listEl.closest('.modal-content');
-        }
-        if (contentNode) {
-            contentNode.innerHTML = UIRenderer.collegeGradResults({ signed, lost, results });
         }
     }
 
