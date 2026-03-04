@@ -8,6 +8,7 @@ export function RosterScreen() {
   const { gameState, engines, isReady } = useGame();
   const [sortBy, setSortBy] = useState('rating');
   const [sortDir, setSortDir] = useState('desc');
+  const [expandedPlayer, setExpandedPlayer] = useState(null);
 
   if (!isReady || !gameState?.userTeam) {
     return (
@@ -151,7 +152,9 @@ export function RosterScreen() {
             </thead>
             <tbody>
               {sortedRoster.map((player, i) => (
-                <PlayerRow key={player.id || i} player={player} engines={engines} />
+                <PlayerRow key={player.id || i} player={player} engines={engines}
+                  expanded={expandedPlayer === (player.id || i)}
+                  onToggle={() => setExpandedPlayer(expandedPlayer === (player.id || i) ? null : (player.id || i))} />
               ))}
             </tbody>
           </table>
@@ -164,7 +167,7 @@ export function RosterScreen() {
 /* ═══════════════════════════════════════════════════════════════
    Player Row
    ═══════════════════════════════════════════════════════════════ */
-function PlayerRow({ player, engines }) {
+function PlayerRow({ player, engines, expanded, onToggle }) {
   const { PlayerAttributes: PA } = engines;
 
   const contractYears = player.contractYears || 1;
@@ -178,12 +181,14 @@ function PlayerRow({ player, engines }) {
     : '';
 
   return (
-    <tr style={{
-      borderBottom: '1px solid var(--color-border-subtle)',
+    <><tr onClick={onToggle} style={{
+      borderBottom: expanded ? 'none' : '1px solid var(--color-border-subtle)',
       transition: 'background var(--duration-fast) ease',
+      cursor: 'pointer',
+      background: expanded ? 'var(--color-accent-bg)' : 'transparent',
     }}
-    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-hover)'}
-    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+    onMouseEnter={(e) => { if (!expanded) e.currentTarget.style.background = 'var(--color-bg-hover)'; }}
+    onMouseLeave={(e) => { if (!expanded) e.currentTarget.style.background = 'transparent'; }}
     >
       <td style={{ padding: '10px 12px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -286,6 +291,113 @@ function PlayerRow({ player, engines }) {
           {player.relegationRelease && (
             <Badge variant="info">Release</Badge>
           )}
+        </div>
+      </td>
+    </tr>
+    {expanded && <PlayerDetailRow player={player} engines={engines} />}
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Player Detail — Expanded inline panel with full attributes
+   ═══════════════════════════════════════════════════════════════ */
+function PlayerDetailRow({ player, engines }) {
+  const { PlayerAttributes: PA } = engines;
+  const m = player.measurables;
+  const attrs = player.attributes || {};
+
+  const measStr = m && PA?.formatHeight
+    ? `${PA.formatHeight(m.height)} · ${m.weight}lbs · ${PA.formatWingspan ? PA.formatWingspan(m.wingspan) : m.wingspan + '"'} WS`
+    : '';
+
+  const attrColor = (v) =>
+    v >= 80 ? 'var(--color-rating-elite)' :
+    v >= 70 ? 'var(--color-rating-good)' :
+    v >= 60 ? 'var(--color-rating-avg)' :
+    'var(--color-rating-poor)';
+
+  const AttrBar = ({ label, value }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+      <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', width: 100 }}>{label}</span>
+      <div style={{ flex: 1, height: 4, background: 'var(--color-bg-sunken)', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${value}%`, background: attrColor(value) }} />
+      </div>
+      <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, width: 24, textAlign: 'right', color: attrColor(value) }}>{value}</span>
+    </div>
+  );
+
+  const offKeys = [
+    { key: 'clutch', label: 'Clutch' },
+    { key: 'basketballIQ', label: 'Basketball IQ' },
+    { key: 'speed', label: 'Speed' },
+  ];
+  const defKeys = [
+    { key: 'strength', label: 'Strength' },
+    { key: 'verticality', label: 'Verticality' },
+    { key: 'endurance', label: 'Endurance' },
+  ];
+  const intKeys = [
+    { key: 'workEthic', label: 'Work Ethic' },
+    { key: 'coachability', label: 'Coachability' },
+    { key: 'collaboration', label: 'Collaboration' },
+  ];
+
+  return (
+    <tr>
+      <td colSpan={9} style={{ padding: 0 }}>
+        <div style={{
+          padding: '16px 20px 20px',
+          background: 'var(--color-accent-bg)',
+          borderBottom: '1px solid var(--color-border)',
+        }}>
+          {/* Top: big OVR + OFF/DEF + measurables + actions */}
+          <div style={{ display: 'flex', gap: 32, marginBottom: 16, alignItems: 'center' }}>
+            <div>
+              <div style={{
+                fontSize: 36, fontWeight: 700, lineHeight: 1,
+                color: ratingColor(player.rating), fontFamily: 'var(--font-mono)',
+              }}>{player.rating}</div>
+              <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 2 }}>OVERALL</div>
+            </div>
+            <div style={{ display: 'flex', gap: 20 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>{player.offRating || '—'}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>OFF</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>{player.defRating || '—'}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>DEF</div>
+              </div>
+            </div>
+            {measStr && (
+              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{measStr}</div>
+            )}
+            <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+              <span style={{
+                padding: '4px 10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)',
+              }}>
+                {formatCurrency(player.salary || 0)} · {player.contractYears || 1}yr
+              </span>
+            </div>
+          </div>
+
+          {/* Attribute grid: 3 columns */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Offense</div>
+              {offKeys.map(({ key, label }) => <AttrBar key={key} label={label} value={attrs[key] || 50} />)}
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Defense</div>
+              {defKeys.map(({ key, label }) => <AttrBar key={key} label={label} value={attrs[key] || 50} />)}
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Intangibles</div>
+              {intKeys.map(({ key, label }) => <AttrBar key={key} label={label} value={attrs[key] || 50} />)}
+            </div>
+          </div>
         </div>
       </td>
     </tr>

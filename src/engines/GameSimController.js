@@ -133,6 +133,8 @@ export class GameSimController {
             window._reactShowWatchGame({
                 homeName: this._watchHomeName,
                 awayName: this._watchAwayName,
+                homeTeamFullName: this._watchHomeTeam?.name,
+                awayTeamFullName: this._watchAwayTeam?.name,
             });
         } else {
             // [LEGACY DOM] document.getElementById('watchGameContent').innerHTML = layoutHtml;
@@ -665,6 +667,8 @@ export class GameSimController {
             window._reactShowWatchGame({
                 homeName: this._watchHomeName,
                 awayName: this._watchAwayName,
+                homeTeamFullName: this._watchHomeTeam?.name,
+                awayTeamFullName: this._watchAwayTeam?.name,
                 playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`,
             });
         } else {

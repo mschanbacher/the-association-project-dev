@@ -99,7 +99,7 @@ function SimControls({ gameState }) {
       setup_complete: 'Start New Season',
     };
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <button
           onClick={wrap(() => window.resumeOffseason?.())}
           style={{
@@ -120,10 +120,7 @@ function SimControls({ gameState }) {
   }
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 2,
-      background: 'var(--color-bg-sunken)', padding: 2,
-    }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
       <SimBtn label="Next" onClick={wrap(() => window.simNextGame?.())} disabled={disabled} />
       <SimBtn label="Watch" onClick={wrap(() => window.watchNextGame?.())} disabled={disabled} accent />
       <SimDivider />

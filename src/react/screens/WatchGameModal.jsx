@@ -1,17 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Modal, ModalBody } from '../components/Modal.jsx';
 import { Button } from '../components/Button.jsx';
+import { TEAM_COLORS } from '../styles/TeamColors.js';
 
 /**
  * WatchGameModal — native React live game viewer.
  *
- * The game loop in GameSimController runs on a setInterval and needs to
- * update the scoreboard, play-by-play, and leaders every tick (1-800ms).
- * Rather than re-rendering React every possession, we expose DOM refs on
- * window._wgRefs so the game loop can write to them imperatively.
- *
- * React owns the layout, styling, and lifecycle. The game loop owns the
- * per-tick content updates.
+ * The game loop runs on setInterval and updates DOM refs imperatively
+ * for performance. React owns layout/styling/lifecycle.
  */
 export function WatchGameModal({ isOpen, data, onClose }) {
   const [speed, setSpeed] = useState(1);
@@ -19,7 +15,6 @@ export function WatchGameModal({ isOpen, data, onClose }) {
   const [gameOver, setGameOver] = useState(false);
   const [finalData, setFinalData] = useState(null);
 
-  // Refs for imperative DOM updates from game loop
   const homeScoreRef = useRef(null);
   const awayScoreRef = useRef(null);
   const clockRef = useRef(null);
@@ -28,7 +23,23 @@ export function WatchGameModal({ isOpen, data, onClose }) {
   const playsRef = useRef(null);
   const leadersRef = useRef(null);
 
-  // Expose refs on window so GameSimController can find them
+  // Apply opponent team color as CSS variable for the away side
+  useEffect(() => {
+    if (isOpen && data) {
+      const root = document.documentElement;
+      // Home team color is already --color-accent (user's team)
+      // Set away team color from their team data
+      const awayColors = data.awayTeamFullName ? TEAM_COLORS[data.awayTeamFullName] : null;
+      if (awayColors) {
+        root.style.setProperty('--color-away', awayColors.primary);
+      } else {
+        root.style.setProperty('--color-away', '#B5403A');
+      }
+      // Home color matches user accent
+      root.style.setProperty('--color-home', getComputedStyle(root).getPropertyValue('--color-accent').trim() || '#1B4D3E');
+    }
+  }, [isOpen, data?.awayTeamFullName]);
+
   useEffect(() => {
     if (isOpen) {
       window._wgRefs = {
@@ -39,7 +50,6 @@ export function WatchGameModal({ isOpen, data, onClose }) {
         momentum: momentumRef.current,
         plays: playsRef.current,
         leaders: leadersRef.current,
-        // Callbacks for state changes that need React re-render
         setGameOver: (resultData) => { setGameOver(true); setFinalData(resultData); },
         setSpeed: (s) => setSpeed(s),
         setPaused: (p) => setPaused(p),
@@ -48,46 +58,34 @@ export function WatchGameModal({ isOpen, data, onClose }) {
     return () => { window._wgRefs = null; };
   }, [isOpen]);
 
-  // Reset state when new game starts
   useEffect(() => {
     if (isOpen && data) {
-      setSpeed(1);
-      setPaused(false);
-      setGameOver(false);
-      setFinalData(null);
-      // Clear plays feed
+      setSpeed(1); setPaused(false); setGameOver(false); setFinalData(null);
       if (playsRef.current) playsRef.current.innerHTML = '';
       if (leadersRef.current) leadersRef.current.innerHTML = '';
     }
   }, [isOpen, data?.homeName, data?.awayName]);
 
-  const handleSpeed = useCallback((s) => {
-    setSpeed(s);
-    window.watchGameSetSpeed?.(s);
-  }, []);
-
-  const handlePause = useCallback(() => {
-    setPaused(p => !p);
-    window.watchGameTogglePause?.();
-  }, []);
+  const handleSpeed = useCallback((s) => { setSpeed(s); window.watchGameSetSpeed?.(s); }, []);
+  const handlePause = useCallback(() => { setPaused(p => !p); window.watchGameTogglePause?.(); }, []);
 
   if (!isOpen || !data) return null;
-
   const { homeName, awayName, playoffContext } = data;
 
   return (
     <Modal isOpen={isOpen} onClose={null} maxWidth={1000} zIndex={1400}>
       <ModalBody style={{ maxHeight: '95vh', overflow: 'hidden', padding: 0 }}>
         <div style={S.container}>
-          {/* Playoff context banner */}
+          {/* Playoff context */}
           {playoffContext && (
-            <div style={S.contextBanner}>🏆 {playoffContext}</div>
+            <div style={S.contextBanner}>{playoffContext}</div>
           )}
 
           {/* Scoreboard */}
           <div style={S.scoreboard}>
             <div style={S.scoreRow}>
               <div style={S.teamScore}>
+                <div style={{ ...S.teamLabel, color: 'var(--color-away)' }}>AWAY</div>
                 <div style={S.teamName}>{awayName}</div>
                 <div ref={awayScoreRef} style={S.score}>0</div>
               </div>
@@ -96,11 +94,12 @@ export function WatchGameModal({ isOpen, data, onClose }) {
                 <div ref={quarterScoresRef} style={S.quarterScores} />
               </div>
               <div style={S.teamScore}>
+                <div style={{ ...S.teamLabel, color: 'var(--color-home)' }}>HOME</div>
                 <div style={S.teamName}>{homeName}</div>
-                <div ref={homeScoreRef} style={S.score}>0</div>
+                <div ref={homeScoreRef} style={{ ...S.score, color: 'var(--color-home)' }}>0</div>
               </div>
             </div>
-            {/* Momentum bar */}
+            {/* Momentum */}
             <div style={S.momentumRow}>
               <span style={S.momentumLabel}>AWY</span>
               <div style={S.momentumTrack}>
@@ -110,52 +109,53 @@ export function WatchGameModal({ isOpen, data, onClose }) {
             </div>
           </div>
 
-          {/* Controls */}
+          {/* Speed controls — flat text, no containers */}
           <div style={S.controls}>
+            <span style={S.controlLabel}>Speed</span>
             {[1, 3, 10, 999].map(s => (
               <button key={s} onClick={() => handleSpeed(s)} style={{
                 ...S.controlBtn,
-                background: speed === s ? 'var(--color-accent)' : 'var(--color-bg-sunken)',
-                color: speed === s ? '#1a1a2e' : 'var(--color-text-secondary)',
-                fontWeight: speed === s ? 'var(--weight-bold)' : 'var(--weight-normal)',
+                background: speed === s ? 'var(--color-accent)' : 'transparent',
+                color: speed === s ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+                fontWeight: speed === s ? 600 : 400,
               }}>
-                {s === 999 ? '⏩ Max' : `${s}x`}
+                {s === 999 ? 'Max' : `${s}x`}
               </button>
             ))}
             <div style={S.controlDivider} />
             <button onClick={handlePause} style={{
               ...S.controlBtn,
-              background: paused ? 'var(--color-win, #4ecdc4)' : 'var(--color-bg-sunken)',
-              color: paused ? '#1a1a2e' : 'var(--color-text-secondary)',
+              background: paused ? 'var(--color-win)' : 'transparent',
+              color: paused ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
             }}>
-              {paused ? '▶ Play' : '⏸ Pause'}
+              {paused ? 'Play' : 'Pause'}
             </button>
             <button onClick={() => window.watchGameSkip?.()} style={S.controlBtn}>
-              ⏭ Skip
+              Skip
             </button>
           </div>
 
-          {/* Main area */}
+          {/* Main: play-by-play + leaders */}
           <div style={S.mainArea}>
-            {/* Play-by-play feed */}
             <div style={S.playsPanel}>
-              <div style={S.panelHeader}>PLAY-BY-PLAY</div>
+              <div style={S.panelHeader}>Play-by-Play</div>
               <div ref={playsRef} style={S.playsFeed} />
             </div>
-            {/* Leaders sidebar */}
             <div style={S.leadersPanel}>
-              <div style={S.panelHeader}>LEADERS</div>
+              <div style={S.panelHeader}>Leaders</div>
               <div ref={leadersRef} style={S.leadersFeed} />
             </div>
           </div>
 
-          {/* Game over bar */}
+          {/* Game over */}
           {gameOver && (
             <div style={S.gameOverBar}>
               {finalData && (
                 <div style={S.finalText}>
-                  <span style={{ color: finalData.color }}>{finalData.won ? '🎉 VICTORY' : '😤 DEFEAT'}</span>
-                  {' — FINAL'}{finalData.isOvertime ? ' (OT)' : ''}: {finalData.awayScore} - {finalData.homeScore}
+                  <span style={{ color: finalData.won ? 'var(--color-win)' : 'var(--color-loss)' }}>
+                    {finalData.won ? 'VICTORY' : 'DEFEAT'}
+                  </span>
+                  {' — FINAL'}{finalData.isOvertime ? ' (OT)' : ''}: {finalData.awayScore} – {finalData.homeScore}
                 </div>
               )}
               <Button variant="primary" onClick={() => window.watchGameClose?.()}>
@@ -169,10 +169,6 @@ export function WatchGameModal({ isOpen, data, onClose }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   STYLES — using CSS vars for theme compatibility
-   ═══════════════════════════════════════════════════════════════ */
-
 const S = {
   container: {
     display: 'flex', flexDirection: 'column', height: '90vh',
@@ -180,95 +176,99 @@ const S = {
     fontFamily: 'var(--font-body)',
   },
   contextBanner: {
-    textAlign: 'center', padding: 'var(--space-2)',
-    background: 'rgba(212,168,67,0.1)', color: 'var(--color-accent)',
-    fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)',
-    borderBottom: '1px solid rgba(212,168,67,0.2)',
+    textAlign: 'center', padding: '6px',
+    background: 'var(--color-accent-bg)', color: 'var(--color-accent)',
+    fontSize: 'var(--text-xs)', fontWeight: 600,
+    borderBottom: '1px solid var(--color-accent-border)',
+    textTransform: 'uppercase', letterSpacing: '0.04em',
   },
   scoreboard: {
-    background: 'var(--color-bg-raised)', padding: 'var(--space-4) var(--space-5)',
-    borderBottom: '1px solid var(--color-border-subtle)', flexShrink: 0,
+    background: 'var(--color-bg-raised)', padding: '20px 24px 16px',
+    borderBottom: '1px solid var(--color-border)', flexShrink: 0,
   },
   scoreRow: {
-    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-6)',
+    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 48,
   },
-  teamScore: { textAlign: 'center', minWidth: 180 },
+  teamScore: { textAlign: 'center', minWidth: 160 },
+  teamLabel: {
+    fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 2,
+  },
   teamName: {
-    fontSize: 'var(--text-sm)', opacity: 0.7, marginBottom: 'var(--space-1)',
+    fontSize: 'var(--text-md)', fontWeight: 600, marginBottom: 4,
   },
   score: {
-    fontSize: '3em', fontWeight: 'var(--weight-bold)', lineHeight: 1,
+    fontSize: 48, fontWeight: 700, lineHeight: 1, fontFamily: 'var(--font-mono)',
   },
   clockArea: { textAlign: 'center' },
   clock: {
-    fontSize: '1.4em', fontWeight: 'var(--weight-bold)', color: 'var(--color-accent)',
+    fontSize: 18, fontWeight: 700, color: 'var(--color-accent)', fontFamily: 'var(--font-mono)',
   },
   quarterScores: {
-    fontSize: 'var(--text-xs)', opacity: 0.5, marginTop: 'var(--space-1)',
+    fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 4,
   },
   momentumRow: {
-    marginTop: 'var(--space-3)', display: 'flex', alignItems: 'center',
-    gap: 'var(--space-2)', justifyContent: 'center',
+    marginTop: 12, display: 'flex', alignItems: 'center',
+    gap: 8, justifyContent: 'center',
   },
-  momentumLabel: { fontSize: 'var(--text-xs)', opacity: 0.4 },
+  momentumLabel: { fontSize: 10, color: 'var(--color-text-tertiary)' },
   momentumTrack: {
-    width: 200, height: 4, background: 'var(--color-bg-sunken)',
-    borderRadius: 2, position: 'relative', overflow: 'hidden',
+    width: 200, height: 3, background: 'var(--color-bg-sunken)',
+    position: 'relative', overflow: 'hidden',
   },
   momentumBar: {
     position: 'absolute', top: 0, height: '100%',
-    background: '#4ecdc4', borderRadius: 2,
+    background: 'var(--color-accent)',
     transition: 'left 0.3s, width 0.3s',
     left: '50%', width: 0,
   },
   controls: {
     display: 'flex', justifyContent: 'center', alignItems: 'center',
-    gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-4)',
-    background: 'var(--color-bg-sunken)', flexShrink: 0,
-    borderBottom: '1px solid var(--color-border-subtle)',
+    gap: 4, padding: '8px 24px',
+    borderBottom: '1px solid var(--color-border-subtle)', flexShrink: 0,
+  },
+  controlLabel: {
+    fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase',
+    letterSpacing: '0.06em', marginRight: 8,
   },
   controlBtn: {
-    padding: '6px 14px', borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--color-border-subtle)',
-    background: 'var(--color-bg-sunken)', color: 'var(--color-text-secondary)',
-    cursor: 'pointer', fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-body)', transition: 'all var(--duration-fast) ease',
+    padding: '4px 12px', border: 'none',
+    background: 'transparent', color: 'var(--color-text-secondary)',
+    cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-body)',
+    transition: 'all 100ms ease',
   },
   controlDivider: {
-    width: 1, height: 20, background: 'var(--color-border)',
-    margin: '0 var(--space-1)',
+    width: 1, height: 14, background: 'var(--color-border)', margin: '0 6px',
   },
   mainArea: {
-    flex: 1, display: 'flex', overflow: 'hidden',
+    flex: 1, display: 'grid', gridTemplateColumns: '1fr 240px', overflow: 'hidden',
   },
   playsPanel: {
-    flex: 1, display: 'flex', flexDirection: 'column',
+    display: 'flex', flexDirection: 'column',
     borderRight: '1px solid var(--color-border-subtle)',
   },
   panelHeader: {
-    padding: 'var(--space-2) var(--space-3)',
-    fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-xs)',
-    opacity: 0.6, borderBottom: '1px solid var(--color-border-subtle)',
-    flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.5px',
+    padding: '8px 12px', fontWeight: 600, fontSize: 10,
+    color: 'var(--color-text-tertiary)',
+    borderBottom: '1px solid var(--color-border-subtle)',
+    flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.06em',
   },
   playsFeed: {
-    flex: 1, overflowY: 'auto', padding: 'var(--space-2) var(--space-3)',
+    flex: 1, overflowY: 'auto', padding: '4px 0',
     display: 'flex', flexDirection: 'column-reverse',
   },
   leadersPanel: {
-    width: 320, display: 'flex', flexDirection: 'column', flexShrink: 0,
+    display: 'flex', flexDirection: 'column', flexShrink: 0,
   },
   leadersFeed: {
-    flex: 1, overflowY: 'auto', padding: 'var(--space-2) var(--space-3)',
+    flex: 1, overflowY: 'auto', padding: '8px 12px',
   },
   gameOverBar: {
-    padding: 'var(--space-4) var(--space-5)', textAlign: 'center',
+    padding: '16px 20px', textAlign: 'center',
     background: 'var(--color-bg-raised)',
-    borderTop: '2px solid var(--color-accent)',
-    flexShrink: 0,
+    borderTop: '2px solid var(--color-accent)', flexShrink: 0,
   },
   finalText: {
-    fontSize: '1.3em', fontWeight: 'var(--weight-bold)',
-    marginBottom: 'var(--space-3)',
+    fontSize: 18, fontWeight: 700, marginBottom: 12,
+    fontFamily: 'var(--font-mono)',
   },
 };
