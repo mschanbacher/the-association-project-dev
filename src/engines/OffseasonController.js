@@ -226,9 +226,9 @@ export class OffseasonController {
                 t2Relegation: postseasonResults.t2Relegation || null,
             });
         } else {
-            const html = engines.PlayoffEngine.generatePostseasonHTML(postseasonResults, gameState.userTeamId);
-            document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.postseasonContinue({ resultsHTML: html });
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+            // [LEGACY REMOVED] const html = engines.PlayoffEngine.generatePostseasonHTML(postseasonResults, gameState.userTeamId);
+            // [LEGACY REMOVED] document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.postseasonContinue({ resultsHTML: html });
+            // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
         }
     }
 
@@ -241,7 +241,7 @@ export class OffseasonController {
         const P = OffseasonController.PHASES;
 
         if (window._reactCloseChampionship) window._reactCloseChampionship();
-        document.getElementById('championshipPlayoffModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
         this.setPhase(P.PROMO_REL);
 
         // ═══ CAPTURE SEASON HISTORY SNAPSHOT ═══
@@ -591,12 +591,9 @@ export class OffseasonController {
 
         let expiredContractsHTML = '';
         if (expiredContracts && expiredContracts.length > 0) {
-            const cardsHTML = expiredContracts.map(player => {
-                const remainingCap = helpers.getEffectiveCap(userTeam) - helpers.calculateTeamSalary(userTeam);
-                const canAfford = player.salary <= remainingCap;
-                return UIRenderer.expiredContractCard({ player, canAfford, ratingColor: helpers.getRatingColor(player.rating) });
-            }).join('');
-            expiredContractsHTML = UIRenderer.expiredContractsSection({ count: expiredContracts.length, cardsHTML });
+            // [LEGACY REMOVED] expired contract card generation
+            const cardsHTML = '';
+            // [LEGACY REMOVED] expiredContractsHTML = UIRenderer.expiredContractsSection({ count: expiredContracts.length, cardsHTML });
         }
 
         let improvementsHTML = '';
@@ -610,10 +607,10 @@ export class OffseasonController {
 
         const hasContent = improvements.length > 0 || declines.length > 0 || (expiredContracts && expiredContracts.length > 0);
 
-        document.getElementById('developmentSummary').innerHTML = UIRenderer.developmentAndFreeAgencyPage({
-            expiredContractsHTML, improvementsHTML, declinesHTML, hasContent
-        });
-        document.getElementById('developmentModal').classList.remove('hidden');
+        // [LEGACY REMOVED] document.getElementById('developmentSummary').innerHTML = UIRenderer.developmentAndFreeAgencyPage({
+        //     expiredContractsHTML, improvementsHTML, declinesHTML, hasContent
+        // });
+        // [LEGACY DOM] document.getElementById('developmentModal').classList.remove('hidden');
 
         if (!gameState.pendingExpiredDecisions) {
             gameState.pendingExpiredDecisions = expiredContracts ? expiredContracts.map(p => p.id) : [];
@@ -644,17 +641,17 @@ export class OffseasonController {
         }
 
         // Legacy fallback
-        const html = UIRenderer.developmentSummaryFull({
-            improvements, declines, userRetirements, notableRetirements,
-            allRetirementsCount: allRetirements.length
-        });
+        // [LEGACY REMOVED] const html = UIRenderer.developmentSummaryFull({
+            // improvements, declines, userRetirements, notableRetirements,
+            // allRetirementsCount: allRetirements.length
+        // });
 
-        document.getElementById('developmentSummary').innerHTML = html;
-        document.getElementById('developmentModal').classList.remove('hidden');
+        // [LEGACY DOM] document.getElementById('developmentSummary').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('developmentModal').classList.remove('hidden');
     }
 
     closeDevelopmentSummary() {
-        document.getElementById('developmentModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('developmentModal').classList.add('hidden');
         this.startFreeAgencyPeriod();
     }
 
@@ -686,10 +683,10 @@ export class OffseasonController {
         const element = document.getElementById(`expired_${playerId}`);
         if (element) {
             element.style.opacity = '0.5';
-            element.innerHTML = UIRenderer.expiredContractDecisionResult({
-                playerName: player.name, decision: 'resign',
-                contractYears: player.contractYears, salary: player.salary, formatCurrency: helpers.formatCurrency
-            });
+            // [LEGACY REMOVED] element.innerHTML = UIRenderer.expiredContractDecisionResult({
+                // playerName: player.name, decision: 'resign',
+                // contractYears: player.contractYears, salary: player.salary, formatCurrency: helpers.formatCurrency
+            // });
         }
 
         this._checkAllExpiredDecisionsMade();
@@ -717,10 +714,10 @@ export class OffseasonController {
         const element = document.getElementById(`expired_${playerId}`);
         if (element) {
             element.style.opacity = '0.5';
-            element.innerHTML = UIRenderer.expiredContractDecisionResult({
-                playerName: player.name, decision: 'release',
-                contractYears: 0, salary: 0, formatCurrency: helpers.formatCurrency
-            });
+            // [LEGACY REMOVED] element.innerHTML = UIRenderer.expiredContractDecisionResult({
+                // playerName: player.name, decision: 'release',
+                // contractYears: 0, salary: 0, formatCurrency: helpers.formatCurrency
+            // });
         }
 
         this._checkAllExpiredDecisionsMade();
@@ -779,19 +776,19 @@ export class OffseasonController {
             return;
         }
 
-        document.getElementById('contractDecisionsSummary').innerHTML = UIRenderer.contractDecisionsSummary({
-            expiredCount: expiredContracts.length,
-            availableCap: remainingCap,
-            rosterCount: { value: userTeam.roster.length - expiredContracts.length, label: 'Current Roster' },
-            formatCurrency: helpers.formatCurrency, capColor: '#34a853'
-        });
+        // [LEGACY REMOVED] document.getElementById('contractDecisionsSummary').innerHTML = UIRenderer.contractDecisionsSummary({
+            // expiredCount: expiredContracts.length,
+            // availableCap: remainingCap,
+            // rosterCount: { value: userTeam.roster.length - expiredContracts.length, label: 'Current Roster' },
+            // formatCurrency: helpers.formatCurrency, capColor: '#34a853'
+        // });
 
         const playersHtml = expiredContracts.map(player => {
             const canAfford = player.salary <= remainingCap;
             const newContract = helpers.determineContractLength(player.age, player.rating);
-            return UIRenderer.contractDecisionCard({
-                player, canAfford, newContractYears: newContract, ratingColor: helpers.getRatingColor(player.rating)
-            });
+            // [LEGACY REMOVED] return UIRenderer.contractDecisionCard({
+                // player, canAfford, newContractYears: newContract, ratingColor: helpers.getRatingColor(player.rating)
+            // });
         }).join('');
         document.getElementById('expiringContractsList').innerHTML = playersHtml;
 
@@ -844,13 +841,13 @@ export class OffseasonController {
         const remainingRoster = userTeam.roster.length - expiredContracts.length +
             Object.values(state.decisions).filter(d => d === 'resign').length;
 
-        document.getElementById('contractDecisionsSummary').innerHTML = UIRenderer.contractDecisionsSummary({
-            expiredCount: expiredContracts.length,
-            availableCap,
-            rosterCount: { value: remainingRoster, label: 'Remaining Roster' },
-            formatCurrency: helpers.formatCurrency,
-            capColor: availableCap < 0 ? '#ea4335' : '#34a853'
-        });
+        // [LEGACY REMOVED] document.getElementById('contractDecisionsSummary').innerHTML = UIRenderer.contractDecisionsSummary({
+            // expiredCount: expiredContracts.length,
+            // availableCap,
+            // rosterCount: { value: remainingRoster, label: 'Remaining Roster' },
+            // formatCurrency: helpers.formatCurrency,
+            // capColor: availableCap < 0 ? '#ea4335' : '#34a853'
+        // });
     }
 
     updateContractDecisionsButton() {
@@ -1040,10 +1037,10 @@ export class OffseasonController {
             return;
         }
 
-        document.getElementById('complianceModalContent').innerHTML = UIRenderer.rosterComplianceModal({
-            isOverCap, isUnderMinimum, isOverMaximum, totalSalary, salaryCap, rosterSize, tier, formatCurrency: helpers.formatCurrency
-        });
-        document.getElementById('complianceModal').classList.remove('hidden');
+        // [LEGACY REMOVED] document.getElementById('complianceModalContent').innerHTML = UIRenderer.rosterComplianceModal({
+            // isOverCap, isUnderMinimum, isOverMaximum, totalSalary, salaryCap, rosterSize, tier, formatCurrency: helpers.formatCurrency
+        // });
+        // [LEGACY DOM] document.getElementById('complianceModal').classList.remove('hidden');
     }
 
     // ═══════════════════════════════════════════════════════════════════

@@ -44,17 +44,17 @@ export class DraftController {
             return;
         }
 
-        const html = UIRenderer.lotteryResults({
-            lotteryResults: lotteryData.lotteryResults,
-            userTeamId: userTeam.id
-        });
-        document.getElementById('lotteryContent').innerHTML = html;
-        document.getElementById('lotteryModal').classList.remove('hidden');
+        // [LEGACY REMOVED] const html = UIRenderer.lotteryResults({
+            // lotteryResults: lotteryData.lotteryResults,
+            // userTeamId: userTeam.id
+        // });
+        // [LEGACY DOM] document.getElementById('lotteryContent').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('lotteryModal').classList.remove('hidden');
     }
 
     closeLotteryModal() {
         if (window._reactCloseLottery) window._reactCloseLottery();
-        document.getElementById('lotteryModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('lotteryModal').classList.add('hidden');
         if (window.pendingDraftData) {
             this.startDraftAfterLottery();
         }
@@ -293,7 +293,7 @@ export class DraftController {
             html = '<p style="text-align: center; opacity: 0.7; padding: 40px;">No prospects match your filters</p>';
         } else {
             prospects.forEach(prospect => {
-                html += UIRenderer.draftProspectCard({ prospect, getRatingColor: helpers.getRatingColor, PlayerAttributes: engines.PlayerAttributes });
+                // [LEGACY REMOVED] html += UIRenderer.draftProspectCard({ prospect, getRatingColor: helpers.getRatingColor, PlayerAttributes: engines.PlayerAttributes });
             });
         }
 
@@ -310,9 +310,9 @@ export class DraftController {
 
         const topPlayers = [...userTeam.roster].sort((a, b) => b.rating - a.rating).slice(0, 10);
 
-        document.getElementById('draftYourRoster').innerHTML = UIRenderer.draftUserRoster({
-            positionCounts, topPlayers, totalRosterSize: userTeam.roster.length, getRatingColor: helpers.getRatingColor
-        });
+        // [LEGACY REMOVED] document.getElementById('draftYourRoster').innerHTML = UIRenderer.draftUserRoster({
+            // positionCounts, topPlayers, totalRosterSize: userTeam.roster.length, getRatingColor: helpers.getRatingColor
+        // });
     }
 
     filterDraftProspects() {
@@ -415,7 +415,7 @@ export class DraftController {
         }
 
         this.showDraftRound(1);
-        document.getElementById('draftResultsModal').classList.remove('hidden');
+        // [LEGACY DOM] document.getElementById('draftResultsModal').classList.remove('hidden');
     }
 
     showDraftRound(round) {
@@ -436,9 +436,9 @@ export class DraftController {
         document.getElementById('draftRound2Btn').style.background = round === 2 ? 'linear-gradient(135deg, #34a853 0%, #2e7d32 100%)' : '';
         document.getElementById('userPicksBtn').style.background = 'linear-gradient(135deg, #fbbc04 0%, #f9a825 100%)';
 
-        document.getElementById('draftResultsContent').innerHTML = UIRenderer.draftRoundResults({
-            roundResults, roundTitle, userTeamId: userTeam.id, getRatingColor: helpers.getRatingColor
-        });
+        // [LEGACY REMOVED] document.getElementById('draftResultsContent').innerHTML = UIRenderer.draftRoundResults({
+            // roundResults, roundTitle, userTeamId: userTeam.id, getRatingColor: helpers.getRatingColor
+        // });
     }
 
     showUserDraftPicks() {
@@ -451,13 +451,13 @@ export class DraftController {
         document.getElementById('draftRound2Btn').style.background = '';
         document.getElementById('userPicksBtn').style.background = 'linear-gradient(135deg, #667eea 0%, #5568d3 100%)';
 
-        document.getElementById('draftResultsContent').innerHTML = UIRenderer.userDraftPicks({
-            picks: userPicks, teamName: userTeam.name, getRatingColor: helpers.getRatingColor
-        });
+        // [LEGACY REMOVED] document.getElementById('draftResultsContent').innerHTML = UIRenderer.userDraftPicks({
+            // picks: userPicks, teamName: userTeam.name, getRatingColor: helpers.getRatingColor
+        // });
     }
 
     closeDraftResults() {
-        document.getElementById('draftResultsModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('draftResultsModal').classList.add('hidden');
         this.currentDraftResults = [];
         console.log('Draft complete, generating college graduates...');
         this.startCollegeGraduateFA();

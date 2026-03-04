@@ -164,33 +164,13 @@ export class FinanceController {
         const renovationCost = Math.round(arena.capacity * (tier === 1 ? 500 : tier === 2 ? 200 : 80));
         const expansionSeats = Math.round(arena.capacity * 0.20);
 
-        let sponsorHtml = '';
-        if (f.pendingSponsorOffers.length > 0) {
-            sponsorHtml = f.pendingSponsorOffers.map((offer, idx) =>
-                UIRenderer.sponsorOfferCard({ offer, idx, formatCurrency: helpers.formatCurrency })
-            ).join('');
-        } else {
-            sponsorHtml = '<p style="opacity: 0.5; text-align: center; padding: 15px;">No new sponsorship offers this offseason.</p>';
-        }
-
-        let activeSponsorsHtml = '';
-        if (f.sponsorships.length > 0) {
-            activeSponsorsHtml = f.sponsorships.map(sponsor =>
-                UIRenderer.activeSponsorRow({ sponsor, formatCurrency: helpers.formatCurrency })
-            ).join('');
-        } else {
-            activeSponsorsHtml = '<p style="opacity: 0.5; font-size: 0.9em;">No active sponsorship deals.</p>';
-        }
+        // [LEGACY REMOVED] sponsorHtml and activeSponsorsHtml generation
 
         const revFor1Pct = Math.round(summary.totalRevenue * 0.01);
         const revFor3Pct = Math.round(summary.totalRevenue * 0.03);
         const revFor5Pct = Math.round(summary.totalRevenue * 0.05);
 
-        const html = UIRenderer.ownerModeModal({
-            formatCurrency: helpers.formatCurrency, team, f, summary, arena, tier, isT1,
-            expansionCost, renovationCost, expansionSeats,
-            sponsorHtml, activeSponsorsHtml, revFor1Pct, revFor3Pct, revFor5Pct
-        });
+        // [LEGACY REMOVED] ownerModeModal HTML generation
 
         // Route to React owner mode modal
         if (window._reactShowOwnerMode) {
@@ -374,5 +354,5 @@ export class FinanceController {
 function updateTicketPriceEffect(pct) {
     const el = document.getElementById('ticketPriceEffect');
     if (!el) return;
-    el.innerHTML = UIRenderer.ticketPriceEffect({ pct });
+    // [LEGACY REMOVED] el.innerHTML = UIRenderer.ticketPriceEffect({ pct });
 }

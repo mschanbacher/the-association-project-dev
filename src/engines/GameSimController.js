@@ -126,17 +126,17 @@ export class GameSimController {
             tier: gameState.currentTier
         });
 
-        const layoutHtml = UIRenderer.watchGameLayout({
-            homeName: this._watchHomeName, awayName: this._watchAwayName
-        });
+        // [LEGACY REMOVED] const layoutHtml = UIRenderer.watchGameLayout({
+            // homeName: this._watchHomeName, awayName: this._watchAwayName
+        // });
         if (window._reactShowWatchGame) {
             window._reactShowWatchGame({
                 homeName: this._watchHomeName,
                 awayName: this._watchAwayName,
             });
         } else {
-            document.getElementById('watchGameContent').innerHTML = layoutHtml;
-            document.getElementById('watchGameModal').classList.remove('hidden');
+            // [LEGACY DOM] document.getElementById('watchGameContent').innerHTML = layoutHtml;
+            // [LEGACY DOM] document.getElementById('watchGameModal').classList.remove('hidden');
         }
 
         this._watchPaused = false;
@@ -396,7 +396,7 @@ export class GameSimController {
         gameState.currentDate = engines.CalendarEngine.addDays(this._watchDate, 1);
 
         if (window._reactCloseWatchGame) window._reactCloseWatchGame();
-        document.getElementById('watchGameModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('watchGameModal').classList.add('hidden');
         this._watchGame = null;
 
         gmMode._showPostGameIfUserPlayed(this._watchDate);
@@ -449,16 +449,16 @@ export class GameSimController {
         // Legacy fallback
         let html = '';
         if (gameState.currentTier === 1 && gameState.championshipPlayoffData) {
-            html = UIRenderer.t1BracketViewer({ playoffData: gameState.championshipPlayoffData, userTeam, playoffWatch: this._playoffWatch });
+            // [LEGACY REMOVED] html = UIRenderer.t1BracketViewer({ playoffData: gameState.championshipPlayoffData, userTeam, playoffWatch: this._playoffWatch });
         } else if (gameState.currentTier === 2 && gameState.t2PlayoffData) {
-            html = UIRenderer.t2BracketViewer({ playoffData: gameState.t2PlayoffData, userTeam, playoffWatch: this._playoffWatch });
+            // [LEGACY REMOVED] html = UIRenderer.t2BracketViewer({ playoffData: gameState.t2PlayoffData, userTeam, playoffWatch: this._playoffWatch });
         } else if (gameState.currentTier === 3 && gameState.t3PlayoffData) {
-            html = UIRenderer.t3BracketViewer({ playoffData: gameState.t3PlayoffData, userTeam, playoffWatch: this._playoffWatch });
+            // [LEGACY REMOVED] html = UIRenderer.t3BracketViewer({ playoffData: gameState.t3PlayoffData, userTeam, playoffWatch: this._playoffWatch });
         } else {
             html = '<div style="padding:40px;text-align:center;opacity:0.7;">No active playoff bracket</div>';
         }
-        document.getElementById('bracketViewerContent').innerHTML = html;
-        document.getElementById('bracketViewerModal').classList.remove('hidden');
+        // [LEGACY DOM] document.getElementById('bracketViewerContent').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('bracketViewerModal').classList.remove('hidden');
     }
 
     /**
@@ -548,10 +548,8 @@ export class GameSimController {
         }
         if (window._reactShowBoxScore) {
             window._reactShowBoxScore(boxPayload);
-        } else {
-            document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore(boxPayload);
-            document.getElementById('boxScoreModal').classList.remove('hidden');
         }
+        // Legacy boxScore fallback removed — React path handles rendering
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -623,14 +621,14 @@ export class GameSimController {
         }
 
         // Legacy fallback
-        const html = UIRenderer.playoffSeriesWatchPage({
-            higherSeed: pw.higherSeed, lowerSeed: pw.lowerSeed,
-            higherWins: pw.higherWins, lowerWins: pw.lowerWins,
-            bestOf: pw.bestOf, nextGameNum: pw.gameNum + 1,
-            games: pw.games, userTeam, isHigherHome: pw.homePattern[pw.gameNum]
-        });
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        // [LEGACY REMOVED] const html = UIRenderer.playoffSeriesWatchPage({
+            // higherSeed: pw.higherSeed, lowerSeed: pw.lowerSeed,
+            // higherWins: pw.higherWins, lowerWins: pw.lowerWins,
+            // bestOf: pw.bestOf, nextGameNum: pw.gameNum + 1,
+            // games: pw.games, userTeam, isHigherHome: pw.homePattern[pw.gameNum]
+        // });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     watchPlayoffGame() {
@@ -645,7 +643,7 @@ export class GameSimController {
 
         // Hide the playoff modal while watching
         if (window._reactCloseChampionship) window._reactCloseChampionship();
-        document.getElementById('championshipPlayoffModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         this._watchHomeTeam = homeTeam;
         this._watchAwayTeam = awayTeam;
@@ -659,10 +657,10 @@ export class GameSimController {
             tier: gameState.currentTier
         });
 
-        const playoffLayoutHtml = UIRenderer.watchGameLayout({
-            homeName: this._watchHomeName, awayName: this._watchAwayName,
-            playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`
-        });
+        // [LEGACY REMOVED] const playoffLayoutHtml = UIRenderer.watchGameLayout({
+            // homeName: this._watchHomeName, awayName: this._watchAwayName,
+            // playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`
+        // });
         if (window._reactShowWatchGame) {
             window._reactShowWatchGame({
                 homeName: this._watchHomeName,
@@ -670,8 +668,8 @@ export class GameSimController {
                 playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`,
             });
         } else {
-            document.getElementById('watchGameContent').innerHTML = playoffLayoutHtml;
-            document.getElementById('watchGameModal').classList.remove('hidden');
+            // [LEGACY DOM] document.getElementById('watchGameContent').innerHTML = playoffLayoutHtml;
+            // [LEGACY DOM] document.getElementById('watchGameModal').classList.remove('hidden');
         }
 
         this._watchPaused = false;
@@ -738,7 +736,7 @@ export class GameSimController {
         pw.gameNum++;
 
         if (window._reactCloseWatchGame) window._reactCloseWatchGame();
-        document.getElementById('watchGameModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('watchGameModal').classList.add('hidden');
         this._watchGame = null;
         this._isPlayoffWatch = false;
 
@@ -960,10 +958,6 @@ export class GameSimController {
             }
         };
 
-        const tier1AwardsHTML = engines.StatEngine.generateAwardsHTML(tier1Awards, 'Tier 1 — Premier League');
-        const tier2AwardsHTML = engines.StatEngine.generateAwardsHTML(tier2Awards, 'Tier 2 — Regional League');
-        const tier3AwardsHTML = engines.StatEngine.generateAwardsHTML(tier3Awards, 'Tier 3 — Metro League');
-
         const seasonEndPayload = {
             userTeam, rank, tier: gameState.currentTier, status, statusColor, nextAction,
             seasonLabel: `${gameState.currentSeason}-${(gameState.currentSeason + 1) % 100}`,
@@ -980,7 +974,7 @@ export class GameSimController {
         if (window._reactShowSeasonEnd) {
             const self = this;
             window._seasonEndAdvanceCallback = (action) => {
-                document.getElementById('seasonEndModal').classList.add('hidden');
+                // [LEGACY DOM] document.getElementById('seasonEndModal').classList.add('hidden');
                 helpers.getOffseasonController().advanceToNextSeason(action);
             };
             window._seasonEndManageRosterCallback = () => {
@@ -998,8 +992,7 @@ export class GameSimController {
             return;
         }
 
-        document.getElementById('seasonEndContent').innerHTML = UIRenderer.seasonEndModal(seasonEndPayload);
-        document.getElementById('seasonEndModal').classList.remove('hidden');
+        // Legacy fallback removed — React SeasonEndModal handles rendering
     }
 
     closeSeasonEnd() {
@@ -1020,7 +1013,7 @@ export class GameSimController {
     startPlayoffs(type) {
         const { gameState, helpers } = this.ctx;
         console.log('🎮 startPlayoffs called with type:', type);
-        document.getElementById('seasonEndModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('seasonEndModal').classList.add('hidden');
 
         const teams = helpers.getCurrentTeams();
         const sortedTeams = helpers.sortTeamsByStandings(teams, gameState.schedule);
@@ -1130,10 +1123,10 @@ export class GameSimController {
             return;
         }
 
-        document.getElementById('playoffContent').innerHTML = UIRenderer.playoffResults({
-            results, isPromotion, isDivisionPlayoff, msg, userResult, userInvolved
-        });
-        document.getElementById('playoffModal').classList.remove('hidden');
+        // [LEGACY REMOVED] document.getElementById('playoffContent').innerHTML = UIRenderer.playoffResults({
+            // results, isPromotion, isDivisionPlayoff, msg, userResult, userInvolved
+        // });
+        // [LEGACY DOM] document.getElementById('playoffModal').classList.remove('hidden');
     }
 
     viewPromRelPlayoffResults() {
@@ -1147,9 +1140,9 @@ export class GameSimController {
             });
             return;
         }
-        document.getElementById('playoffContent').innerHTML = UIRenderer.promRelPlayoffResults({
-            results, isPromotion, isDivisionPlayoff, playoffTitle
-        });
+        // [LEGACY REMOVED] document.getElementById('playoffContent').innerHTML = UIRenderer.promRelPlayoffResults({
+            // results, isPromotion, isDivisionPlayoff, playoffTitle
+        // });
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -1188,8 +1181,8 @@ export class GameSimController {
                 window._reactShowChampionship({ mode: 'missed' });
                 return;
             }
-            document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.championshipPlayoffMissed();
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+            // [LEGACY REMOVED] document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.championshipPlayoffMissed();
+            // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
             return;
         }
 
@@ -1214,8 +1207,8 @@ export class GameSimController {
             window._reactShowChampionship({ mode: 'complete', championName: champion.name });
             return;
         }
-        document.getElementById('championshipPlayoffContent').innerHTML =
-            UIRenderer.championshipCompleteQuick({ championName: champion.name });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML =
+            // [LEGACY REMOVED] UIRenderer.championshipCompleteQuick({ championName: champion.name });
     }
 
     skipChampionshipPlayoffs() {
@@ -1224,7 +1217,7 @@ export class GameSimController {
             window._reactCloseChampionship?.();
         }
         if (window._reactCloseChampionship) window._reactCloseChampionship();
-        document.getElementById('championshipPlayoffModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
         // Update T1 champion from interactive results if available
         const playoffData = gameState.championshipPlayoffData;
         if (playoffData && playoffData.roundResults && playoffData.roundResults[3]) {
@@ -1384,12 +1377,12 @@ export class GameSimController {
             return;
         }
         // Legacy fallback
-        const html = UIRenderer.championshipRoundPage({
-            roundName, roundNumber, eastSeries, westSeries, finalsSeries,
-            userTeam, roundResults
-        });
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        // [LEGACY REMOVED] const html = UIRenderer.championshipRoundPage({
+            // roundName, roundNumber, eastSeries, westSeries, finalsSeries,
+            // userTeam, roundResults
+        // });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     continueAfterChampionshipRound() {
@@ -1399,7 +1392,7 @@ export class GameSimController {
             window._reactCloseChampionship?.();
         }
         if (window._reactCloseChampionship) window._reactCloseChampionship();
-        document.getElementById('championshipPlayoffModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         if (playoffData.currentRound < 4) {
             this.simulateChampionshipRound(playoffData.currentRound + 1);
@@ -1513,19 +1506,19 @@ export class GameSimController {
             });
             return;
         }
-        const html = UIRenderer.t2DivisionSemisPage({
-            division: pd.userDivBracket.division,
-            semi1: pd.interactiveResults.divSemi1,
-            semi2: pd.interactiveResults.divSemi2,
-            userTeam,
-            formatSeriesResult: (sr, ut) => {
-                const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
-                const key = sr === pd.interactiveResults.divSemi1 ? 't2-div-divSemi1' : 't2-div-divSemi2';
-                return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: false, seriesKey: isUser ? key : undefined });
-            }
-        });
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        // [LEGACY REMOVED] const html = UIRenderer.t2DivisionSemisPage({
+            // division: pd.userDivBracket.division,
+            // semi1: pd.interactiveResults.divSemi1,
+            // semi2: pd.interactiveResults.divSemi2,
+            // userTeam,
+            // formatSeriesResult: (sr, ut) => {
+                // const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
+                // const key = sr === pd.interactiveResults.divSemi1 ? 't2-div-divSemi1' : 't2-div-divSemi2';
+                // [LEGACY REMOVED] return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: false, seriesKey: isUser ? key : undefined });
+            // }
+        // });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     continueT2AfterDivisionSemis() {
@@ -1574,16 +1567,16 @@ export class GameSimController {
             });
             return;
         }
-        const html = UIRenderer.t2DivisionFinalPage({
-            division: pd.userDivision,
-            divFinal, userTeam,
-            formatSeriesResult: (sr, ut) => {
-                const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
-                return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: true, seriesKey: isUser ? 't2-div-divFinal' : undefined });
-            }
-        });
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        // [LEGACY REMOVED] const html = UIRenderer.t2DivisionFinalPage({
+            // division: pd.userDivision,
+            // divFinal, userTeam,
+            // formatSeriesResult: (sr, ut) => {
+                // const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
+                // [LEGACY REMOVED] return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: true, seriesKey: isUser ? 't2-div-divFinal' : undefined });
+            // }
+        // });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     continueT2AfterDivisionFinal() {
@@ -1727,19 +1720,19 @@ export class GameSimController {
             return;
         }
         const roundIdx = pd.interactiveResults.nationalRounds.length - 1;
-        const html = UIRenderer.t2NationalRoundPage({
-            roundName, roundNumber, roundResults, userTeam,
-            isChampionshipRound: roundNumber === 4,
-            champion: roundNumber === 4 ? roundResults[0].result.winner : null,
-            formatSeriesResult: (sr, ut, isF) => {
-                const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
-                const idx = roundResults.findIndex(r => r && r.result === sr);
-                const key = isUser && idx >= 0 ? `t2-nat-${roundIdx}-${idx}` : undefined;
-                return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: isF, seriesKey: key });
-            }
-        });
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        // [LEGACY REMOVED] const html = UIRenderer.t2NationalRoundPage({
+            // roundName, roundNumber, roundResults, userTeam,
+            // isChampionshipRound: roundNumber === 4,
+            // champion: roundNumber === 4 ? roundResults[0].result.winner : null,
+            // formatSeriesResult: (sr, ut, isF) => {
+                // const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
+                // const idx = roundResults.findIndex(r => r && r.result === sr);
+                // const key = isUser && idx >= 0 ? `t2-nat-${roundIdx}-${idx}` : undefined;
+                // [LEGACY REMOVED] return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: isF, seriesKey: key });
+            // }
+        // });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     continueT2AfterNationalRound() {
@@ -1777,8 +1770,8 @@ export class GameSimController {
             window._reactShowChampionship({ mode: 't2-complete', champion: postseason.t2.champion });
             return;
         }
-        const t2CompleteHtml = UIRenderer.t2PlayoffCompleteQuick({ champion: postseason.t2.champion });
-        document.getElementById('championshipPlayoffContent').innerHTML = t2CompleteHtml;
+        // [LEGACY REMOVED] const t2CompleteHtml = UIRenderer.t2PlayoffCompleteQuick({ champion: postseason.t2.champion });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = t2CompleteHtml;
     }
 
     _showT2EliminationAndSummary(eliminatedIn) {
@@ -1795,18 +1788,18 @@ export class GameSimController {
             });
             return;
         }
-        const html = UIRenderer.t2EliminationPage({
-            userTeam,
-            eliminatedIn,
-            champion: postseason.t2.champion
-        });
-        document.getElementById('championshipPlayoffContent').innerHTML = html;
+        // [LEGACY REMOVED] const html = UIRenderer.t2EliminationPage({
+            // userTeam,
+            // eliminatedIn,
+            // champion: postseason.t2.champion
+        // });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
     }
 
     _finishT2Playoffs() {
         const { gameState, helpers } = this.ctx;
         if (window._reactCloseChampionship) window._reactCloseChampionship();
-        document.getElementById('championshipPlayoffModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         const offseasonCtrl = helpers.getOffseasonController ? helpers.getOffseasonController() : null;
         if (offseasonCtrl) {
@@ -1934,15 +1927,15 @@ export class GameSimController {
             });
             return;
         }
-        const html = UIRenderer.t3MetroFinalResultPage({
-            result, userTeam, userSeed,
-            hasBye: userSeed <= 8,
-            totalMetroChamps: champsSorted.length,
-            formatSeriesResult: (sr) => UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: true, isFinals: true, seriesKey: 't3-metroFinal' })
-        });
+        // [LEGACY REMOVED] const html = UIRenderer.t3MetroFinalResultPage({
+            // result, userTeam, userSeed,
+            // hasBye: userSeed <= 8,
+            // totalMetroChamps: champsSorted.length,
+            // [LEGACY REMOVED] formatSeriesResult: (sr) => UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: true, isFinals: true, seriesKey: 't3-metroFinal' })
+        // });
         {
-            document.getElementById('championshipPlayoffContent').innerHTML = html;
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+            // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+            // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
         }
     }
 
@@ -2062,14 +2055,14 @@ export class GameSimController {
             });
             return;
         }
-        const html = UIRenderer.t3RegionalRoundResultPage({
-            userTeam, userSeed16,
-            userResult: userRegIdx >= 0 ? pd._pendingRegionalResults[userRegIdx].result : null,
-            formatSeriesResult: (sr) => UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: true, isFinals: false, seriesKey: userRegIdx >= 0 ? `t3-regional-${userRegIdx}` : undefined })
-        });
+        // [LEGACY REMOVED] const html = UIRenderer.t3RegionalRoundResultPage({
+            // userTeam, userSeed16,
+            // userResult: userRegIdx >= 0 ? pd._pendingRegionalResults[userRegIdx].result : null,
+            // [LEGACY REMOVED] formatSeriesResult: (sr) => UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: true, isFinals: false, seriesKey: userRegIdx >= 0 ? `t3-regional-${userRegIdx}` : undefined })
+        // });
         {
-            document.getElementById('championshipPlayoffContent').innerHTML = html;
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+            // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+            // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
         }
     }
 
@@ -2190,20 +2183,20 @@ export class GameSimController {
             });
             return;
         }
-        const html = UIRenderer.t3NationalRoundPage({
-            roundName, stage, roundResults, userTeam,
-            isChampionship,
-            champion: isChampionship ? roundResults[0]?.result.winner : null,
-            formatSeriesResult: (sr, ut, isF) => {
-                const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
-                const idx = roundResults.findIndex(r => r && r.result === sr);
-                const key = isUser && idx >= 0 ? `t3-nat-${stage}-${idx}` : undefined;
-                return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: isF, seriesKey: key });
-            }
-        });
+        // [LEGACY REMOVED] const html = UIRenderer.t3NationalRoundPage({
+            // roundName, stage, roundResults, userTeam,
+            // isChampionship,
+            // champion: isChampionship ? roundResults[0]?.result.winner : null,
+            // formatSeriesResult: (sr, ut, isF) => {
+                // const isUser = sr.higherSeed.id === ut.id || sr.lowerSeed.id === ut.id;
+                // const idx = roundResults.findIndex(r => r && r.result === sr);
+                // const key = isUser && idx >= 0 ? `t3-nat-${stage}-${idx}` : undefined;
+                // [LEGACY REMOVED] return UIRenderer.seriesResultCard({ seriesResult: sr, isUserInvolved: isUser, isFinals: isF, seriesKey: key });
+            // }
+        // });
         {
-            document.getElementById('championshipPlayoffContent').innerHTML = html;
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+            // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+            // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
         }
     }
 
@@ -2248,8 +2241,8 @@ export class GameSimController {
             window._reactShowChampionship({ mode: 't3-complete', champion: postseason.t3.champion });
             return;
         }
-        const t3CompleteHtml = UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
-        document.getElementById('championshipPlayoffContent').innerHTML = t3CompleteHtml;
+        // [LEGACY REMOVED] const t3CompleteHtml = UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = t3CompleteHtml;
     }
 
     _showT3EliminationAndSummary(eliminatedIn) {
@@ -2266,14 +2259,14 @@ export class GameSimController {
             });
             return;
         }
-        const html = UIRenderer.t3EliminationPage({
-            userTeam,
-            eliminatedIn,
-            champion: postseason.t3.champion
-        });
+        // [LEGACY REMOVED] const html = UIRenderer.t3EliminationPage({
+            // userTeam,
+            // eliminatedIn,
+            // champion: postseason.t3.champion
+        // });
         {
-            document.getElementById('championshipPlayoffContent').innerHTML = html;
-            document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+            // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = html;
+            // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
         }
     }
 
@@ -2284,15 +2277,15 @@ export class GameSimController {
             window._reactShowChampionship({ mode: 't3-complete', champion: postseason.t3.champion });
             return;
         }
-        const t3SummaryHtml = UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
-        document.getElementById('championshipPlayoffContent').innerHTML = t3SummaryHtml;
-        document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+        // [LEGACY REMOVED] const t3SummaryHtml = UIRenderer.t3PlayoffCompleteQuick({ champion: postseason.t3.champion });
+        // [LEGACY DOM] document.getElementById('championshipPlayoffContent').innerHTML = t3SummaryHtml;
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
     _finishT3Playoffs() {
         const { gameState, helpers } = this.ctx;
         if (window._reactCloseChampionship) window._reactCloseChampionship();
-        document.getElementById('championshipPlayoffModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
         const offseasonCtrl = helpers.getOffseasonController ? helpers.getOffseasonController() : null;
         if (offseasonCtrl) {

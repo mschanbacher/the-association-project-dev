@@ -131,7 +131,7 @@ export class FreeAgencyController {
 
         // Empty state
         if (gameState.freeAgents.length === 0) {
-            document.getElementById('freeAgencyPlayersList').innerHTML = UIRenderer.faEmptyState();
+            // [LEGACY REMOVED] document.getElementById('freeAgencyPlayersList').innerHTML = UIRenderer.faEmptyState();
             document.getElementById('submitOffersBtn').disabled = true;
             document.getElementById('freeAgencyModal').classList.remove('hidden');
             return;
@@ -139,7 +139,7 @@ export class FreeAgencyController {
 
         // Build initial list
         const html = this._buildPlayerList('ALL');
-        document.getElementById('freeAgencyPlayersList').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('freeAgencyPlayersList').innerHTML = html;
         document.getElementById('freeAgencyModal').classList.remove('hidden');
 
         // Initial panel updates
@@ -190,17 +190,17 @@ export class FreeAgencyController {
         const selected = this.selectedIds;
 
         if (gameState.freeAgents.length === 0) {
-            return UIRenderer.faEmptyState();
+            // [LEGACY REMOVED] return UIRenderer.faEmptyState();
         }
 
         const shownCount = this.formerPlayers.length + this.otherPlayers.length;
-        let html = UIRenderer.faListHeader({
-            totalCount: gameState.freeAgents.length,
-            shownCount, formerCount: this.formerPlayers.length,
-            hiddenCount: this.hiddenCount, positionFilter
-        });
+        // [LEGACY REMOVED] let html = UIRenderer.faListHeader({
+            // totalCount: gameState.freeAgents.length,
+            // shownCount, formerCount: this.formerPlayers.length,
+            // hiddenCount: this.hiddenCount, positionFilter
+        // });
 
-        html += UIRenderer.faTableHeader();
+        // [LEGACY REMOVED] html += UIRenderer.faTableHeader();
 
         // ── Former players ──
         const filteredFormer = positionFilter && positionFilter !== 'ALL'
@@ -209,13 +209,13 @@ export class FreeAgencyController {
 
         filteredFormer.forEach(player => {
             const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
-            html += UIRenderer.faFormerPlayerRow({
-                player, isChecked: selected.has(String(player.id)),
-                fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
-                watched: this._isOnWatchList(player.id),
-                marketDisplay: UIRenderer.formatMarketDisplay(player, userTeam.tier),
-                teamName: userTeam.name
-            });
+            // [LEGACY REMOVED] html += UIRenderer.faFormerPlayerRow({
+                // player, isChecked: selected.has(String(player.id)),
+                // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
+                // watched: this._isOnWatchList(player.id),
+                // marketDisplay: UIRenderer.formatMarketDisplay(player, userTeam.tier),
+                // teamName: userTeam.name
+            // });
         });
 
         // ── Watched players (non-former) ──
@@ -223,10 +223,10 @@ export class FreeAgencyController {
         const unwatchedFAs = this.otherPlayers.filter(p => !this._isOnWatchList(p.id));
 
         if (watchedFAs.length > 0) {
-            html += UIRenderer.faSectionDivider({
-                label: '🔍 WATCHED PLAYERS', count: watchedFAs.length,
-                color: '#bb86fc', borderColor: 'rgba(155,89,182,0.4)'
-            });
+            // [LEGACY REMOVED] html += UIRenderer.faSectionDivider({
+                // label: '🔍 WATCHED PLAYERS', count: watchedFAs.length,
+                // color: '#bb86fc', borderColor: 'rgba(155,89,182,0.4)'
+            // });
 
             const filteredWatched = positionFilter && positionFilter !== 'ALL'
                 ? watchedFAs.filter(p => p.position === positionFilter) : watchedFAs;
@@ -237,11 +237,11 @@ export class FreeAgencyController {
                     : (player.isCollegeGrad ? `🎓 ${player.college}` : 'N/A');
                 const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
                 player._marketDisplay = UIRenderer.formatMarketDisplay(player, userTeam.tier);
-                html += UIRenderer.faPlayerRow({
-                    player, isChecked: selected.has(String(player.id)),
-                    fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
-                    previousTeamName, isWatched: true
-                });
+                // [LEGACY REMOVED] html += UIRenderer.faPlayerRow({
+                    // player, isChecked: selected.has(String(player.id)),
+                    // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
+                    // previousTeamName, isWatched: true
+                // });
             });
         }
 
@@ -253,10 +253,10 @@ export class FreeAgencyController {
             const label = positionFilter && positionFilter !== 'ALL'
                 ? `OTHER AVAILABLE FREE AGENTS (${positionFilter})`
                 : 'OTHER AVAILABLE FREE AGENTS';
-            html += UIRenderer.faSectionDivider({
-                label, count: filteredUnwatched.length,
-                color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)'
-            });
+            // [LEGACY REMOVED] html += UIRenderer.faSectionDivider({
+                // label, count: filteredUnwatched.length,
+                // color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)'
+            // });
             if (this.hiddenCount > 0) {
                 html += `<tr><td colspan="8" style="padding: 5px 15px; font-size: 0.85em; opacity: 0.6; text-align: center;">${this.hiddenCount} more lower-rated players not shown</td></tr>`;
             }
@@ -268,11 +268,11 @@ export class FreeAgencyController {
                 : (player.isCollegeGrad ? `🎓 ${player.college}` : 'N/A');
             const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
             player._marketDisplay = UIRenderer.formatMarketDisplay(player, userTeam.tier);
-            html += UIRenderer.faPlayerRow({
-                player, isChecked: selected.has(String(player.id)),
-                fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
-                previousTeamName, isWatched: false
-            });
+            // [LEGACY REMOVED] html += UIRenderer.faPlayerRow({
+                // player, isChecked: selected.has(String(player.id)),
+                // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
+                // previousTeamName, isWatched: false
+            // });
         });
 
         html += '</tbody></table>';
@@ -307,7 +307,7 @@ export class FreeAgencyController {
         });
 
         const html = this._buildPlayerList(positionFilter);
-        document.getElementById('freeAgencyPlayersList').innerHTML = html;
+        // [LEGACY DOM] document.getElementById('freeAgencyPlayersList').innerHTML = html;
 
         this._updateOffers();
         this._updateTally();
@@ -403,12 +403,12 @@ export class FreeAgencyController {
             player._faMinOffer = minOffer;
             player._faMaxOffer = maxOffer;
 
-            html += UIRenderer.faOfferCard({
-                player, marketValue, minOffer, maxOffer, suggestedYears,
-                isFormerPlayer, isAboveTier, playerNatTier, userTier: userTeam.tier,
-                formatCurrency,
-                formatMarketDisplay: (p, t) => UIRenderer.formatMarketDisplay(p, t)
-            });
+            // [LEGACY REMOVED] html += UIRenderer.faOfferCard({
+                // player, marketValue, minOffer, maxOffer, suggestedYears,
+                // isFormerPlayer, isAboveTier, playerNatTier, userTier: userTeam.tier,
+                // formatCurrency,
+                // formatMarketDisplay: (p, t) => UIRenderer.formatMarketDisplay(p, t)
+            // });
         });
 
         document.getElementById('offersList').innerHTML = html;
@@ -590,11 +590,11 @@ export class FreeAgencyController {
         const { UIRenderer } = engines;
         const { formatCurrency } = helpers;
 
-        document.getElementById('freeAgencyResultsContent').innerHTML = UIRenderer.freeAgencyResults({
-            results, formatCurrency, getTeamById: helpers.getTeamById,
-            userOffers: gameState.userFreeAgencyOffers
-        });
-        document.getElementById('freeAgencyResultsModal').classList.remove('hidden');
+        // [LEGACY REMOVED] document.getElementById('freeAgencyResultsContent').innerHTML = UIRenderer.freeAgencyResults({
+            // results, formatCurrency, getTeamById: helpers.getTeamById,
+            // userOffers: gameState.userFreeAgencyOffers
+        // });
+        // [LEGACY DOM] document.getElementById('freeAgencyResultsModal').classList.remove('hidden');
     }
 
     /**
@@ -605,7 +605,7 @@ export class FreeAgencyController {
         const { helpers } = this.ctx;
 
         if (window._reactCloseFA) window._reactCloseFA();
-        document.getElementById('freeAgencyResultsModal').classList.add('hidden');
+        // [LEGACY DOM] document.getElementById('freeAgencyResultsModal').classList.add('hidden');
 
         // Let AI teams fill remaining needs from leftover free agents
         console.log('🤖 AI teams filling remaining roster needs...');
