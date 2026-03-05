@@ -1,21 +1,14 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Modal, ModalHeader, ModalBody } from '../components/Modal.jsx';
 import { Button } from '../components/Button.jsx';
 
 const POSITIONS = ['ALL', 'PG', 'SG', 'SF', 'PF', 'C'];
-const SORTS = [
-  { key: 'rating', label: 'Rating' },
-  { key: 'age', label: 'Age' },
-  { key: 'salary', label: 'Salary' },
-  { key: 'potential', label: 'Potential' },
-];
 
 export function CollegeGradFAModal({ isOpen, data, onClose }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [posFilter, setPosFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('rating');
 
-  // Reset selection state when new select-phase data arrives
   const dataPhase = data?.phase || 'select';
   useEffect(() => {
     if (dataPhase === 'select') {
@@ -30,8 +23,8 @@ export function CollegeGradFAModal({ isOpen, data, onClose }) {
 
   if (dataPhase === 'results' && data.results) {
     return (
-      <Modal isOpen={isOpen} onClose={null} maxWidth={1000} zIndex={1300}>
-        <ModalHeader>{'\ud83c\udf93'} College Graduate Signing Results</ModalHeader>
+      <Modal isOpen={isOpen} onClose={null} maxWidth={600} zIndex={1300}>
+        <ModalHeader>College Graduate Signing Results</ModalHeader>
         <ModalBody style={{ maxHeight: '75vh', overflowY: 'auto' }}>
           <ResultsView results={data.results} onContinue={() => window.closeCollegeGradResults?.()} />
         </ModalBody>
@@ -48,9 +41,12 @@ export function CollegeGradFAModal({ isOpen, data, onClose }) {
   );
 }
 
-/* ── Selection Phase ── */
 function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPosFilter, sortBy, setSortBy }) {
   const { graduates = [], capSpace = 0, rosterSize = 0, season = 0 } = data;
+
+  const rc = data?.getRatingColor || ((r) =>
+    r >= 80 ? 'var(--color-rating-elite)' : r >= 70 ? 'var(--color-rating-good)'
+    : r >= 60 ? 'var(--color-rating-avg)' : 'var(--color-rating-poor)');
 
   const filtered = useMemo(() => {
     let list = posFilter === 'ALL' ? [...graduates] : graduates.filter(g => g.position === posFilter);
@@ -63,7 +59,6 @@ function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPo
 
   const selectedPlayers = useMemo(() =>
     graduates.filter(g => selectedIds.has(String(g.id))), [graduates, selectedIds]);
-
   const estCost = useMemo(() => selectedPlayers.reduce((s, p) => s + p.salary, 0), [selectedPlayers]);
   const remaining = capSpace - estCost;
   const rosterSpace = 15 - rosterSize;
@@ -80,59 +75,72 @@ function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPo
   const handleSubmit = () => {
     if (selectedPlayers.length === 0) { alert('Select at least one player.'); return; }
     if (estCost > capSpace) { alert(`Selections cost ${fc(estCost)} but cap space is ${fc(capSpace)}.`); return; }
-    if (selectedPlayers.length > rosterSpace) { alert(`Only ${rosterSpace} roster spot${rosterSpace !== 1 ? 's' : ''} available. You selected ${selectedPlayers.length}.`); return; }
-    // Call controller to process
-    const ids = selectedPlayers.map(p => String(p.id));
-    window._cgSubmitOffers?.(ids);
+    if (selectedPlayers.length > rosterSpace) { alert(`Only ${rosterSpace} roster spot${rosterSpace !== 1 ? 's' : ''} available.`); return; }
+    window._cgSubmitOffers?.(selectedPlayers.map(p => String(p.id)));
   };
 
   return (
-    <Modal isOpen={true} onClose={null} maxWidth={1100} zIndex={1300}>
-      <ModalHeader>{'\ud83c\udf93'} College Graduate Free Agency</ModalHeader>
+    <Modal isOpen={true} onClose={null} maxWidth={900} zIndex={1300}>
+      <ModalHeader>College Graduate Free Agency</ModalHeader>
       <ModalBody style={{ maxHeight: '78vh', overflowY: 'auto' }}>
-        {/* Info */}
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
-          <strong>{graduates.length}</strong> college seniors entering the professional ranks {'\u00b7'} Class of {(season || 0) + 1}
-        </div>
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
-          <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--color-win)' }}>Cap Space: {fc(capSpace)}</span>
-          <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 'var(--space-2)' }}>Roster: {rosterSize}/15</span>
+        {/* Summary bar */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 12, fontSize: 'var(--text-sm)',
+        }}>
+          <div style={{ color: 'var(--color-text-secondary)' }}>
+            {graduates.length} graduates · Class of {(season || 0) + 1}
+          </div>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span>Cap: <strong>{fc(capSpace)}</strong></span>
+            <span>Roster: <strong>{rosterSize}/15</strong></span>
+          </div>
         </div>
 
-        {/* Tally */}
+        {/* Selection tally */}
         {selectedPlayers.length > 0 && (
           <div style={{
-            textAlign: 'center', marginBottom: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)',
-            background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--color-border-subtle)', fontSize: 'var(--text-sm)',
+            padding: '10px 14px', background: 'var(--color-accent-bg)',
+            border: '1px solid var(--color-accent-border)',
+            marginBottom: 12, fontSize: 'var(--text-sm)',
+            display: 'flex', justifyContent: 'space-between',
           }}>
-            Selected: <strong>{selectedPlayers.length}</strong> {'\u00b7'} Est. Cost: <strong style={{ color: 'var(--color-warning)' }}>{fc(estCost)}</strong> {'\u00b7'} Remaining: <strong style={{ color: remaining >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>{fc(remaining)}</strong>
+            <span>Selected: <strong>{selectedPlayers.length}</strong></span>
+            <span>Est. Cost: <strong>{fc(estCost)}</strong></span>
+            <span>Remaining: <strong style={{
+              color: remaining >= 0 ? 'var(--color-text)' : 'var(--color-loss)',
+            }}>{fc(remaining)}</strong></span>
           </div>
         )}
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Position:</span>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>Pos</span>
             {POSITIONS.map(pos => (
               <button key={pos} onClick={() => setPosFilter(pos)} style={{
-                padding: '3px 10px', fontSize: 'var(--text-xs)',
-                background: posFilter === pos ? 'var(--color-accent)20' : 'var(--color-bg-active)',
-                border: `1px solid ${posFilter === pos ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
-                borderRadius: 'var(--radius-sm)', color: posFilter === pos ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
+                padding: '3px 10px', fontSize: 'var(--text-xs)', border: 'none',
+                background: posFilter === pos ? 'var(--color-accent)' : 'transparent',
+                color: posFilter === pos ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+                fontWeight: posFilter === pos ? 600 : 400,
+                fontFamily: 'var(--font-body)', cursor: 'pointer',
               }}>{pos === 'ALL' ? 'All' : pos}</button>
             ))}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Sort:</span>
-            {SORTS.map(s => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>Sort</span>
+            {[
+              { key: 'rating', label: 'Rating' },
+              { key: 'potential', label: 'Ceiling' },
+              { key: 'salary', label: 'Salary' },
+              { key: 'age', label: 'Age' },
+            ].map(s => (
               <button key={s.key} onClick={() => setSortBy(s.key)} style={{
-                padding: '3px 10px', fontSize: 'var(--text-xs)',
-                background: sortBy === s.key ? 'var(--color-accent)20' : 'var(--color-bg-active)',
-                border: `1px solid ${sortBy === s.key ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
-                borderRadius: 'var(--radius-sm)', color: sortBy === s.key ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
+                padding: '3px 10px', fontSize: 'var(--text-xs)', border: 'none',
+                background: sortBy === s.key ? 'var(--color-accent)' : 'transparent',
+                color: sortBy === s.key ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+                fontWeight: sortBy === s.key ? 600 : 400,
+                fontFamily: 'var(--font-body)', cursor: 'pointer',
               }}>{s.label}</button>
             ))}
           </div>
@@ -140,23 +148,28 @@ function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPo
 
         {/* Table */}
         {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--color-text-tertiary)' }}>No graduates match this filter.</div>
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>
+            No graduates match this filter.
+          </div>
         ) : (
-          <div style={{ maxHeight: 420, overflowY: 'auto', marginBottom: 'var(--space-4)' }}>
+          <div style={{ maxHeight: 400, overflowY: 'auto', marginBottom: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
               <thead>
-                <tr style={{ background: 'var(--color-bg-active)', position: 'sticky', top: 0, zIndex: 1 }}>
-                  {['', 'Player', 'College', 'Pos', 'Age', 'OVR', 'Ceiling', 'Salary'].map((h, i) => (
-                    <th key={i} style={{
-                      padding: 'var(--space-2)', textAlign: i === 1 ? 'left' : i === 7 ? 'right' : 'center',
-                      fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)',
-                    }}>{h}</th>
-                  ))}
+                <tr style={{ borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, background: 'var(--color-bg-raised)', zIndex: 1 }}>
+                  <th style={{ ...th, width: 32 }}></th>
+                  <th style={{ ...th, textAlign: 'left' }}>Player</th>
+                  <th style={{ ...th, textAlign: 'left' }}>College</th>
+                  <th style={th}>Pos</th>
+                  <th style={th}>Age</th>
+                  <th style={th}>OVR</th>
+                  <th style={th}>Ceil</th>
+                  <th style={{ ...th, textAlign: 'right', paddingRight: 16 }}>Salary</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(p => (
-                  <GradRow key={p.id} player={p} isChecked={selectedIds.has(String(p.id))} onToggle={toggle} fc={fc} getRatingColor={data.getRatingColor} />
+                  <GradRow key={p.id} player={p} isChecked={selectedIds.has(String(p.id))}
+                    onToggle={toggle} fc={fc} rc={rc} />
                 ))}
               </tbody>
             </table>
@@ -164,12 +177,12 @@ function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPo
         )}
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
           <Button variant="primary" onClick={handleSubmit} disabled={selectedPlayers.length === 0}>
-            {'\ud83d\udcdd'} Submit Offers ({selectedPlayers.length})
+            Submit Offers ({selectedPlayers.length})
           </Button>
           <Button variant="ghost" onClick={() => window.skipCollegeGradFA?.()}>
-            Skip {'\u2192'} Continue
+            Skip
           </Button>
         </div>
       </ModalBody>
@@ -177,72 +190,95 @@ function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPo
   );
 }
 
-/* ── Graduate Row ── */
-function GradRow({ player, isChecked, onToggle, fc, getRatingColor }) {
-  const p = player;
-  const tierBadge = p.tier === 2
-    ? <span style={{ background: 'var(--color-accent)30', padding: '1px 5px', borderRadius: 3, fontSize: '0.7em', marginLeft: 4 }}>T2</span>
-    : <span style={{ background: 'var(--color-bg-active)', padding: '1px 5px', borderRadius: 3, fontSize: '0.7em', marginLeft: 4 }}>T3</span>;
-
-  const ceilingColor = p.projectedCeiling >= 80 ? 'var(--color-win)' : p.projectedCeiling >= 70 ? 'var(--color-warning)' : 'var(--color-text-tertiary)';
-  const ratingColor = getRatingColor ? getRatingColor(p.rating) : 'var(--color-text)';
+function GradRow({ player: p, isChecked, onToggle, fc, rc }) {
+  const ceilingColor = p.projectedCeiling >= 80 ? 'var(--color-win)' :
+    p.projectedCeiling >= 70 ? 'var(--color-text)' : 'var(--color-text-tertiary)';
 
   return (
     <tr style={{
       borderBottom: '1px solid var(--color-border-subtle)',
-      background: isChecked ? 'var(--color-win)10' : 'transparent',
-    }}>
-      <td style={{ padding: 'var(--space-2)' }}>
-        <input type="checkbox" checked={isChecked} onChange={() => onToggle(p.id)}
-          style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--color-accent)' }} />
+      background: isChecked ? 'var(--color-accent-bg)' : 'transparent',
+      cursor: 'pointer',
+    }} onClick={() => onToggle(p.id)}>
+      <td style={{ padding: '6px 8px' }}>
+        <input type="checkbox" checked={isChecked} readOnly
+          style={{ width: 16, height: 16, accentColor: 'var(--color-accent)', pointerEvents: 'none' }} />
       </td>
-      <td style={{ padding: 'var(--space-2)' }}>
-        <strong>{p.name}</strong>{tierBadge}
+      <td style={{ padding: '6px 8px' }}>
+        <div style={{ fontWeight: 600 }}>{p.name}</div>
         {p._measurables && (
-          <div style={{ fontSize: '0.75em', color: 'var(--color-text-tertiary)' }}>{p._measurables}</div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 1 }}>{p._measurables}</div>
         )}
       </td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontSize: 'var(--text-xs)' }}>{'\ud83c\udf93'} {p.college}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontWeight: 'var(--weight-bold)' }}>{p.position}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center' }}>{p.age}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontWeight: 'var(--weight-bold)', color: ratingColor }}>
-        {p.rating}
+      <td style={{ padding: '6px 8px', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+        {p.college}
+      </td>
+      <td style={{ ...tdc, fontWeight: 500 }}>{p.position}</td>
+      <td style={{ ...tdc, fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>{p.age}</td>
+      <td style={{ ...tdc }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: rc(p.rating) }}>{p.rating}</span>
         {p.offRating !== undefined && (
-          <div style={{ fontSize: '0.7em', opacity: 0.6, fontWeight: 'var(--weight-normal)' }}>{p.offRating}/{p.defRating}</div>
+          <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+            {p.offRating}/{p.defRating}
+          </div>
         )}
       </td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center', color: ceilingColor }}>{'\u2191'}{p.projectedCeiling}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'right' }}>{fc(p.salary)}</td>
+      <td style={{ ...tdc, fontFamily: 'var(--font-mono)', fontWeight: 600, color: ceilingColor }}>
+        {p.projectedCeiling}
+      </td>
+      <td style={{ ...tdc, textAlign: 'right', paddingRight: 16, fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>
+        {fc(p.salary)}
+      </td>
     </tr>
   );
 }
 
-/* ── Results Phase ── */
 function ResultsView({ results, onContinue }) {
   const { signed, lost, details } = results;
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-lg)' }}>
-        <span style={{ color: 'var(--color-win)', fontWeight: 'var(--weight-bold)' }}>{signed} signed</span>
-        {lost > 0 && <span style={{ marginLeft: 'var(--space-3)', color: 'var(--color-loss)' }}>{lost} chose other teams</span>}
+    <div>
+      <div style={{
+        textAlign: 'center', marginBottom: 16, fontSize: 'var(--text-md)',
+      }}>
+        <span style={{ color: 'var(--color-win)', fontWeight: 700 }}>{signed} signed</span>
+        {lost > 0 && (
+          <span style={{ marginLeft: 16, color: 'var(--color-loss)' }}>{lost} chose other teams</span>
+        )}
       </div>
-      <div style={{ textAlign: 'left', maxWidth: 550, margin: '0 auto' }}>
-        {details.map((r, i) => (
-          <div key={i} style={{
-            padding: 'var(--space-2)', borderBottom: '1px solid var(--color-border-subtle)',
-            display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)',
-          }}>
-            <span><strong>{r.player.name}</strong> ({r.player.position}, {r.player.rating} OVR) — {'\ud83c\udf93'} {r.player.college}</span>
-            <span style={{ color: r.signed ? 'var(--color-win)' : 'var(--color-loss)', fontWeight: 'var(--weight-bold)' }}>
-              {r.signed ? '\u2705 Signed' : '\u274c Declined'}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 'var(--space-5)' }}>
-        <Button variant="primary" onClick={onContinue}>Continue {'\u2192'}</Button>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+        <tbody>
+          {details.map((r, i) => (
+            <tr key={i} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+              <td style={{ padding: '8px 0', fontWeight: 500 }}>{r.player.name}</td>
+              <td style={{ padding: '8px', color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)' }}>
+                {r.player.position} · {r.player.rating} OVR · {r.player.college}
+              </td>
+              <td style={{
+                padding: '8px 0', textAlign: 'right', fontWeight: 600,
+                color: r.signed ? 'var(--color-win)' : 'var(--color-loss)',
+              }}>
+                {r.signed ? 'Signed' : 'Declined'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ textAlign: 'center', marginTop: 20 }}>
+        <Button variant="primary" onClick={onContinue}>Continue</Button>
       </div>
     </div>
   );
 }
+
+const th = {
+  padding: '7px 8px', fontSize: 10, fontWeight: 600,
+  color: 'var(--color-text-tertiary)',
+  textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center',
+};
+
+const tdc = {
+  padding: '6px 8px', textAlign: 'center', fontVariantNumeric: 'tabular-nums',
+};

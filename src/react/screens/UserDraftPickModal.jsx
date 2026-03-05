@@ -1,12 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, ModalHeader, ModalBody } from '../components/Modal.jsx';
+import { Modal, ModalBody } from '../components/Modal.jsx';
 
 const POSITIONS = ['ALL', 'PG', 'SG', 'SF', 'PF', 'C'];
-const SORTS = [
-  { key: 'rating', label: 'Rating' },
-  { key: 'age', label: 'Age' },
-  { key: 'position', label: 'Position' },
-];
 
 export function UserDraftPickModal({ isOpen, data, onClose }) {
   const [posFilter, setPosFilter] = useState('ALL');
@@ -17,50 +12,72 @@ export function UserDraftPickModal({ isOpen, data, onClose }) {
   const { pickNumber, roundText, prospects = [], roster = [], getRatingColor } = data;
 
   return (
-    <Modal isOpen={isOpen} onClose={null} maxWidth={1600} zIndex={1300}>
+    <Modal isOpen={isOpen} onClose={null} maxWidth={900} zIndex={1300}>
       <ModalBody style={{ maxHeight: '85vh', overflowY: 'auto' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-          <h2 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>{'\ud83c\udfaf'} Your Pick</h2>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          marginBottom: 16,
+        }}>
+          <div>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: 'var(--color-text-tertiary)',
+              textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4,
+            }}>Your Pick</div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700 }}>Make Your Selection</div>
+          </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', color: 'var(--color-warning)' }}>
-              Pick #{pickNumber} ({roundText})
+            <div style={{
+              fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-mono)',
+              color: 'var(--color-accent)',
+            }}>#{pickNumber}</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+              {roundText}
             </div>
-            <div style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)', marginTop: 2 }}>Make your selection</div>
           </div>
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Position:</span>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{
+              fontSize: 10, color: 'var(--color-text-tertiary)',
+              textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4,
+            }}>Pos</span>
             {POSITIONS.map(pos => (
               <button key={pos} onClick={() => setPosFilter(pos)} style={{
-                padding: '3px 10px', fontSize: 'var(--text-xs)',
-                background: posFilter === pos ? 'var(--color-accent)20' : 'var(--color-bg-active)',
-                border: `1px solid ${posFilter === pos ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
-                borderRadius: 'var(--radius-sm)', color: posFilter === pos ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
+                padding: '3px 10px', fontSize: 'var(--text-xs)', border: 'none',
+                background: posFilter === pos ? 'var(--color-accent)' : 'transparent',
+                color: posFilter === pos ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+                fontWeight: posFilter === pos ? 600 : 400,
+                fontFamily: 'var(--font-body)', cursor: 'pointer',
               }}>{pos === 'ALL' ? 'All' : pos}</button>
             ))}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Sort:</span>
-            {SORTS.map(s => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{
+              fontSize: 10, color: 'var(--color-text-tertiary)',
+              textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4,
+            }}>Sort</span>
+            {[
+              { key: 'rating', label: 'Rating' },
+              { key: 'age', label: 'Age' },
+              { key: 'position', label: 'Position' },
+            ].map(s => (
               <button key={s.key} onClick={() => setSortBy(s.key)} style={{
-                padding: '3px 10px', fontSize: 'var(--text-xs)',
-                background: sortBy === s.key ? 'var(--color-accent)20' : 'var(--color-bg-active)',
-                border: `1px solid ${sortBy === s.key ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
-                borderRadius: 'var(--radius-sm)', color: sortBy === s.key ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
+                padding: '3px 10px', fontSize: 'var(--text-xs)', border: 'none',
+                background: sortBy === s.key ? 'var(--color-accent)' : 'transparent',
+                color: sortBy === s.key ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+                fontWeight: sortBy === s.key ? 600 : 400,
+                fontFamily: 'var(--font-body)', cursor: 'pointer',
               }}>{s.label}</button>
             ))}
           </div>
         </div>
 
-        {/* Two-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 'var(--space-4)' }}>
-          <ProspectsList prospects={prospects} posFilter={posFilter} sortBy={sortBy} getRatingColor={getRatingColor} />
+        {/* Two columns */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 'var(--gap)' }}>
+          <ProspectTable prospects={prospects} posFilter={posFilter} sortBy={sortBy} getRatingColor={getRatingColor} />
           <RosterSidebar roster={roster} getRatingColor={getRatingColor} />
         </div>
       </ModalBody>
@@ -68,8 +85,7 @@ export function UserDraftPickModal({ isOpen, data, onClose }) {
   );
 }
 
-/* ── Prospects List ── */
-function ProspectsList({ prospects, posFilter, sortBy, getRatingColor }) {
+function ProspectTable({ prospects, posFilter, sortBy, getRatingColor }) {
   const filtered = useMemo(() => {
     let list = posFilter === 'ALL' ? [...prospects] : prospects.filter(p => p.position === posFilter);
     if (sortBy === 'rating') list.sort((a, b) => b.rating - a.rating);
@@ -78,118 +94,144 @@ function ProspectsList({ prospects, posFilter, sortBy, getRatingColor }) {
     return list;
   }, [prospects, posFilter, sortBy]);
 
+  const rc = (r) => {
+    if (getRatingColor) return getRatingColor(r);
+    return r >= 80 ? 'var(--color-rating-elite)' : r >= 70 ? 'var(--color-rating-good)' : r >= 60 ? 'var(--color-rating-avg)' : 'var(--color-rating-poor)';
+  };
+
   return (
-    <div>
-      <div style={{ fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-md)' }}>Available Prospects</div>
-      <div style={{ maxHeight: 500, overflowY: 'auto', background: 'var(--color-bg-sunken)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)' }}>
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--color-text-tertiary)', padding: 'var(--space-6)' }}>No prospects match your filters</div>
-        ) : (
-          filtered.map(p => (
-            <ProspectCard key={p.id} prospect={p} getRatingColor={getRatingColor} />
-          ))
-        )}
-      </div>
+    <div style={{
+      background: 'var(--color-bg-sunken)',
+      border: '1px solid var(--color-border-subtle)',
+    }}>
+      {filtered.length === 0 ? (
+        <div style={{
+          textAlign: 'center', color: 'var(--color-text-tertiary)',
+          padding: 40, fontSize: 'var(--text-sm)',
+        }}>No prospects match your filters</div>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <th style={{ ...th, paddingLeft: 16, textAlign: 'left' }}>Prospect</th>
+              <th style={th}>Pos</th>
+              <th style={th}>Age</th>
+              <th style={th}>OVR</th>
+              <th style={th}>OFF</th>
+              <th style={{ ...th, paddingRight: 16 }}>DEF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((p, i) => (
+              <tr key={p.id || i}
+                onClick={() => window.selectDraftProspect?.(p.id)}
+                style={{
+                  borderBottom: '1px solid var(--color-border-subtle)',
+                  cursor: 'pointer', background: 'var(--color-bg-raised)',
+                  transition: 'background 100ms ease',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-accent-bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--color-bg-raised)'}
+              >
+                <td style={{ padding: '10px 12px 10px 16px' }}>
+                  <div style={{ fontWeight: 600 }}>{p.name}</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                    {p._measurables || ''}
+                  </div>
+                </td>
+                <td style={{ ...tdc, fontWeight: 500, fontSize: 'var(--text-xs)' }}>{p.position}</td>
+                <td style={{ ...tdc, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>{p.age}</td>
+                <td style={{ ...tdc, fontFamily: 'var(--font-mono)', fontWeight: 700, color: rc(p.rating) }}>{p.rating}</td>
+                <td style={{ ...tdc, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>{p.offRating || '—'}</td>
+                <td style={{ ...tdc, paddingRight: 16, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>{p.defRating || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 
-/* ── Prospect Card ── */
-function ProspectCard({ prospect, getRatingColor }) {
-  const p = prospect;
-  const rColor = getRatingColor ? getRatingColor(p.rating) : 'var(--color-text)';
-
-  return (
-    <div
-      onClick={() => window.selectDraftProspect?.(p.id)}
-      style={{
-        background: 'var(--color-bg-active)', padding: 'var(--space-3)', marginBottom: 'var(--space-2)',
-        borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'background 0.15s',
-        border: '1px solid var(--color-border-subtle)',
-      }}
-      onMouseOver={e => e.currentTarget.style.background = 'var(--color-warning)15'}
-      onMouseOut={e => e.currentTarget.style.background = 'var(--color-bg-active)'}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-md)' }}>{p.name}</div>
-          <div style={{ marginTop: 3, fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
-            {p.position} | Age {p.age}{p._measurables ? ` | ${p._measurables}` : ''}
-          </div>
-          {p._topAttrs && p._topAttrs.length > 0 && (
-            <div style={{ marginTop: 3, fontSize: 'var(--text-xs)', display: 'flex', gap: 'var(--space-2)' }}>
-              {p._topAttrs.map((attr, i) => (
-                <span key={i} style={{ color: attr.color }}>{attr.icon}{attr.value}</span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ color: rColor, fontWeight: 'var(--weight-bold)', fontSize: '1.3em' }}>
-            {'\u2b50'} {p.rating}
-          </div>
-          {p.offRating !== undefined && (
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
-              <span style={{ color: p.offRating >= 70 ? '#4ecdc4' : 'var(--color-warning)' }}>{p.offRating}</span>
-              {' / '}
-              <span style={{ color: p.defRating >= 70 ? '#45b7d1' : 'var(--color-warning)' }}>{p.defRating}</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Roster Sidebar ── */
 function RosterSidebar({ roster, getRatingColor }) {
-  const { positionCounts, topPlayers, totalSize } = useMemo(() => {
+  const { posCounts, topPlayers, total } = useMemo(() => {
     const counts = { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 };
     (roster || []).forEach(p => { if (counts[p.position] !== undefined) counts[p.position]++; });
-    const top = [...(roster || [])].sort((a, b) => b.rating - a.rating).slice(0, 10);
-    return { positionCounts: counts, topPlayers: top, totalSize: (roster || []).length };
+    const top = [...(roster || [])].sort((a, b) => b.rating - a.rating).slice(0, 8);
+    return { posCounts: counts, topPlayers: top, total: (roster || []).length };
   }, [roster]);
 
-  return (
-    <div>
-      <div style={{ fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-md)' }}>Your Roster</div>
-      <div style={{ maxHeight: 500, overflowY: 'auto', background: 'var(--color-warning)08', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-warning)15' }}>
-        {/* Position Breakdown */}
-        <div style={{ marginBottom: 'var(--space-3)', padding: 'var(--space-2)', background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-md)' }}>
-          <div style={{ fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>Position Breakdown:</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 'var(--space-2)', textAlign: 'center', fontSize: 'var(--text-sm)' }}>
-            {['PG', 'SG', 'SF', 'PF', 'C'].map(pos => (
-              <div key={pos}><strong>{pos}:</strong> {positionCounts[pos]}</div>
-            ))}
-          </div>
-        </div>
+  const rc = (r) => {
+    if (getRatingColor) return getRatingColor(r);
+    return r >= 80 ? 'var(--color-rating-elite)' : r >= 70 ? 'var(--color-rating-good)' : r >= 60 ? 'var(--color-rating-avg)' : 'var(--color-rating-poor)';
+  };
 
-        {/* Top Players */}
-        <div style={{ fontSize: 'var(--text-sm)' }}>
-          {topPlayers.map((p, i) => {
-            const rColor = getRatingColor ? getRatingColor(p.rating) : 'var(--color-text)';
-            return (
-              <div key={p.id || i} style={{
-                padding: 'var(--space-1) var(--space-2)', marginBottom: 3,
-                background: 'var(--color-bg-active)', borderRadius: 'var(--radius-sm)',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{p.name}</span>
-                  <span style={{ color: rColor, fontWeight: 'var(--weight-bold)' }}>{p.rating}</span>
-                </div>
-                <div style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', marginTop: 1 }}>
-                  {p.position} | Age {p.age}
-                </div>
-              </div>
-            );
-          })}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gap)' }}>
+      {/* Position counts */}
+      <div style={{
+        background: 'var(--color-bg-sunken)',
+        border: '1px solid var(--color-border-subtle)', padding: '12px 14px',
+      }}>
+        <div style={{
+          fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)',
+          textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
+        }}>Roster ({total}/15)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, textAlign: 'center' }}>
+          {['PG', 'SG', 'SF', 'PF', 'C'].map(pos => (
+            <div key={pos}>
+              <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>{pos}</div>
+              <div style={{
+                fontSize: 'var(--text-base)', fontWeight: 700, fontFamily: 'var(--font-mono)',
+                color: posCounts[pos] === 0 ? 'var(--color-loss)' : 'var(--color-text)',
+              }}>{posCounts[pos]}</div>
+            </div>
+          ))}
         </div>
-        {totalSize > 10 && (
-          <div style={{ textAlign: 'center', color: 'var(--color-text-tertiary)', marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
-            ... and {totalSize - 10} more players
+      </div>
+
+      {/* Current roster */}
+      <div style={{
+        background: 'var(--color-bg-sunken)',
+        border: '1px solid var(--color-border-subtle)', padding: '12px 14px',
+        flex: 1,
+      }}>
+        <div style={{
+          fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)',
+          textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
+        }}>Current Players</div>
+        {topPlayers.map((p, i) => (
+          <div key={p.id || i} style={{
+            display: 'flex', justifyContent: 'space-between', padding: '4px 0',
+            fontSize: 'var(--text-xs)',
+            borderBottom: i < topPlayers.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
+          }}>
+            <span>
+              <span style={{ fontWeight: 500 }}>{p.name}</span>
+              <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 4 }}>{p.position}</span>
+            </span>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontWeight: 600, color: rc(p.rating),
+            }}>{p.rating}</span>
           </div>
+        ))}
+        {total > 8 && (
+          <div style={{
+            fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)',
+            marginTop: 6, textAlign: 'center',
+          }}>+{total - 8} more</div>
         )}
       </div>
     </div>
   );
 }
+
+const th = {
+  padding: '7px 8px', fontSize: 10, fontWeight: 600,
+  color: 'var(--color-text-tertiary)',
+  textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center',
+};
+
+const tdc = {
+  padding: '10px 8px', textAlign: 'center', fontVariantNumeric: 'tabular-nums',
+};

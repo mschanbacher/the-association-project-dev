@@ -5,10 +5,8 @@ import { Button } from '../components/Button.jsx';
 export function DraftResultsModal({ isOpen, data, onContinue }) {
   const [activeTab, setActiveTab] = useState('round1');
 
-  // All hooks MUST run before any early return
   const results = data?.results || [];
   const userTeamId = data?.userTeamId;
-  const rc = data?.getRatingColor || (() => 'var(--color-text)');
 
   const round1 = useMemo(() => results.filter(r => r.round === 1), [results]);
   const comp = useMemo(() => results.filter(r => r.round === 'Comp'), [results]);
@@ -17,11 +15,15 @@ export function DraftResultsModal({ isOpen, data, onContinue }) {
 
   if (!isOpen || !data) return null;
 
+  const rc = data?.getRatingColor || ((r) =>
+    r >= 80 ? 'var(--color-rating-elite)' : r >= 70 ? 'var(--color-rating-good)'
+    : r >= 60 ? 'var(--color-rating-avg)' : 'var(--color-rating-poor)');
+
   const tabs = [
     { key: 'round1', label: 'Round 1', count: round1.length },
     comp.length > 0 ? { key: 'comp', label: 'Comp.', count: comp.length } : null,
     { key: 'round2', label: 'Round 2', count: round2.length },
-    { key: 'user', label: 'Your Picks', count: userPicks.length, accent: true },
+    { key: 'user', label: 'Your Picks', count: userPicks.length },
   ].filter(Boolean);
 
   const activeResults = activeTab === 'round1' ? round1
@@ -29,139 +31,110 @@ export function DraftResultsModal({ isOpen, data, onContinue }) {
     : activeTab === 'round2' ? round2
     : userPicks;
 
-  const activeTitle = activeTab === 'round1' ? 'Round 1 Results'
-    : activeTab === 'comp' ? 'Compensatory Round (Promoted Teams)'
-    : activeTab === 'round2' ? 'Round 2 Results'
-    : 'Your Draft Picks';
-
   return (
-    <Modal isOpen={isOpen} onClose={onContinue} maxWidth={750} zIndex={1300}>
-      <ModalHeader onClose={onContinue}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          {'\ud83c\udf93'} Draft Results
-        </span>
-      </ModalHeader>
+    <Modal isOpen={isOpen} onClose={onContinue} maxWidth={640} zIndex={1300}>
+      <ModalHeader onClose={onContinue}>Draft Results</ModalHeader>
 
+      {/* Tabs */}
       <div style={{
-        display: 'flex', gap: 2, padding: '0 var(--space-5)',
-        borderBottom: '1px solid var(--color-border-subtle)',
+        display: 'flex', gap: 0, borderBottom: '1px solid var(--color-border)',
         background: 'var(--color-bg-sunken)',
       }}>
         {tabs.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
-            padding: 'var(--space-3) var(--space-4)',
-            background: 'none', border: 'none',
-            borderBottom: activeTab === t.key
-              ? `2px solid ${t.accent ? 'var(--color-warning)' : 'var(--color-accent)'}`
-              : '2px solid transparent',
+            padding: '10px 16px', border: 'none',
+            borderBottom: activeTab === t.key ? '2px solid var(--color-accent)' : '2px solid transparent',
+            background: 'transparent',
             color: activeTab === t.key ? 'var(--color-text)' : 'var(--color-text-tertiary)',
-            fontWeight: activeTab === t.key ? 'var(--weight-semi)' : 'var(--weight-normal)',
-            fontSize: 'var(--text-sm)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 'var(--space-1)',
+            fontWeight: activeTab === t.key ? 600 : 400,
+            fontSize: 'var(--text-sm)', fontFamily: 'var(--font-body)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
           }}>
             {t.label}
             <span style={{
-              fontSize: '10px', padding: '1px 5px',
-              background: activeTab === t.key ? 'var(--color-accent)20' : 'var(--color-bg-active)',
-              borderRadius: 'var(--radius-full)', color: 'var(--color-text-tertiary)',
+              fontSize: 10, padding: '1px 6px',
+              background: activeTab === t.key ? 'var(--color-accent-bg)' : 'var(--color-bg-sunken)',
+              color: 'var(--color-text-tertiary)',
             }}>{t.count}</span>
           </button>
         ))}
       </div>
 
-      <ModalBody style={{ maxHeight: '55vh', overflowY: 'auto' }}>
-        <div style={{
-          fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)',
-          marginBottom: 'var(--space-3)', color: 'var(--color-text-secondary)',
-        }}>
-          {activeTitle}
-        </div>
-
+      <ModalBody style={{ maxHeight: '55vh', overflowY: 'auto', padding: 'var(--space-4) var(--space-5)' }}>
         {activeResults.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--color-text-tertiary)' }}>
-            No picks in this round.
-          </div>
+          <div style={{
+            textAlign: 'center', padding: 40,
+            color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)',
+          }}>No picks in this round.</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {activeResults.map((result, i) => (
-              <PickCard key={i} result={result} userTeamId={userTeamId}
-                getRatingColor={rc} isUserTab={activeTab === 'user'} />
-            ))}
-          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                <th style={{ ...th, paddingLeft: 16, textAlign: 'left', width: 44 }}>Pick</th>
+                <th style={{ ...th, textAlign: 'left' }}>Player</th>
+                <th style={th}>Pos</th>
+                <th style={th}>Age</th>
+                <th style={th}>OVR</th>
+                <th style={th}>OFF</th>
+                <th style={{ ...th, paddingRight: 16 }}>DEF</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeResults.map((result, i) => {
+                const isUser = result.teamId === userTeamId;
+                const p = result.player;
+                const wasTraded = result.originalTeamId && result.originalTeamId !== result.teamId;
+                return (
+                  <tr key={i} style={{
+                    borderBottom: '1px solid var(--color-border-subtle)',
+                    background: isUser ? 'var(--color-accent-bg)' : 'transparent',
+                    borderLeft: isUser ? '3px solid var(--color-accent)' : '3px solid transparent',
+                  }}>
+                    <td style={{
+                      padding: '8px 8px 8px 16px',
+                      fontFamily: 'var(--font-mono)', fontWeight: 600,
+                      color: 'var(--color-text-tertiary)',
+                    }}>{result.pick}</td>
+                    <td style={{ padding: 8 }}>
+                      <div style={{ fontWeight: 600 }}>{p.name}</div>
+                      <div style={{
+                        fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 1,
+                      }}>
+                        {activeTab !== 'user' && result.teamName}
+                        {activeTab === 'user' && `Rd ${result.round} · ${result.teamName}`}
+                        {wasTraded && (
+                          <span style={{ color: 'var(--color-info)', marginLeft: 4 }}>
+                            (via {result.originalTeamName})
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ ...tdc, fontWeight: 500, fontSize: 'var(--text-xs)' }}>{p.position}</td>
+                    <td style={{ ...tdc, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>{p.age}</td>
+                    <td style={{ ...tdc, fontFamily: 'var(--font-mono)', fontWeight: 700, color: rc(p.rating) }}>{p.rating}</td>
+                    <td style={{ ...tdc, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>{p.offRating || '—'}</td>
+                    <td style={{ ...tdc, paddingRight: 16, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>{p.defRating || '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </ModalBody>
 
       <ModalFooter>
-        <Button variant="primary" onClick={onContinue} style={{ minWidth: 200 }}>
-          Continue to Free Agency
-        </Button>
+        <Button variant="primary" onClick={onContinue}>Continue to Free Agency</Button>
       </ModalFooter>
     </Modal>
   );
 }
 
-function PickCard({ result, userTeamId, getRatingColor, isUserTab }) {
-  const isUser = result.teamId === userTeamId;
-  const wasTraded = result.originalTeamId && result.originalTeamId !== result.teamId;
-  const roundLabel = result.round === 'Comp' ? 'Comp' : `Rd ${result.round}`;
-  const ratingColor = getRatingColor(result.player.rating);
-  const hasOffDef = result.player.offRating !== undefined;
+const th = {
+  padding: '7px 8px', fontSize: 10, fontWeight: 600,
+  color: 'var(--color-text-tertiary)',
+  textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center',
+};
 
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: 'var(--space-3)',
-      background: isUser ? 'var(--color-warning)08' : 'var(--color-bg-sunken)',
-      borderRadius: 'var(--radius-md)',
-      borderLeft: isUser ? '3px solid var(--color-warning)'
-        : result.isCompensatory ? '3px solid var(--color-win)' : '3px solid transparent',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        <div style={{
-          fontSize: 'var(--text-base)', fontWeight: 'var(--weight-bold)',
-          color: isUserTab ? 'var(--color-warning)' : 'var(--color-text-tertiary)',
-          minWidth: 44,
-        }}>
-          {isUserTab ? `${roundLabel} #${result.pick}` : `#${result.pick}`}
-        </div>
-        <div>
-          <div style={{ fontWeight: 'var(--weight-semi)', fontSize: 'var(--text-sm)' }}>
-            {result.player.name}
-          </div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 1 }}>
-            {result.player.position} | Age {result.player.age}
-            {!isUserTab && (
-              <span style={{ marginLeft: 'var(--space-2)' }}>
-                {result.teamName}
-                {wasTraded && (
-                  <span style={{ color: 'var(--color-info)', marginLeft: 4 }}>
-                    (via {result.originalTeamName})
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{
-          color: ratingColor, fontWeight: 'var(--weight-bold)',
-          fontSize: 'var(--text-sm)',
-        }}>
-          {result.player.rating}
-        </div>
-        {hasOffDef && (
-          <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: 1 }}>
-            <span style={{ color: result.player.offRating >= 70 ? '#4ecdc4' : 'var(--color-warning)' }}>
-              {result.player.offRating}
-            </span>
-            {' / '}
-            <span style={{ color: result.player.defRating >= 70 ? '#45b7d1' : 'var(--color-warning)' }}>
-              {result.player.defRating}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+const tdc = {
+  padding: '8px', textAlign: 'center', fontVariantNumeric: 'tabular-nums',
+};

@@ -1,13 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Modal, ModalHeader, ModalBody } from '../components/Modal.jsx';
 import { Button } from '../components/Button.jsx';
 
 export function CoachModal({ isOpen, data, onClose }) {
   const [marketOpen, setMarketOpen] = useState(false);
   const [marketTab, setMarketTab] = useState('freeAgent');
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Extract data safely before early return
   const coach = data?.coach;
   const synergy = data?.synergy;
   const traits = data?.traits;
@@ -15,35 +13,25 @@ export function CoachModal({ isOpen, data, onClose }) {
   const poachable = data?.poachable || [];
   const formatCurrency = data?.formatCurrency || (v => `$${(v/1e6).toFixed(1)}M`);
   const getOverallColor = data?.getOverallColor || (() => 'var(--color-accent)');
-  const getTraitColor = data?.getTraitColor || (() => 'var(--color-accent)');
+  const getTraitColor = data?.getTraitColor || ((v) =>
+    v >= 70 ? 'var(--color-win)' : v >= 50 ? 'var(--color-text-secondary)' : 'var(--color-loss)');
   const getTraitLabel = data?.getTraitLabel || (() => '');
 
   if (!isOpen || !data) return null;
 
   const handleHire = (coachId, isPoach) => {
-    if (window.hireCoach) {
-      window.hireCoach(coachId, isPoach);
-    }
+    if (window.hireCoach) window.hireCoach(coachId, isPoach);
     onClose();
   };
 
   const handleFire = () => {
-    if (window.fireCoach) {
-      window.fireCoach();
-    }
+    if (window.fireCoach) window.fireCoach();
     onClose();
   };
 
-  const handleBrowseMarket = () => {
-    setMarketOpen(true);
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth={900} zIndex={1300}>
-      <ModalHeader onClose={onClose}>
-        {'\ud83c\udf93'} Coaching Staff
-      </ModalHeader>
-
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth={720} zIndex={1300}>
+      <ModalHeader onClose={onClose}>Coaching Staff</ModalHeader>
       <ModalBody style={{ maxHeight: '75vh', overflowY: 'auto' }}>
         {/* Current Coach or Warning */}
         {coach ? (
@@ -52,130 +40,111 @@ export function CoachModal({ isOpen, data, onClose }) {
             getTraitColor={getTraitColor} getTraitLabel={getTraitLabel} />
         ) : (
           <div style={{
-            textAlign: 'center', padding: 'var(--space-5)',
-            background: 'var(--color-loss)10', borderRadius: 'var(--radius-lg)',
-            marginBottom: 'var(--space-4)', border: '2px dashed var(--color-loss)40',
+            textAlign: 'center', padding: 20,
+            background: 'var(--color-loss-bg)', borderLeft: '3px solid var(--color-loss)',
+            marginBottom: 16,
           }}>
-            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', color: 'var(--color-loss)', marginBottom: 'var(--space-2)' }}>
-              {'\u26a0\ufe0f'} No Head Coach
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-loss)', marginBottom: 4 }}>
+              No Head Coach
             </div>
             <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-              Your team needs a head coach! Browse the coaching market below.
+              Your team needs a head coach. Browse the coaching market below.
             </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div style={{
-          display: 'flex', gap: 'var(--space-3)', justifyContent: 'center',
-          marginBottom: 'var(--space-4)',
-        }}>
-          <Button variant="primary" onClick={handleBrowseMarket}>
-            {'\ud83d\udd0d'} Browse Coaching Market
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+          <Button variant="primary" onClick={() => setMarketOpen(!marketOpen)}>
+            Browse Coaching Market
           </Button>
           {coach && (
-            <Button variant="danger" onClick={handleFire}>
-              {'\ud83d\udeaa'} Fire Coach
-            </Button>
+            <button onClick={handleFire} style={{
+              padding: '7px 16px', border: '1px solid var(--color-loss)30',
+              background: 'transparent', color: 'var(--color-loss)',
+              fontSize: 'var(--text-xs)', fontWeight: 500,
+              fontFamily: 'var(--font-body)', cursor: 'pointer',
+            }}>Fire Coach</button>
           )}
         </div>
 
         {/* Market */}
         {marketOpen && (
-          <MarketSection key={refreshKey}
-            freeAgents={data?.freeAgents || []}
-            poachable={data?.poachable || []}
+          <MarketSection freeAgents={freeAgents} poachable={poachable}
             marketTab={marketTab} setMarketTab={setMarketTab}
             formatCurrency={formatCurrency} getOverallColor={getOverallColor}
-            onHire={handleHire}
-          />
+            onHire={handleHire} />
         )}
       </ModalBody>
     </Modal>
   );
 }
 
-/* ── Current Coach ── */
 function CurrentCoachSection({ coach, synergy, traits, formatCurrency, getOverallColor, getTraitColor, getTraitLabel }) {
   const overallColor = getOverallColor(coach.overall);
-  const synergyColor = synergy.grade === 'A' ? '#4ecdc4'
-    : synergy.grade === 'B' ? '#45b7d1'
-    : synergy.grade === 'C' ? '#f9d56e' : '#ff6b6b';
+  const synergyColor = synergy.grade === 'A' ? 'var(--color-rating-elite)'
+    : synergy.grade === 'B' ? 'var(--color-rating-good)'
+    : synergy.grade === 'C' ? 'var(--color-rating-avg)' : 'var(--color-loss)';
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)',
-      marginBottom: 'var(--space-4)',
-    }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gap)', marginBottom: 16 }}>
       {/* Info Panel */}
-      <div style={{
-        background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-4)', border: '1px solid var(--color-border-subtle)',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 'var(--space-3)' }}>
+      <div style={{ background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)', padding: '14px 16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)' }}>{coach.name}</div>
-            <div style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>{coach.archetype}</div>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>{coach.name}</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{coach.archetype}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '2em', fontWeight: 'var(--weight-bold)', color: overallColor }}>{coach.overall}</div>
-            <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', letterSpacing: '0.05em' }}>OVERALL</div>
+            <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-mono)', color: overallColor }}>{coach.overall}</div>
+            <div style={{ fontSize: 9, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Overall</div>
           </div>
         </div>
 
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)',
-          fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)',
-        }}>
-          <StatLine icon={'\ud83d\udcc5'} label="Age" value={coach.age} />
-          <StatLine icon={'\ud83d\udccb'} label="Exp" value={`${coach.experience} yrs`} />
-          <StatLine icon={'\ud83c\udfc6'} label="Titles" value={coach.championships} />
-          <StatLine icon={'\ud83d\udcca'} label="Career" value={`${coach.careerWins}W-${coach.careerLosses}L`} />
-          <StatLine icon={'\ud83d\udcb0'} label="Salary" value={`${formatCurrency(coach.salary)}/yr`} />
-          <StatLine icon={'\ud83d\udcdd'} label="Contract" value={`${coach.contractYears} yr${coach.contractYears !== 1 ? 's' : ''}`} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 'var(--text-xs)', marginBottom: 12 }}>
+          <StatRow label="Age" value={coach.age} />
+          <StatRow label="Experience" value={`${coach.experience} yrs`} />
+          <StatRow label="Titles" value={coach.championships} />
+          <StatRow label="Career" value={`${coach.careerWins}W–${coach.careerLosses}L`} />
+          <StatRow label="Salary" value={`${formatCurrency(coach.salary)}/yr`} />
+          <StatRow label="Contract" value={`${coach.contractYears} yr${coach.contractYears !== 1 ? 's' : ''}`} />
         </div>
 
         {/* Synergy */}
         <div style={{
-          background: 'var(--color-bg-active)', padding: 'var(--space-3)',
-          borderRadius: 'var(--radius-md)', textAlign: 'center',
+          padding: '8px 10px', background: 'var(--color-bg-raised)',
+          border: '1px solid var(--color-border-subtle)', textAlign: 'center',
         }}>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>System-Roster Synergy</div>
-          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', color: synergyColor }}>
+          <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>System-Roster Synergy</div>
+          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: synergyColor }}>
             {synergy.grade} ({synergy.score})
           </div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>{synergy.description}</div>
+          <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{synergy.description}</div>
         </div>
       </div>
 
       {/* Traits Panel */}
-      <div style={{
-        background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-4)', border: '1px solid var(--color-border-subtle)',
-      }}>
-        <div style={{ fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>Coaching Tendencies</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+      <div style={{ background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)', padding: '14px 16px' }}>
+        <div style={{
+          fontSize: 10, fontWeight: 600, color: 'var(--color-accent)',
+          textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12,
+        }}>Coaching Tendencies</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {Object.entries(traits || {}).map(([key, def]) => {
             const val = coach.traits?.[key] || 50;
             const color = getTraitColor(val);
             const label = getTraitLabel(key, val);
             return (
               <div key={key}>
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  fontSize: 'var(--text-xs)', marginBottom: 2,
-                }}>
-                  <span>{def.icon} {def.name}</span>
-                  <span style={{ color }}>{val} — {label}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', marginBottom: 3 }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>{def.name}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color }}>{val}</span>
                 </div>
                 <div style={{
-                  height: 8, background: 'var(--color-bg-active)',
-                  borderRadius: 'var(--radius-full)', overflow: 'hidden',
+                  height: 4, background: 'var(--color-bg-raised)', overflow: 'hidden',
+                  border: '1px solid var(--color-border-subtle)',
                 }}>
-                  <div style={{
-                    height: '100%', width: `${val}%`, background: color,
-                    borderRadius: 'var(--radius-full)', transition: 'width 0.3s',
-                  }} />
+                  <div style={{ height: '100%', width: `${val}%`, background: color, opacity: 0.7 }} />
                 </div>
               </div>
             );
@@ -186,15 +155,18 @@ function CurrentCoachSection({ coach, synergy, traits, formatCurrency, getOveral
   );
 }
 
-function StatLine({ icon, label, value }) {
+function StatRow({ label, value }) {
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-      <span>{icon}</span> {label}: <strong>{value}</strong>
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', padding: '3px 0',
+      borderBottom: '1px solid var(--color-border-subtle)',
+    }}>
+      <span style={{ color: 'var(--color-text-tertiary)' }}>{label}</span>
+      <span style={{ fontWeight: 500 }}>{value}</span>
     </div>
   );
 }
 
-/* ── Market Section ── */
 function MarketSection({ freeAgents, poachable, marketTab, setMarketTab, formatCurrency, getOverallColor, onHire }) {
   const active = marketTab === 'freeAgent' ? freeAgents : poachable;
   const isPoach = marketTab === 'poach';
@@ -202,40 +174,35 @@ function MarketSection({ freeAgents, poachable, marketTab, setMarketTab, formatC
   return (
     <div>
       <div style={{
-        fontWeight: 'var(--weight-semi)', textAlign: 'center',
-        marginBottom: 'var(--space-3)',
+        display: 'flex', gap: 0, borderBottom: '1px solid var(--color-border)',
+        marginBottom: 12,
       }}>
-        {'\ud83d\udccb'} Coaching Market
+        {[
+          { key: 'freeAgent', label: 'Free Agents', count: freeAgents.length },
+          { key: 'poach', label: 'Poach from Teams', count: poachable.length },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setMarketTab(tab.key)} style={{
+            padding: '8px 16px', border: 'none',
+            borderBottom: marketTab === tab.key ? '2px solid var(--color-accent)' : '2px solid transparent',
+            background: 'transparent',
+            color: marketTab === tab.key ? 'var(--color-text)' : 'var(--color-text-tertiary)',
+            fontWeight: marketTab === tab.key ? 600 : 400,
+            fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            {tab.label}
+            <span style={{
+              fontSize: 10, padding: '1px 6px',
+              background: marketTab === tab.key ? 'var(--color-accent-bg)' : 'var(--color-bg-sunken)',
+              color: 'var(--color-text-tertiary)',
+            }}>{tab.count}</span>
+          </button>
+        ))}
       </div>
 
-      <div style={{
-        display: 'flex', gap: 2,
-        borderBottom: '1px solid var(--color-border-subtle)',
-        marginBottom: 'var(--space-3)',
-      }}>
-        <button onClick={() => setMarketTab('freeAgent')} style={{
-          padding: 'var(--space-2) var(--space-4)', background: 'none', border: 'none',
-          borderBottom: marketTab === 'freeAgent' ? '2px solid var(--color-win)' : '2px solid transparent',
-          color: marketTab === 'freeAgent' ? 'var(--color-text)' : 'var(--color-text-tertiary)',
-          fontWeight: marketTab === 'freeAgent' ? 'var(--weight-semi)' : 'var(--weight-normal)',
-          fontSize: 'var(--text-sm)', cursor: 'pointer',
-        }}>
-          Free Agents ({freeAgents.length})
-        </button>
-        <button onClick={() => setMarketTab('poach')} style={{
-          padding: 'var(--space-2) var(--space-4)', background: 'none', border: 'none',
-          borderBottom: marketTab === 'poach' ? '2px solid var(--color-warning)' : '2px solid transparent',
-          color: marketTab === 'poach' ? 'var(--color-text)' : 'var(--color-text-tertiary)',
-          fontWeight: marketTab === 'poach' ? 'var(--weight-semi)' : 'var(--weight-normal)',
-          fontSize: 'var(--text-sm)', cursor: 'pointer',
-        }}>
-          Poach from Teams ({poachable.length})
-        </button>
-      </div>
-
-      <div style={{ maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+      <div style={{ maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
         {active.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-5)', color: 'var(--color-text-tertiary)' }}>
+          <div style={{ textAlign: 'center', padding: 20, color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>
             No coaches available
           </div>
         ) : active.map(c => (
@@ -248,50 +215,54 @@ function MarketSection({ freeAgents, poachable, marketTab, setMarketTab, formatC
   );
 }
 
-/* ── Coach Card ── */
 function CoachCard({ coach, isPoach, formatCurrency, getOverallColor, onHire }) {
   const overallColor = getOverallColor(coach.overall);
-  const synergyColor = coach._synergyGrade === 'A' ? '#4ecdc4'
-    : coach._synergyGrade === 'B' ? '#45b7d1'
-    : coach._synergyGrade === 'C' ? '#f9d56e' : '#ff6b6b';
+  const synergyColor = coach._synergyGrade === 'A' ? 'var(--color-rating-elite)'
+    : coach._synergyGrade === 'B' ? 'var(--color-rating-good)'
+    : coach._synergyGrade === 'C' ? 'var(--color-rating-avg)' : 'var(--color-loss)';
 
   return (
     <div style={{
-      background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-md)',
-      padding: 'var(--space-3)', border: '1px solid var(--color-border-subtle)',
-      display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-3)', alignItems: 'center',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '10px 14px', background: 'var(--color-bg-sunken)',
+      border: '1px solid var(--color-border-subtle)',
     }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-1)' }}>
-          <span style={{ fontSize: '1.4em', fontWeight: 'var(--weight-bold)', color: overallColor }}>{coach.overall}</span>
-          <div>
-            <div style={{ fontWeight: 'var(--weight-semi)' }}>{coach.name}</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-              {coach.archetype} · Age {coach.age} · {coach.experience} yrs exp
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-mono)',
+          color: overallColor, minWidth: 32,
+        }}>{coach.overall}</div>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{coach.name}</div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+            {coach.archetype} · Age {coach.age} · {coach.experience}yr exp
+          </div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+            {coach.careerWins}W–{coach.careerLosses}L
+            {' · '}{coach.championships} title{coach.championships !== 1 ? 's' : ''}
+            {' · '}{formatCurrency(coach.salary)}/yr
+            {' · '}<span style={{ color: synergyColor }}>Synergy: {coach._synergyGrade}</span>
+            {isPoach && coach._buyout > 0 && (
+              <span style={{ color: 'var(--color-warning)', marginLeft: 6 }}>
+                Buyout: {formatCurrency(coach._buyout)}
+              </span>
+            )}
+            {isPoach && coach._fromTeam && (
+              <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 6 }}>
+                From: {coach._fromTeam}
+              </span>
+            )}
+          </div>
+          {coach._topTraits && (
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+              {coach._topTraits}
             </div>
-          </div>
-        </div>
-        {coach._topTraits && (
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-1)' }}>
-            {coach._topTraits}
-          </div>
-        )}
-        <div style={{ fontSize: 'var(--text-xs)', display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', color: 'var(--color-text-secondary)' }}>
-          <span>{'\ud83d\udcca'} {coach.careerWins}W-{coach.careerLosses}L</span>
-          <span>{'\ud83c\udfc6'} {coach.championships} title{coach.championships !== 1 ? 's' : ''}</span>
-          <span>{'\ud83d\udcb0'} {formatCurrency(coach.salary)}/yr</span>
-          <span style={{ color: synergyColor }}>Synergy: {coach._synergyGrade}</span>
-          {isPoach && coach._buyout > 0 && (
-            <span style={{ color: 'var(--color-warning)' }}>Buyout: {formatCurrency(coach._buyout)}</span>
-          )}
-          {isPoach && coach._fromTeam && (
-            <span style={{ color: 'var(--color-text-tertiary)' }}>From: {coach._fromTeam}</span>
           )}
         </div>
       </div>
-      <Button variant={isPoach ? 'secondary' : 'primary'} onClick={() => onHire(coach.id, isPoach)}
-        style={{ whiteSpace: 'nowrap' }}>
-        {isPoach ? '\ud83d\udcbc Poach' : '\u270d\ufe0f Hire'}
+      <Button variant={isPoach ? 'secondary' : 'primary'} size="sm"
+        onClick={() => onHire(coach.id, isPoach)}>
+        {isPoach ? 'Poach' : 'Hire'}
       </Button>
     </div>
   );

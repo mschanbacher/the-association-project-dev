@@ -7,9 +7,8 @@ const POSITIONS = ['ALL', 'PG', 'SG', 'SF', 'PF', 'C'];
 export function FreeAgencyModal({ isOpen, data, onClose }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [posFilter, setPosFilter] = useState('ALL');
-  const [offers, setOffers] = useState({}); // { playerId: { salary, years } }
+  const [offers, setOffers] = useState({});
 
-  // Reset state when new select-phase data arrives
   const dataPhase = data?.phase || 'select';
   useEffect(() => {
     if (dataPhase === 'select' && data) {
@@ -22,16 +21,15 @@ export function FreeAgencyModal({ isOpen, data, onClose }) {
   }, [dataPhase]);
 
   if (!isOpen || !data) return null;
-
   const fc = data.formatCurrency || (v => `$${(v / 1e6).toFixed(1)}M`);
 
   if (dataPhase === 'results' && data.results) {
     return (
-      <Modal isOpen={isOpen} onClose={null} maxWidth={1000} zIndex={1300}>
-        <ModalHeader>{'\ud83d\udcca'} Free Agency Results</ModalHeader>
+      <Modal isOpen={isOpen} onClose={null} maxWidth={700} zIndex={1300}>
+        <ModalHeader>Free Agency Results</ModalHeader>
         <ModalBody style={{ maxHeight: '75vh', overflowY: 'auto' }}>
           <ResultsView results={data.results} fc={fc} getTeamById={data.getTeamById} userOffers={data.userOffers} />
-          <div style={{ textAlign: 'center', marginTop: 'var(--space-5)' }}>
+          <div style={{ textAlign: 'center', marginTop: 20 }}>
             <Button variant="primary" onClick={() => window.continueFreeAgency?.()}>
               Continue to Season Setup
             </Button>
@@ -50,20 +48,18 @@ export function FreeAgencyModal({ isOpen, data, onClose }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════════
-   SELECTION PHASE
-   ══════════════════════════════════════════════════════════ */
-
 function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPosFilter, offers, setOffers }) {
   const { formerPlayers = [], otherPlayers = [], hiddenCount = 0, roster = [], capSpace = 0, rosterSidebar } = data;
 
+  const rc = data?.getRatingColor || ((r) =>
+    r >= 80 ? 'var(--color-rating-elite)' : r >= 70 ? 'var(--color-rating-good)'
+    : r >= 60 ? 'var(--color-rating-avg)' : 'var(--color-rating-poor)');
+
   const allPlayers = useMemo(() => [...(formerPlayers || []), ...(otherPlayers || [])], [formerPlayers, otherPlayers]);
 
-  // Separate watched/unwatched from otherPlayers
   const watchedFAs = useMemo(() => (otherPlayers || []).filter(p => p._isWatched), [otherPlayers]);
   const unwatchedFAs = useMemo(() => (otherPlayers || []).filter(p => !p._isWatched), [otherPlayers]);
 
-  // Filter
   const filterByPos = useCallback((list) =>
     posFilter === 'ALL' ? list : list.filter(p => p.position === posFilter), [posFilter]);
 
@@ -79,293 +75,313 @@ function SelectionView({ data, fc, selectedIds, setSelectedIds, posFilter, setPo
     [selectedPlayers, offers]);
 
   const remaining = capSpace - estCost;
+  const isEmpty = filteredFormer.length === 0 && filteredWatched.length === 0 && filteredUnwatched.length === 0;
 
   const toggle = (id) => {
     const idStr = String(id);
     setSelectedIds(prev => {
       const next = new Set(prev);
-      if (next.has(idStr)) next.delete(idStr); else next.add(idStr);
+      if (next.has(idStr)) {
+        next.delete(idStr);
+        setOffers(o => { const n = { ...o }; delete n[id]; return n; });
+      } else {
+        next.add(idStr);
+        const player = allPlayers.find(p => String(p.id) === idStr);
+        if (player) {
+          setOffers(o => ({
+            ...o,
+            [id]: { salary: player._marketValue || player.salary || 500000, years: player._suggestedYears || 2 },
+          }));
+        }
+      }
       return next;
     });
   };
 
   const handleSubmit = () => {
-    if (selectedPlayers.length === 0) { alert('Please select at least one player.'); return; }
-    // Validate
-    for (const p of selectedPlayers) {
-      const s = offers[p.id]?.salary ?? p._marketValue;
-      if (s < p._minOffer || s > p._maxOffer) {
-        alert(`Offer to ${p.name} outside range (${fc(p._minOffer)} - ${fc(p._maxOffer)})`);
-        return;
-      }
-    }
-    if (estCost > capSpace) {
-      alert(`Offers total ${fc(estCost)}, but cap space is only ${fc(capSpace)}.`);
-      return;
-    }
-    // Build offers and call controller
-    const offerData = selectedPlayers.map(p => ({
+    if (selectedPlayers.length === 0) { alert('Select at least one player.'); return; }
+    const finalOffers = selectedPlayers.map(p => ({
       playerId: p.id,
-      salary: offers[p.id]?.salary ?? p._marketValue,
-      years: offers[p.id]?.years ?? p._suggestedYears ?? 2,
+      salary: offers[p.id]?.salary || p._marketValue || p.salary,
+      years: offers[p.id]?.years || p._suggestedYears || 2,
     }));
-    window._faSubmitOffers?.(offerData);
+    window._faSubmitOffers?.(finalOffers);
   };
 
-  const handleSkip = () => {
-    if (confirm("Skip free agency? You won't sign any free agents this off-season.")) {
-      window.skipFreeAgency?.();
-    }
-  };
+  // Position counts from roster
+  const posCounts = useMemo(() => {
+    const counts = { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 };
+    (roster || []).forEach(p => { if (counts[p.position] !== undefined) counts[p.position]++; });
+    return counts;
+  }, [roster]);
 
-  const isEmpty = (formerPlayers || []).length === 0 && (otherPlayers || []).length === 0;
+  const sortedRoster = useMemo(() =>
+    [...(roster || [])].sort((a, b) => (b.rating || 0) - (a.rating || 0)), [roster]);
 
   return (
-    <Modal isOpen={true} onClose={null} maxWidth={1600} zIndex={1300}>
-      <ModalHeader>{'\ud83e\udd1d'} Free Agency Period</ModalHeader>
+    <Modal isOpen={true} onClose={null} maxWidth={900} zIndex={1300}>
+      <ModalHeader>Free Agency</ModalHeader>
       <ModalBody style={{ maxHeight: '78vh', overflowY: 'auto' }}>
-        {/* Header info */}
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-3)' }}>
-          <span>Select players to make offers to. </span>
-          <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--color-win)' }}>Cap Space: {fc(capSpace)}</span>
+        {/* Summary */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 12, fontSize: 'var(--text-sm)',
+        }}>
+          <span style={{ color: 'var(--color-text-secondary)' }}>
+            {selectedPlayers.length > 0 && (
+              <>{selectedPlayers.length} selected · Est. cost: <strong style={{ fontFamily: 'var(--font-mono)' }}>{fc(estCost)}</strong></>
+            )}
+          </span>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span>Cap: <strong style={{ fontFamily: 'var(--font-mono)' }}>{fc(capSpace)}</strong></span>
+            <span>Remaining: <strong style={{
+              fontFamily: 'var(--font-mono)',
+              color: remaining < 0 ? 'var(--color-loss)' : 'var(--color-text)',
+            }}>{fc(remaining)}</strong></span>
+          </div>
         </div>
 
-        {/* Offer tally */}
-        {selectedPlayers.length > 0 && (
-          <div style={{
-            textAlign: 'center', marginBottom: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)',
-            background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--color-border-subtle)', fontSize: 'var(--text-sm)',
-          }}>
-            Selected: <strong>{selectedPlayers.length}</strong> player(s) {'\u00b7'} Est. Cost: <strong style={{ color: 'var(--color-warning)' }}>{fc(estCost)}</strong> {'\u00b7'} Remaining: <strong style={{ color: remaining >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>{fc(remaining)}</strong>
-          </div>
-        )}
-
-        <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)' }}>
+        <div style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', marginBottom: 12 }}>
           You'll compete with other teams for these players. Higher offers and team success increase your chances.
         </div>
 
         {isEmpty ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-text-secondary)' }}>
-            <div style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-3)' }}>No Free Agents Available</div>
-            <div>All quality players have been re-signed this off-season.</div>
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-secondary)' }}>
+            <div style={{ fontSize: 'var(--text-md)', marginBottom: 8 }}>No Free Agents Available</div>
+            <div style={{ fontSize: 'var(--text-sm)' }}>All quality players have been re-signed this offseason.</div>
           </div>
         ) : (
-          /* Two column layout */
-          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-            {/* Left: Current Roster sidebar */}
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 'var(--gap)' }}>
+            {/* Roster Sidebar — full roster */}
             <div style={{
-              background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
-              padding: 'var(--space-3)', border: '1px solid var(--color-border-subtle)',
+              background: 'var(--color-bg-sunken)',
+              border: '1px solid var(--color-border-subtle)',
+              padding: '12px 14px',
             }}>
-              <div style={{ fontWeight: 'var(--weight-semi)', textAlign: 'center', marginBottom: 'var(--space-3)' }}>{'\ud83d\udccb'} Current Roster</div>
-              <RosterSidebar roster={roster} rosterSidebar={rosterSidebar} fc={fc} />
+              <div style={{
+                fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)',
+                textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
+              }}>Roster ({roster.length}/15)</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, textAlign: 'center', marginBottom: 10 }}>
+                {['PG', 'SG', 'SF', 'PF', 'C'].map(pos => (
+                  <div key={pos}>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>{pos}</div>
+                    <div style={{
+                      fontSize: 'var(--text-base)', fontWeight: 700, fontFamily: 'var(--font-mono)',
+                      color: posCounts[pos] === 0 ? 'var(--color-loss)' : 'var(--color-text)',
+                    }}>{posCounts[pos]}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+                {sortedRoster.map((p, i) => (
+                  <div key={p.id || i} style={{
+                    display: 'flex', justifyContent: 'space-between', padding: '3px 0',
+                    fontSize: 'var(--text-xs)',
+                    borderBottom: i < sortedRoster.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
+                  }}>
+                    <span>
+                      <span style={{ fontWeight: 500 }}>{p.name}</span>
+                      <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 4 }}>{p.position}</span>
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: rc(p.rating) }}>{p.rating}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Additional sidebar info */}
+              {rosterSidebar && (
+                <div style={{ marginTop: 8, fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                  {rosterSidebar}
+                </div>
+              )}
             </div>
 
-            {/* Right: Free Agents */}
+            {/* FA Market */}
             <div>
-              {/* Position filter */}
-              <div style={{ textAlign: 'center', marginBottom: 'var(--space-3)' }}>
-                <span style={{ marginRight: 'var(--space-2)', fontWeight: 'var(--weight-semi)', fontSize: 'var(--text-sm)' }}>Filter:</span>
+              {/* Filter */}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 10, alignItems: 'center' }}>
+                <span style={{
+                  fontSize: 10, color: 'var(--color-text-tertiary)',
+                  textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4,
+                }}>Pos</span>
                 {POSITIONS.map(pos => (
                   <button key={pos} onClick={() => setPosFilter(pos)} style={{
-                    padding: '4px 12px', marginRight: 'var(--space-1)', fontSize: 'var(--text-xs)',
-                    background: posFilter === pos ? 'var(--color-accent)20' : 'var(--color-bg-active)',
-                    border: `1px solid ${posFilter === pos ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
-                    borderRadius: 'var(--radius-sm)', color: posFilter === pos ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                    cursor: 'pointer',
+                    padding: '3px 10px', fontSize: 'var(--text-xs)', border: 'none',
+                    background: posFilter === pos ? 'var(--color-accent)' : 'transparent',
+                    color: posFilter === pos ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+                    fontWeight: posFilter === pos ? 600 : 400,
+                    fontFamily: 'var(--font-body)', cursor: 'pointer',
                   }}>{pos === 'ALL' ? 'All' : pos}</button>
                 ))}
               </div>
 
-              {/* FA Table */}
-              <div style={{ maxHeight: 480, overflowY: 'auto' }}>
+              {/* Table */}
+              <div style={{ maxHeight: 300, overflowY: 'auto', background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                   <thead>
-                    <tr style={{ borderBottom: '2px solid var(--color-border-subtle)' }}>
-                      <th style={thStyle}></th>
-                      <th style={{ ...thStyle, textAlign: 'left' }}>Player</th>
-                      <th style={thStyle}>OVR</th>
-                      <th style={thStyle}>Fit</th>
-                      <th style={thStyle}>Pos</th>
-                      <th style={thStyle}>Age</th>
-                      <th style={{ ...thStyle, textAlign: 'right' }}>Market</th>
-                      <th style={thStyle}>From</th>
+                    <tr style={{ borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, background: 'var(--color-bg-raised)', zIndex: 1 }}>
+                      <th style={{ ...thS, width: 32 }}></th>
+                      <th style={{ ...thS, textAlign: 'left' }}>Player</th>
+                      <th style={thS}>OVR</th>
+                      <th style={thS}>Pos</th>
+                      <th style={thS}>Age</th>
+                      <th style={{ ...thS, textAlign: 'right', paddingRight: 16 }}>Market</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Former Players */}
-                    {filteredFormer.length > 0 && filteredFormer.map(p => (
-                      <FAPlayerRow key={p.id} player={p} isFormer isChecked={selectedIds.has(String(p.id))} onToggle={toggle} />
-                    ))}
-                    {/* Watched */}
-                    {filteredWatched.length > 0 && (
-                      <>
-                        <SectionDivider label={'\ud83d\udd0d WATCHED PLAYERS'} count={filteredWatched.length} color="#bb86fc" />
-                        {filteredWatched.map(p => (
-                          <FAPlayerRow key={p.id} player={p} isWatched isChecked={selectedIds.has(String(p.id))} onToggle={toggle} />
-                        ))}
-                      </>
+                    {filteredFormer.length > 0 && (
+                      <tr><td colSpan={6} style={sectionTd}>Former Players</td></tr>
                     )}
-                    {/* Unwatched */}
+                    {filteredFormer.map(p => (
+                      <FARow key={p.id} p={p} checked={selectedIds.has(String(p.id))} onToggle={toggle} fc={fc} rc={rc} />
+                    ))}
+                    {filteredWatched.length > 0 && (
+                      <tr><td colSpan={6} style={sectionTd}>Watched Players</td></tr>
+                    )}
+                    {filteredWatched.map(p => (
+                      <FARow key={p.id} p={p} checked={selectedIds.has(String(p.id))} onToggle={toggle} fc={fc} rc={rc} />
+                    ))}
                     {filteredUnwatched.length > 0 && (
-                      <>
-                        <SectionDivider label={posFilter !== 'ALL' ? `OTHER FREE AGENTS (${posFilter})` : 'OTHER FREE AGENTS'} count={filteredUnwatched.length} color="var(--color-text-tertiary)" />
-                        {hiddenCount > 0 && (
-                          <tr><td colSpan={8} style={{ padding: 'var(--space-1) var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textAlign: 'center' }}>{hiddenCount} more lower-rated players not shown</td></tr>
-                        )}
-                        {filteredUnwatched.map(p => (
-                          <FAPlayerRow key={p.id} player={p} isChecked={selectedIds.has(String(p.id))} onToggle={toggle} />
-                        ))}
-                      </>
+                      <tr><td colSpan={6} style={sectionTd}>Free Agent Market</td></tr>
+                    )}
+                    {filteredUnwatched.map(p => (
+                      <FARow key={p.id} p={p} checked={selectedIds.has(String(p.id))} onToggle={toggle} fc={fc} rc={rc} />
+                    ))}
+                    {hiddenCount > 0 && (
+                      <tr><td colSpan={6} style={{ padding: '6px 16px', fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textAlign: 'center' }}>
+                        +{hiddenCount} lower-rated players not shown
+                      </td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Offer cards */}
+              {selectedPlayers.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{
+                    fontSize: 10, fontWeight: 600, color: 'var(--color-accent)',
+                    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
+                  }}>Your Offers ({selectedPlayers.length})</div>
+                  {selectedPlayers.map(p => (
+                    <OfferCard key={p.id} player={p} fc={fc}
+                      offer={offers[p.id] || { salary: p._marketValue || p.salary || 500000, years: p._suggestedYears || 2 }}
+                      onChange={(o) => setOffers(prev => ({ ...prev, [p.id]: o }))}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Offer Cards for selected players */}
-        {selectedPlayers.length > 0 && (
-          <div style={{ marginBottom: 'var(--space-4)' }}>
-            <div style={{ fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>{'\ud83d\udcdd'} Your Offers ({selectedPlayers.length})</div>
-            <div style={{ maxHeight: 350, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {selectedPlayers.map(p => (
-                <OfferCard key={p.id} player={p} fc={fc}
-                  offer={offers[p.id] || { salary: p._marketValue, years: p._suggestedYears || 2 }}
-                  onChange={(o) => setOffers(prev => ({ ...prev, [p.id]: o }))}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Submit / Skip */}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', marginTop: 'var(--space-4)' }}>
+        {/* Actions */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
           <Button variant="primary" onClick={handleSubmit} disabled={selectedPlayers.length === 0}>
-            Submit Offers
+            Submit Offers ({selectedPlayers.length})
           </Button>
-          <Button variant="ghost" onClick={handleSkip}>
-            Skip Free Agency
-          </Button>
+          <Button variant="ghost" onClick={() => window.skipFreeAgency?.()}>Skip</Button>
         </div>
       </ModalBody>
     </Modal>
   );
 }
 
-/* ── FA Player Row ── */
-const thStyle = { padding: 'var(--space-2)', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' };
-
-function FAPlayerRow({ player, isFormer, isWatched, isChecked, onToggle }) {
-  const p = player;
-  const bg = isFormer ? 'linear-gradient(90deg, rgba(251,188,4,0.2), rgba(102,126,234,0.15))'
-    : isWatched ? 'rgba(155,89,182,0.1)' : 'transparent';
-
+function FARow({ p, checked, onToggle, fc, rc }) {
   return (
-    <tr style={{ borderBottom: '1px solid var(--color-border-subtle)', background: bg }}>
-      <td style={{ padding: 'var(--space-2)' }}>
-        <input type="checkbox" checked={isChecked} onChange={() => onToggle(p.id)}
-          style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--color-accent)' }} />
+    <tr onClick={() => onToggle(p.id)} style={{
+      borderBottom: '1px solid var(--color-border-subtle)', cursor: 'pointer',
+      background: checked ? 'var(--color-accent-bg)' : 'var(--color-bg-raised)',
+      transition: 'background 100ms ease',
+    }}>
+      <td style={{ padding: '6px 8px' }}>
+        <input type="checkbox" checked={checked} readOnly
+          style={{ width: 14, height: 14, accentColor: 'var(--color-accent)', pointerEvents: 'none' }} />
       </td>
-      <td style={{ padding: 'var(--space-2)' }}>
-        <strong>{p.name}</strong>
-        {isFormer && <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-xs)' }}>{'\u2b50'} YOUR PLAYER</span>}
-        {p.isCollegeGrad && <span style={{ color: 'var(--color-warning)', fontSize: 'var(--text-xs)', marginLeft: 6 }}>{'\ud83c\udf93'} GRAD</span>}
-        {isWatched && <span style={{ color: '#bb86fc', marginLeft: 4 }} title="On Watch List">{'\ud83d\udd0d'}</span>}
+      <td style={{ padding: '6px 8px' }}>
+        <div style={{ fontWeight: 500 }}>{p.name}</div>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+          {p._fromTeamName || 'Free Agent'}
+          {p._isFormer && ' · Loyalty bonus'}
+          {p._isAboveTier && (
+            <span style={{ color: 'var(--color-loss)', marginLeft: 4 }}>T{p._naturalTier} caliber</span>
+          )}
+        </div>
       </td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontWeight: 'var(--weight-bold)' }}>
-        {p.rating}
-        {p.offRating !== undefined && (
-          <div style={{ fontSize: '0.7em', opacity: 0.6, fontWeight: 'var(--weight-normal)' }}>{p.offRating}/{p.defRating}</div>
-        )}
-      </td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontWeight: 'var(--weight-bold)', color: p._fitColor || 'var(--color-text)' }}>{p._fitGrade || '-'}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center' }}>{p.position}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center' }}>{p.age}</td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'right', fontSize: 'var(--text-xs)' }}>
-        <MarketDisplay data={p._marketData} />
-      </td>
-      <td style={{ padding: 'var(--space-2)', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-        {isFormer ? <span style={{ color: 'var(--color-warning)', fontWeight: 'var(--weight-bold)' }}>{p._fromTeamName}</span> : (p._fromTeamName || 'N/A')}
+      <td style={{ ...tdC, fontFamily: 'var(--font-mono)', fontWeight: 700, color: rc(p.rating) }}>{p.rating}</td>
+      <td style={{ ...tdC, fontWeight: 500, fontSize: 'var(--text-xs)' }}>{p.position}</td>
+      <td style={{ ...tdC, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>{p.age}</td>
+      <td style={{ ...tdC, textAlign: 'right', paddingRight: 16, fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>
+        {p._marketData ? <MarketDisplay data={p._marketData} /> : fc(p._marketValue || p.salary || 0)}
       </td>
     </tr>
   );
 }
 
-/* ── Section Divider ── */
-function SectionDivider({ label, count, color }) {
-  return (
-    <tr>
-      <td colSpan={8} style={{
-        padding: 'var(--space-2) var(--space-3)',
-        borderTop: `2px solid ${color}40`,
-        fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', color,
-        background: `${color}08`,
-      }}>
-        {label} ({count})
-      </td>
-    </tr>
-  );
-}
-
-/* ── Offer Card ── */
 function OfferCard({ player, fc, offer, onChange }) {
   const p = player;
-  const isFormer = p._isFormer;
-  const isAboveTier = p._isAboveTier;
-  const bg = isFormer ? 'linear-gradient(135deg, rgba(251,188,4,0.15), rgba(102,126,234,0.15))' : 'var(--color-bg-sunken)';
-  const border = isFormer ? '2px solid rgba(251,188,4,0.4)' : '1px solid var(--color-border-subtle)';
-
   return (
-    <div style={{ background: bg, padding: 'var(--space-4)', borderRadius: 'var(--radius-lg)', border }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+    <div style={{
+      padding: '12px 14px', marginBottom: 8,
+      background: p._isFormer ? 'var(--color-accent-bg)' : 'var(--color-bg-sunken)',
+      border: `1px solid ${p._isFormer ? 'var(--color-accent-border)' : 'var(--color-border-subtle)'}`,
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+      }}>
         <div>
-          <strong>{p.name}</strong>
-          {isFormer && <span style={{ color: 'var(--color-warning)', marginLeft: 8, fontWeight: 'var(--weight-bold)' }}>{'\u2b50'} YOUR PLAYER</span>}
-          <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'var(--space-2)' }}>{p.position} | {p.rating} OVR | Age {p.age}</span>
+          <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{p.name}</span>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginLeft: 8 }}>
+            {p.position} · {p.rating} OVR · {p.age}yo
+          </span>
+          {p._isFormer && (
+            <span style={{ fontSize: 10, color: 'var(--color-accent)', marginLeft: 8, fontWeight: 600 }}>
+              5% Loyalty Bonus
+            </span>
+          )}
         </div>
-        <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>
-          <MarketDisplay data={p._marketData} />
+        <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)' }}>
+          Market: {fc(p._marketValue || p.salary || 0)}
         </span>
       </div>
 
-      {isAboveTier && (
-        <div style={{ background: 'rgba(255,107,107,0.1)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-2)', borderLeft: '3px solid #ff6b6b', fontSize: 'var(--text-xs)' }}>
-          <span style={{ color: '#ff6b6b', fontWeight: 'var(--weight-bold)' }}>{'\u26a0\ufe0f'} Tier {p._naturalTier} Caliber Player</span>
-          <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'var(--space-2)' }}>Higher-tier teams will compete!</span>
-        </div>
-      )}
-      {isFormer && (
-        <div style={{ background: 'rgba(251,188,4,0.1)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-2)', borderLeft: '3px solid var(--color-warning)', fontSize: 'var(--text-xs)' }}>
-          <span style={{ color: 'var(--color-warning)', fontWeight: 'var(--weight-bold)' }}>{'\ud83c\udfaf'} 5% Loyalty Bonus Active</span>
+      {p._isAboveTier && (
+        <div style={{
+          padding: '4px 8px', marginBottom: 8, fontSize: 'var(--text-xs)',
+          background: 'var(--color-loss-bg)', borderLeft: '3px solid var(--color-loss)',
+          color: 'var(--color-loss)',
+        }}>
+          T{p._naturalTier} caliber — higher-tier teams will compete
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <div>
-          <label style={{ display: 'block', marginBottom: 3, fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-            Salary ({fc(p._minOffer)} - {fc(p._maxOffer)})
-          </label>
-          <input type="number" value={offer.salary} min={p._minOffer} max={p._maxOffer} step={100000}
+          <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 3 }}>
+            Salary ({fc(p._minOffer || 0)} – {fc(p._maxOffer || 0)})
+          </div>
+          <input type="number" value={offer.salary}
+            min={p._minOffer} max={p._maxOffer} step={100000}
             onChange={e => onChange({ ...offer, salary: parseInt(e.target.value) || p._marketValue })}
             style={{
-              width: '100%', padding: 'var(--space-2)', fontSize: 'var(--text-sm)',
-              borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-active)',
-              color: 'var(--color-text)', border: '1px solid var(--color-border-subtle)',
+              width: '100%', padding: '5px 8px', fontSize: 'var(--text-xs)',
+              border: '1px solid var(--color-border-subtle)',
+              background: 'var(--color-bg-raised)', fontFamily: 'var(--font-mono)',
+              color: 'var(--color-text)',
             }} />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: 3, fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+          <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 3 }}>
             Years (Suggested: {p._suggestedYears || 2})
-          </label>
+          </div>
           <select value={offer.years}
             onChange={e => onChange({ ...offer, years: parseInt(e.target.value) })}
             style={{
-              width: '100%', padding: 'var(--space-2)', fontSize: 'var(--text-sm)',
-              borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-active)',
-              color: 'var(--color-text)', border: '1px solid var(--color-border-subtle)',
+              width: '100%', padding: '5px 8px', fontSize: 'var(--text-xs)',
+              border: '1px solid var(--color-border-subtle)',
+              background: 'var(--color-bg-raised)', color: 'var(--color-text)',
+              fontFamily: 'var(--font-body)',
             }}>
             {[1, 2, 3, 4].map(y => <option key={y} value={y}>{y} Year{y > 1 ? 's' : ''}</option>)}
           </select>
@@ -375,154 +391,104 @@ function OfferCard({ player, fc, offer, onChange }) {
   );
 }
 
-/* ── Roster Sidebar ── */
-function RosterSidebar({ roster, rosterSidebar, fc }) {
-  if (!roster || roster.length === 0) return <div style={{ textAlign: 'center', color: 'var(--color-text-tertiary)', padding: 'var(--space-4)' }}>No players on roster</div>;
-
-  const byPos = {};
-  roster.forEach(p => { byPos[p.position] = byPos[p.position] || []; byPos[p.position].push(p); });
-
-  return (
-    <div style={{ fontSize: 'var(--text-xs)', maxHeight: 450, overflowY: 'auto' }}>
-      <div style={{ textAlign: 'center', padding: 'var(--space-2)', background: 'var(--color-bg-active)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-2)' }}>
-        Roster: {roster.length}/15 {rosterSidebar?.capLabel && <span>{'\u00b7'} {rosterSidebar.capLabel}</span>}
-      </div>
-      {['PG', 'SG', 'SF', 'PF', 'C'].map(pos => {
-        const players = byPos[pos] || [];
-        if (players.length === 0) return null;
-        return (
-          <div key={pos} style={{ marginBottom: 'var(--space-2)' }}>
-            <div style={{ fontWeight: 'var(--weight-semi)', color: 'var(--color-text-tertiary)', marginBottom: 2 }}>{pos} ({players.length})</div>
-            {players.sort((a, b) => b.rating - a.rating).map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                <span>{p.name}</span>
-                <span style={{ color: 'var(--color-text-tertiary)' }}>{p.rating}</span>
-              </div>
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════
-   RESULTS PHASE
-   ══════════════════════════════════════════════════════════ */
-
-function ResultsView({ results, fc, getTeamById, userOffers }) {
-  const userSigned = results.filter(r => r.userWon);
-  const userMissed = results.filter(r => r.userOffered && !r.userWon);
-  const otherSignings = results.filter(r => !r.userOffered);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-      {/* Successful */}
-      {userSigned.length > 0 && (
-        <ResultSection color="var(--color-win)" icon={'\u2705'} title={`Successful Signings (${userSigned.length})`}>
-          {userSigned.map(r => (
-            <ResultRow key={r.player.id} player={r.player} fc={fc}>
-              <div style={{ fontWeight: 'var(--weight-bold)' }}>{r.winningOffer.years}yr / {fc(r.winningOffer.salary)}</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{r.numOffers} total offer(s)</div>
-            </ResultRow>
-          ))}
-        </ResultSection>
-      )}
-
-      {/* Missed */}
-      {userMissed.length > 0 && (
-        <ResultSection color="var(--color-loss)" icon={'\u274c'} title={`Missed Signings (${userMissed.length})`}>
-          {userMissed.map(r => {
-            const team = getTeamById?.(r.winningOffer.teamId);
-            const uo = userOffers?.find(o => o.playerId == r.player.id);
-            return (
-              <ResultRow key={r.player.id} player={r.player} fc={fc}>
-                <div style={{ fontWeight: 'var(--weight-bold)' }}>Chose {team?.name || 'Unknown'}</div>
-                {uo && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-                  Their: {r.winningOffer.years}yr/{fc(r.winningOffer.salary)} vs Yours: {uo.years}yr/{fc(uo.salary)}
-                </div>}
-              </ResultRow>
-            );
-          })}
-        </ResultSection>
-      )}
-
-      {/* No signings warning */}
-      {userSigned.length === 0 && userMissed.length > 0 && (
-        <div style={{
-          background: 'var(--color-warning)15', padding: 'var(--space-3)',
-          borderRadius: 'var(--radius-md)', textAlign: 'center',
-          border: '1px solid var(--color-warning)30',
-        }}>
-          {'\u26a0\ufe0f'} Unfortunately, you didn't sign any of your targets this year. Consider offering more or improving your record.
-        </div>
-      )}
-
-      {/* Other */}
-      {otherSignings.length > 0 && (
-        <ResultSection color="var(--color-text-secondary)" icon={'\ud83d\udccb'} title={`Other Signings (${Math.min(10, otherSignings.length)} of ${otherSignings.length})`}>
-          {otherSignings.slice(0, 10).map(r => {
-            const team = getTeamById?.(r.winningOffer.teamId);
-            return (
-              <div key={r.player.id} style={{ padding: 'var(--space-2)', borderBottom: '1px solid var(--color-border-subtle)', fontSize: 'var(--text-sm)' }}>
-                <strong>{r.player.name}</strong> ({r.player.rating} OVR) {'\u2192'} {team?.name || 'Unknown'} ({r.winningOffer.years}yr/{fc(r.winningOffer.salary)})
-              </div>
-            );
-          })}
-        </ResultSection>
-      )}
-    </div>
-  );
-}
-
-function ResultSection({ color, icon, title, children }) {
-  return (
-    <div style={{
-      background: `${color}15`, padding: 'var(--space-4)',
-      borderRadius: 'var(--radius-lg)', border: `2px solid ${color}40`,
-    }}>
-      <div style={{ color, fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>{icon} {title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>{children}</div>
-    </div>
-  );
-}
-
-function ResultRow({ player, fc, children }) {
-  return (
-    <div style={{
-      background: 'var(--color-bg-sunken)', padding: 'var(--space-3)',
-      borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    }}>
-      <div>
-        <strong>{player.name}</strong>
-        <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'var(--space-2)' }}>{player.position} | {player.rating} OVR</span>
-      </div>
-      <div style={{ textAlign: 'right' }}>{children}</div>
-    </div>
-  );
-}
-
-/* ── Market Display (replaces formatMarketDisplay HTML) ── */
 function MarketDisplay({ data }) {
   if (!data) return null;
   return (
-    <span>
-      {data.value}{' '}
-      <span style={{
-        background: data.badgeColor, color: '#fff',
-        padding: '1px 6px', borderRadius: 3,
-        fontSize: '0.75em', fontWeight: 'bold', marginLeft: 4,
-      }}>
-        T{data.natTier}
-      </span>
-      {data.crossTierValue && (
-        <>
-          <br />
-          <span style={{ fontSize: '0.8em', color: '#ff6b6b', opacity: 0.9 }}>
-            T{data.natTier} value: {data.crossTierValue}
-          </span>
-        </>
-      )}
+    <span style={{ fontSize: 'var(--text-xs)' }}>
+      {data.display || data.value || '—'}
     </span>
   );
 }
+
+function ResultsView({ results, fc, getTeamById, userOffers }) {
+  const { signed = [], lost = [], aiSignings = [] } = results;
+
+  return (
+    <div>
+      <div style={{ textAlign: 'center', marginBottom: 16, fontSize: 'var(--text-md)' }}>
+        <span style={{ color: 'var(--color-win)', fontWeight: 700 }}>{signed.length} signed</span>
+        {lost.length > 0 && (
+          <span style={{ marginLeft: 16, color: 'var(--color-loss)' }}>{lost.length} chose other teams</span>
+        )}
+      </div>
+
+      {signed.length > 0 && (
+        <ResultSection title="Signed" color="var(--color-win)">
+          {signed.map((r, i) => <ResultRow key={i} result={r} fc={fc} won />)}
+        </ResultSection>
+      )}
+
+      {lost.length > 0 && (
+        <ResultSection title="Lost" color="var(--color-loss)">
+          {lost.map((r, i) => <ResultRow key={i} result={r} fc={fc} getTeamById={getTeamById} />)}
+        </ResultSection>
+      )}
+
+      {aiSignings.length > 0 && (
+        <ResultSection title="Notable AI Signings" color="var(--color-text-tertiary)">
+          {aiSignings.slice(0, 10).map((r, i) => <ResultRow key={i} result={r} fc={fc} />)}
+        </ResultSection>
+      )}
+    </div>
+  );
+}
+
+function ResultSection({ title, color, children }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{
+        fontSize: 10, fontWeight: 600, color,
+        textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
+      }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function ResultRow({ result, fc, won, getTeamById }) {
+  const p = result.player || result;
+  const teamName = result.signedWith
+    ? (getTeamById ? getTeamById(result.signedWith)?.name : result.teamName)
+    : result.teamName;
+
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '6px 0', borderBottom: '1px solid var(--color-border-subtle)',
+      fontSize: 'var(--text-sm)',
+    }}>
+      <div>
+        <span style={{ fontWeight: 500 }}>{p.name || result.name}</span>
+        <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 8, fontSize: 'var(--text-xs)' }}>
+          {p.position || result.position} · {p.rating || result.rating} OVR
+        </span>
+      </div>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+        {won ? (
+          <span style={{ color: 'var(--color-win)', fontWeight: 600 }}>Signed</span>
+        ) : teamName ? (
+          <span>Signed with <strong>{teamName}</strong></span>
+        ) : (
+          <span style={{ color: 'var(--color-loss)', fontWeight: 600 }}>Declined</span>
+        )}
+        {result.salary && <span style={{ marginLeft: 8, fontFamily: 'var(--font-mono)' }}>{fc(result.salary)}</span>}
+      </div>
+    </div>
+  );
+}
+
+const thS = {
+  padding: '7px 8px', fontSize: 10, fontWeight: 600,
+  color: 'var(--color-text-tertiary)',
+  textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center',
+};
+
+const tdC = {
+  padding: '6px 8px', textAlign: 'center', fontVariantNumeric: 'tabular-nums',
+};
+
+const sectionTd = {
+  padding: '6px 16px', fontSize: 10, fontWeight: 600,
+  color: 'var(--color-accent)', textTransform: 'uppercase',
+  letterSpacing: '0.04em', borderBottom: '1px solid var(--color-border-subtle)',
+};

@@ -7,30 +7,35 @@ export function PlayoffModal({ isOpen, data, onClose }) {
 
   const { results, isPromotion, isDivisionPlayoff, msg, userResult, userInvolved } = data;
 
-  const playoffTitle = isDivisionPlayoff
-    ? '\ud83c\udfc0 Division Playoffs'
-    : isPromotion
-      ? '\u2b06\ufe0f Promotion Playoffs'
-      : '\u2b07\ufe0f Relegation Playoffs';
+  const labelColor = isPromotion ? 'var(--color-win)' : isDivisionPlayoff ? 'var(--color-accent)' : 'var(--color-loss)';
+  const labelText = isDivisionPlayoff ? 'Division Playoffs'
+    : isPromotion ? 'Promotion Playoffs' : 'Relegation Playoffs';
 
   const continueAction = userInvolved ? userResult : 'not-involved';
 
   return (
-    <Modal isOpen={isOpen} onClose={null} maxWidth={1000} zIndex={1300}>
+    <Modal isOpen={isOpen} onClose={null} maxWidth={680} zIndex={1300}>
       <ModalBody style={{ maxHeight: '80vh', overflowY: 'auto', padding: 'var(--space-5)' }}>
-        <div style={{ textAlign: 'center' }}>
-          {/* Title */}
-          <div style={{ fontSize: '2.5em', marginBottom: 'var(--space-4)' }}>{playoffTitle}</div>
+        <div>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: labelColor,
+              textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4,
+            }}>{labelText}</div>
+          </div>
 
-          {/* User result or not-involved message */}
+          {/* User result */}
           {userInvolved && msg ? (
-            <div style={{ fontSize: '1.8em', color: msg.color, marginBottom: 'var(--space-6)', fontWeight: 'var(--weight-bold)' }}>
-              {msg.text}
-            </div>
+            <div style={{
+              textAlign: 'center', fontSize: 'var(--text-md)',
+              color: msg.color, marginBottom: 24, fontWeight: 700,
+            }}>{msg.text}</div>
           ) : (
-            <div style={{ fontSize: 'var(--text-lg)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-6)' }}>
-              (Your team did not participate)
-            </div>
+            <div style={{
+              textAlign: 'center', fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-secondary)', marginBottom: 24,
+            }}>Your team did not participate</div>
           )}
 
           {/* Bracket */}
@@ -41,8 +46,8 @@ export function PlayoffModal({ isOpen, data, onClose }) {
           )}
 
           {/* Continue */}
-          <div style={{ marginTop: 'var(--space-6)' }}>
-            <Button variant="primary" size="lg" onClick={() => window.advanceToNextSeason?.(continueAction)}>
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <Button variant="primary" onClick={() => window.advanceToNextSeason?.(continueAction)}>
               Continue to Championship
             </Button>
           </div>
@@ -52,12 +57,11 @@ export function PlayoffModal({ isOpen, data, onClose }) {
   );
 }
 
-/* ── Four-Team Bracket (Semis → Final) ── */
 function FourTeamBracket({ results }) {
   return (
     <div>
-      <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>Semifinals</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
+      <SectionLabel>Semifinals</SectionLabel>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
         <MatchCard
           team1={{ ...results.seed1, label: '#1 Seed' }}
           team2={{ ...results.seed4, label: '#4 Seed' }}
@@ -70,7 +74,7 @@ function FourTeamBracket({ results }) {
         />
       </div>
 
-      <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>Championship</div>
+      <SectionLabel>Championship</SectionLabel>
       <MatchCard
         team1={{ ...results.semi1.winner }}
         team2={{ ...results.semi2.winner }}
@@ -84,36 +88,37 @@ function FourTeamBracket({ results }) {
   );
 }
 
-/* ── Three-Team Bracket (Play-In → Final) ── */
 function ThreeTeamBracket({ results, isPromotion }) {
   return (
     <div>
-      <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>Play-In Game</div>
+      <SectionLabel>Play-In Game</SectionLabel>
       <MatchCard
         team1={{ ...results.seed2, label: '#2' }}
         team2={{ ...results.seed3, label: '#3' }}
         winnerId={results.playIn.winner.id}
       />
 
-      <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', margin: 'var(--space-5) 0 var(--space-3)' }}>Final</div>
-      <MatchCard
-        team1={{ ...results.seed1, label: '#1 - Bye' }}
-        team2={{ ...results.playIn.winner }}
-        winnerId={results.final.winner.id}
-      />
+      <div style={{ marginTop: 20 }}>
+        <SectionLabel>Final</SectionLabel>
+        <MatchCard
+          team1={{ ...results.seed1, label: '#1 — Bye' }}
+          team2={{ ...results.playIn.winner }}
+          winnerId={results.final.winner.id}
+        />
+      </div>
 
       <ResultBox>
         {isPromotion ? (
           <>
             <div><strong>Promoted:</strong> {results.final.winner.name}, {results.final.loser.name}</div>
-            <div style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>
-              {results.playIn.loser.name} stays in Tier 2
+            <div style={{ marginTop: 4, color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+              {results.playIn.loser.name} stays in current tier
             </div>
           </>
         ) : (
           <>
             <div><strong>Survived:</strong> {results.final.winner.name}</div>
-            <div style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>
+            <div style={{ marginTop: 4, color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
               <strong>Relegated:</strong> {results.final.loser.name}, {results.playIn.loser.name}
             </div>
           </>
@@ -123,19 +128,15 @@ function ThreeTeamBracket({ results, isPromotion }) {
   );
 }
 
-/* ── Match Card ── */
 function MatchCard({ team1, team2, winnerId }) {
-  const t1Won = team1.id === winnerId;
-  const t2Won = team2.id === winnerId;
-
   return (
     <div style={{
-      background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
+      background: 'var(--color-bg-sunken)',
       border: '1px solid var(--color-border-subtle)', overflow: 'hidden',
     }}>
-      <TeamRow team={team1} won={t1Won} />
+      <TeamRow team={team1} won={team1.id === winnerId} />
       <div style={{ height: 1, background: 'var(--color-border-subtle)' }} />
-      <TeamRow team={team2} won={t2Won} />
+      <TeamRow team={team2} won={team2.id === winnerId} />
     </div>
   );
 }
@@ -144,35 +145,47 @@ function TeamRow({ team, won }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: 'var(--space-3) var(--space-4)',
-      background: won ? 'var(--color-win)10' : 'transparent',
+      padding: '10px 14px',
+      background: won ? 'var(--color-win)08' : 'transparent',
     }}>
+      <div>
+        <span style={{
+          fontWeight: won ? 600 : 400,
+          color: won ? 'var(--color-text)' : 'var(--color-text-tertiary)',
+          fontSize: 'var(--text-sm)',
+        }}>{team.name}</span>
+        {team.label && (
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginLeft: 6 }}>
+            ({team.label})
+          </span>
+        )}
+      </div>
       <span style={{
-        fontWeight: won ? 'var(--weight-bold)' : 'var(--weight-normal)',
-        opacity: won ? 1 : 0.6,
-      }}>
-        {team.name} {team.label ? <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)' }}>({team.label})</span> : null}
-      </span>
-      <span style={{
-        fontWeight: 'var(--weight-bold)',
+        fontSize: 'var(--text-xs)', fontWeight: 600,
         color: won ? 'var(--color-win)' : 'var(--color-loss)',
       }}>
-        {won ? '\u2705 WIN' : '\u274c LOSS'}
+        {won ? 'W' : 'L'}
       </span>
     </div>
   );
 }
 
-/* ── Result Box ── */
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)',
+      textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
+    }}>{children}</div>
+  );
+}
+
 function ResultBox({ children }) {
   return (
     <div style={{
-      marginTop: 'var(--space-5)', padding: 'var(--space-4)',
-      background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
+      marginTop: 16, padding: '14px 16px',
+      background: 'var(--color-bg-sunken)',
       border: '1px solid var(--color-border-subtle)',
-      fontSize: 'var(--text-base)',
-    }}>
-      {children}
-    </div>
+      fontSize: 'var(--text-sm)',
+    }}>{children}</div>
   );
 }

@@ -19,37 +19,39 @@ export function FinanceDashboardModal({ isOpen, data, onClose }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth={1100} zIndex={1300}>
-      <ModalHeader onClose={onClose}>
-        {'\ud83d\udcb0'} Club Finances
-      </ModalHeader>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth={760} zIndex={1300}>
+      <ModalHeader onClose={onClose}>Club Finances</ModalHeader>
 
       <ModalBody style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-        {/* Top 3 Stat Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
-          <StatCard label="Total Revenue" value={fc(d.totalRev)} color="var(--color-win)" sub={d.trendHtml} />
-          <StatCard label={d.capLabel} value={fc(d.spendingLimit)} color="var(--color-accent)"
-            sub={<>Cap Space: <span style={{ color: d.capSpace > 0 ? 'var(--color-win)' : 'var(--color-loss)', fontWeight: 'var(--weight-bold)' }}>{fc(d.capSpace)}</span></>} />
-          <StatCard label="Financial Health" value={d.stabilityLabel} color={d.stabilityColor}
+        {/* Top metrics */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--gap)', marginBottom: 16 }}>
+          <MetricCard label="Total Revenue" value={fc(d.totalRev)} sub={d.trendHtml} />
+          <MetricCard label={d.capLabel} value={fc(d.spendingLimit)}
+            sub={<>Cap Space: <span style={{ color: d.capSpace < 0 ? 'var(--color-loss)' : 'var(--color-text)', fontWeight: 600 }}>{fc(d.capSpace)}</span></>} />
+          <MetricCard label="Financial Health" value={d.stabilityLabel} color={d.stabilityColor}
             sub={`Using ${Math.round(d.usagePct * 100)}% of limit`} />
         </div>
 
-        {/* Payroll Bar */}
+        {/* Payroll bar */}
         <div style={{
-          background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-3)', marginBottom: 'var(--space-5)',
-          border: '1px solid var(--color-border-subtle)',
+          background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)',
+          padding: '12px 14px', marginBottom: 16,
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 'var(--text-sm)' }}>
             <span><strong>Payroll:</strong> {fc(d.currentSalary)}</span>
-            <span style={{ color: 'var(--color-text-tertiary)' }}>Floor: {fc(d.salaryFloor)} | Limit: {fc(d.spendingLimit)}</span>
+            <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)' }}>
+              Floor: {fc(d.salaryFloor)} · Limit: {fc(d.spendingLimit)}
+            </span>
           </div>
-          <div style={{ background: 'var(--color-bg-active)', borderRadius: 'var(--radius-sm)', height: 22, position: 'relative', overflow: 'hidden' }}>
+          <div style={{
+            background: 'var(--color-bg-raised)', height: 16, position: 'relative', overflow: 'hidden',
+            border: '1px solid var(--color-border-subtle)',
+          }}>
             <div style={{
               position: 'absolute', left: 0, top: 0, height: '100%',
               width: `${Math.min(100, d.usagePct * 100)}%`,
-              background: d.usagePct > 0.90 ? 'linear-gradient(90deg, #ea4335, #c62828)' : d.usagePct > 0.80 ? 'linear-gradient(90deg, #fbbc04, #f57f17)' : 'linear-gradient(90deg, #34a853, #2e7d32)',
-              borderRadius: 'var(--radius-sm)', transition: 'width 0.5s',
+              background: d.usagePct > 0.90 ? 'var(--color-loss)' : d.usagePct > 0.80 ? 'var(--color-warning)' : 'var(--color-win)',
+              opacity: 0.7, transition: 'width 0.5s',
             }} />
             {d.salaryFloor > 0 && (
               <div style={{
@@ -61,41 +63,60 @@ export function FinanceDashboardModal({ isOpen, data, onClose }) {
         </div>
 
         {/* Revenue Breakdown */}
-        <Section title="Revenue Breakdown" subtitle={d.capExplain}>
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <RevenueBar label={'\ud83d\udcfa League (TV Deal)'} amount={d.rev.league} pct={d.barPct(d.rev.league)} color="#667eea" desc={`Shared equally among Tier ${d.tier} teams.`} fc={fc} />
-            <RevenueBar label={'\ud83c\udfdf\ufe0f Matchday (Gate)'} amount={d.rev.matchday} pct={d.barPct(d.rev.matchday)} color="#e67e22" desc="Driven by fanbase and winning." fc={fc} />
-            <RevenueBar label={'\ud83e\udd1d Commercial (Sponsors)'} amount={d.rev.commercial} pct={d.barPct(d.rev.commercial)} color="#9b59b6" desc="Based on tier and results." fc={fc} />
-            <RevenueBar label={'\ud83c\udfc6 Legacy (Brand)'} amount={d.rev.legacy} pct={d.barPct(d.rev.legacy)} color="#f1c40f" desc="Built from championships and history." fc={fc} />
-          </div>
+        <Section label="Revenue Breakdown" sub={d.capExplain}>
+          {[
+            { label: 'League (TV Deal)', amount: d.rev.league, color: 'var(--color-chart-1)', desc: `Shared equally among Tier ${d.tier} teams.` },
+            { label: 'Matchday (Gate)', amount: d.rev.matchday, color: 'var(--color-chart-2)', desc: 'Driven by fanbase and winning.' },
+            { label: 'Commercial (Sponsors)', amount: d.rev.commercial, color: 'var(--color-chart-3)', desc: 'Based on tier and results.' },
+            { label: 'Legacy (Brand)', amount: d.rev.legacy, color: 'var(--color-chart-4)', desc: 'Built from championships and history.' },
+          ].map((r, i) => (
+            <div key={i} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 'var(--text-sm)' }}>
+                <span>{r.label}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fc(r.amount)}</span>
+              </div>
+              <div style={{
+                background: 'var(--color-bg-raised)', height: 8, overflow: 'hidden',
+                border: '1px solid var(--color-border-subtle)',
+              }}>
+                <div style={{ height: '100%', width: `${d.barPct(r.amount)}%`, background: r.color }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{r.desc}</div>
+            </div>
+          ))}
         </Section>
 
         {/* Fanbase + Standing */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
-          <Section title={'\ud83d\udc65 Fanbase'}>
-            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-1)' }}>
-              {d.fanbase.toLocaleString()} fans
-            </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gap)', marginBottom: 12 }}>
+          <Section label="Fanbase">
+            <div style={{
+              fontSize: 'var(--text-lg)', fontWeight: 700, fontFamily: 'var(--font-mono)', marginBottom: 2,
+            }}>{d.fanbase.toLocaleString()}</div>
             <div style={{ fontSize: 'var(--text-sm)', marginBottom: 3 }}>
-              {d.fanLabel} <span style={{ color: 'var(--color-text-tertiary)' }}>({d.fanMultiple}{'\u00d7'} tier avg)</span>
+              {d.fanLabel} <span style={{ color: 'var(--color-text-tertiary)' }}>({d.fanMultiple}× tier avg)</span>
             </div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Tier average: {d.tierAvgFanbase.toLocaleString()}</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+              Tier average: {d.tierAvgFanbase.toLocaleString()}
+            </div>
           </Section>
-          <Section title={'\ud83d\udcca Financial Standing'}>
-            <div style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
-              vs Tier {d.tier} Average: <span style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--weight-bold)', color: d.revVsAvgColor, marginLeft: 'var(--space-1)' }}>{d.revVsAvgLabel}</span>
+          <Section label="Financial Standing">
+            <div style={{ marginBottom: 4, fontSize: 'var(--text-sm)' }}>
+              vs Tier {d.tier} Average: <span style={{
+                fontSize: 'var(--text-base)', fontWeight: 700,
+                color: d.revVsAvgColor, marginLeft: 4,
+              }}>{d.revVsAvgLabel}</span>
             </div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span>Tier avg revenue: {fc(d.tierAvgRevenue)}</span>
-              <span>Market: {d.marketLabel} ({d.marketSize.toFixed(2)}{'\u00d7'}){d.metroPopStr}</span>
+              <span>Market: {d.marketLabel} ({d.marketSize.toFixed(2)}×){d.metroPopStr}</span>
               {!d.isHardCap && <span>Spending ratio: {Math.round(d.spendingRatio * 100)}% of revenue {d.ratioWarning}</span>}
             </div>
           </Section>
         </div>
 
         {/* Franchise Legacy */}
-        <Section title={'\ud83c\udfe6 Franchise Legacy'}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 'var(--space-3)' }}>
+        <Section label="Franchise Legacy">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
             {[
               ['Championships', d.lp?.championships || 0],
               ['Seasons in T1', d.lp?.seasonsInT1 || 0],
@@ -104,11 +125,11 @@ export function FinanceDashboardModal({ isOpen, data, onClose }) {
               [`Yrs in Tier ${d.tier}`, d.seasonsInCurrentTier || 0],
             ].map(([label, val]) => (
               <div key={label} style={{
-                textAlign: 'center', padding: 'var(--space-2)',
-                background: 'var(--color-bg-active)', borderRadius: 'var(--radius-md)',
+                textAlign: 'center', padding: 8,
+                background: 'var(--color-bg-raised)', border: '1px solid var(--color-border-subtle)',
               }}>
-                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)' }}>{val}</div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{label}</div>
+                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{val}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -116,61 +137,60 @@ export function FinanceDashboardModal({ isOpen, data, onClose }) {
 
         {/* Spending Strategy or T1 info */}
         {!d.isHardCap ? (
-          <Section title={'\u2699\ufe0f Spending Strategy'}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-              <span style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>Conservative (60%)</span>
+          <Section label="Spending Strategy">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>Conservative</span>
               <input type="range" min="60" max="90" value={spendingPct}
                 onChange={e => handleSlider(e.target.value)}
                 style={{ flex: 1, cursor: 'pointer', accentColor: 'var(--color-accent)' }} />
-              <span style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>Aggressive (90%)</span>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>Aggressive</span>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <span style={{
-                fontSize: 'var(--text-base)', fontWeight: 'var(--weight-bold)',
-                color: spendingPct >= 85 ? 'var(--color-loss)' : spendingPct >= 80 ? 'var(--color-warning)' : 'var(--color-win)',
-              }}>{spendingPct}%</span>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', margin: '0 var(--space-1)' }}>of revenue {'\u2192'}</span>
-              <span style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--weight-bold)', color: 'var(--color-accent)' }}>
+            <div style={{ textAlign: 'center', fontSize: 'var(--text-sm)' }}>
+              <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{spendingPct}%</span>
+              <span style={{ color: 'var(--color-text-tertiary)', margin: '0 6px' }}>→</span>
+              <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-accent)' }}>
                 {fc(Math.round(d.totalRev * (spendingPct / 100)))}
               </span>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginLeft: 'var(--space-1)' }}>spending limit</span>
+              <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 4 }}>spending limit</span>
             </div>
           </Section>
         ) : (
           <Section>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
               <strong>Tier 1 — Fixed Salary Cap Model</strong><br />
-              All Tier 1 teams share equally in the league's national TV contract and operate under a uniform $100M salary cap with an $80M salary floor.
+              All Tier 1 teams share equally in the league's national TV contract and operate under a uniform salary cap with a salary floor.
             </div>
           </Section>
         )}
 
         {/* Owner Mode */}
         <div style={{
-          marginTop: 'var(--space-4)', padding: 'var(--space-3)',
-          background: 'var(--color-accent)10', borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--color-accent)30',
+          padding: '12px 16px', background: 'var(--color-accent-bg)',
+          border: '1px solid var(--color-accent-border)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <strong>{'\u2699\ufe0f'} Owner Mode</strong>
+              <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Owner Mode</div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
-                {d.ownerMode ? 'Active — you manage arena, tickets, sponsors, and marketing each offseason.' : 'Inactive — finances are managed automatically. Toggle on to take control.'}
+                {d.ownerMode
+                  ? 'Active — manage arena, tickets, sponsors, marketing each offseason.'
+                  : 'Inactive — finances managed automatically. Toggle on to take control.'}
               </div>
             </div>
             <button onClick={handleToggleOwner} style={{
-              padding: '8px 20px', fontSize: 'var(--text-sm)', cursor: 'pointer',
-              background: d.ownerMode ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : 'var(--color-bg-active)',
-              border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--color-text)',
-            }}>{d.ownerMode ? '\u2705 ON' : '\u2b1c OFF'}</button>
+              padding: '6px 16px', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600,
+              fontFamily: 'var(--font-body)',
+              background: d.ownerMode ? 'var(--color-win)' : 'var(--color-bg-sunken)',
+              border: 'none', color: d.ownerMode ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+            }}>{d.ownerMode ? 'ON' : 'OFF'}</button>
           </div>
 
           {d.ownerMode && (
-            <div style={{ marginTop: 'var(--space-3)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
-              <MiniStat label={'\ud83c\udfdf\ufe0f Arena'} value={`${d.arenaCapacity.toLocaleString()} seats \u00b7 ${d.arenaCondition}% condition`} />
-              <MiniStat label={'\ud83e\udd1d Sponsors'} value={`${d.sponsorCount} deal${d.sponsorCount !== 1 ? 's' : ''}${d.sponsorCount > 0 ? ' \u00b7 ' + fc(d.sponsorRevenue) + '/yr' : ''}`} />
-              <MiniStat label={'\ud83c\udfab Ticket Pricing'} value={`${d.ticketPct}% of base`} />
-              <MiniStat label={'\ud83d\udce2 Marketing'} value={d.marketingBudget > 0 ? fc(d.marketingBudget) + '/season' : 'None'} />
+            <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <MiniStat label="Arena" value={`${d.arenaCapacity.toLocaleString()} seats · ${d.arenaCondition}% condition`} />
+              <MiniStat label="Sponsors" value={`${d.sponsorCount} deal${d.sponsorCount !== 1 ? 's' : ''}${d.sponsorCount > 0 ? ' · ' + fc(d.sponsorRevenue) + '/yr' : ''}`} />
+              <MiniStat label="Ticket Pricing" value={`${d.ticketPct}% of base`} />
+              <MiniStat label="Marketing" value={d.marketingBudget > 0 ? fc(d.marketingBudget) + '/season' : 'None'} />
             </div>
           )}
         </div>
@@ -179,47 +199,40 @@ export function FinanceDashboardModal({ isOpen, data, onClose }) {
   );
 }
 
-/* ── Sub-components ── */
-
-function StatCard({ label, value, color, sub }) {
+function MetricCard({ label, value, color, sub }) {
   return (
     <div style={{
-      background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
-      padding: 'var(--space-4)', textAlign: 'center',
-      border: '1px solid var(--color-border-subtle)',
+      padding: 14, background: 'var(--color-bg-sunken)',
+      border: '1px solid var(--color-border-subtle)', textAlign: 'center',
     }}>
-      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-1)' }}>{label}</div>
-      <div style={{ fontSize: '1.5em', fontWeight: 'var(--weight-bold)', color }}>{value}</div>
-      {sub && <div style={{ fontSize: 'var(--text-xs)', marginTop: 3, color: 'var(--color-text-secondary)' }}>{sub}</div>}
+      <div style={{
+        fontSize: 10, color: 'var(--color-text-tertiary)',
+        textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4,
+      }}>{label}</div>
+      <div style={{
+        fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-mono)',
+        color: color || 'var(--color-text)',
+      }}>{value}</div>
+      {sub && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
 
-function Section({ title, subtitle, children }) {
+function Section({ label, sub, children }) {
   return (
     <div style={{
-      background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
-      padding: 'var(--space-4)', marginBottom: 'var(--space-4)',
-      border: '1px solid var(--color-border-subtle)',
+      background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)',
+      padding: '14px 16px', marginBottom: 12,
     }}>
-      {title && <div style={{ fontWeight: 'var(--weight-semi)', marginBottom: subtitle ? 3 : 'var(--space-3)' }}>{title}</div>}
-      {subtitle && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-3)' }}>{subtitle}</div>}
+      {label && (
+        <div style={{
+          fontSize: 10, fontWeight: 600, color: 'var(--color-accent)',
+          textTransform: 'uppercase', letterSpacing: '0.06em',
+          marginBottom: sub ? 2 : 10,
+        }}>{label}</div>
+      )}
+      {sub && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>{sub}</div>}
       {children}
-    </div>
-  );
-}
-
-function RevenueBar({ label, amount, pct, color, desc, fc }) {
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 'var(--text-sm)' }}>
-        <span>{label}</span>
-        <span style={{ fontWeight: 'var(--weight-bold)' }}>{fc(amount)}</span>
-      </div>
-      <div style={{ background: 'var(--color-bg-active)', borderRadius: 'var(--radius-sm)', height: 12, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--radius-sm)' }} />
-      </div>
-      <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: 2 }}>{desc}</div>
     </div>
   );
 }
@@ -227,11 +240,11 @@ function RevenueBar({ label, amount, pct, color, desc, fc }) {
 function MiniStat({ label, value }) {
   return (
     <div style={{
-      padding: 'var(--space-2) var(--space-3)',
-      background: 'var(--color-bg-active)', borderRadius: 'var(--radius-md)',
+      padding: '6px 10px', background: 'var(--color-bg-raised)',
+      border: '1px solid var(--color-border-subtle)',
     }}>
-      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{label}</div>
-      <div style={{ fontWeight: 'var(--weight-semi)', fontSize: 'var(--text-sm)' }}>{value}</div>
+      <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>{label}</div>
+      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500 }}>{value}</div>
     </div>
   );
 }

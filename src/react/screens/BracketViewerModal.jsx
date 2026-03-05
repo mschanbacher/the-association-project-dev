@@ -28,7 +28,7 @@ export function BracketViewerModal({ isOpen, data, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth={1400} zIndex={1400}>
       <ModalHeader onClose={onClose}>
-        {tier === 1 ? '🏆 Championship Playoffs' : tier === 2 ? '🥈 Tier 2 Playoffs' : '🥉 Tier 3 Playoffs'}
+        {tier === 1 ? 'Championship Playoffs' : tier === 2 ? 'Tier 2 Playoffs' : 'Tier 3 Playoffs'}
       </ModalHeader>
       <ModalBody style={{ maxHeight: '85vh', overflowY: 'auto', overflowX: 'auto', padding: 'var(--space-4)' }}>
         {tier === 1 && <T1Bracket pd={playoffData} userId={userTeamId} active={activeInfo} />}
@@ -81,9 +81,9 @@ function MatchupCard({ higher, lower, hSeed, lSeed, seriesResult, userId, active
                   (activeInfo.higherId === lower.id && activeInfo.lowerId === higher.id);
     if (match) {
       if (activeInfo.higherId === higher.id) {
-        scoreText = `🔴 ${activeInfo.higherWins}-${activeInfo.lowerWins}`;
+        scoreText = `${activeInfo.higherWins}-${activeInfo.lowerWins} (live)`;
       } else {
-        scoreText = `🔴 ${activeInfo.lowerWins}-${activeInfo.higherWins}`;
+        scoreText = `${activeInfo.lowerWins}-${activeInfo.higherWins} (live)`;
       }
     }
   }
@@ -104,7 +104,7 @@ function MatchupCard({ higher, lower, hSeed, lSeed, seriesResult, userId, active
         <div style={styles.teamDivider} />
         <TeamCell team={lower} seed={lSeed} isWinner={isLowerWinner} isLoser={isHigherWinner} isUser={lower?.id === userId} />
         {scoreText && (
-          <div style={styles.score}>{scoreText}{hasGames ? ' ▼' : ''}</div>
+          <div style={styles.score}>{scoreText}{hasGames ? ' ▾' : ''}</div>
         )}
       </div>
       {expanded && hasGames && (
@@ -141,7 +141,7 @@ function GameDetails({ games, isUserSeries, seriesKey }) {
               fontWeight: !homeWon ? 'var(--weight-bold)' : 'var(--weight-normal)',
               opacity: !homeWon ? 1 : 0.6,
             }}>{game.awayScore} {game.awayTeam?.name}</span>
-            {hasBox && <span style={{ opacity: 0.4 }}>📊</span>}
+            {hasBox && <span style={{ opacity: 0.4, fontSize: 'var(--text-xs)' }}>→</span>}
           </div>
         );
       })}
@@ -161,9 +161,10 @@ function RoundColumn({ label, children }) {
 function SectionHeader({ title, color }) {
   return (
     <div style={{
-      fontSize: '1.2em', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-3)',
-      paddingBottom: 'var(--space-2)', borderBottom: '2px solid var(--color-border)',
-      color: color || 'var(--color-text)',
+      fontSize: 10, fontWeight: 600, color: color || 'var(--color-text-secondary)',
+      textTransform: 'uppercase', letterSpacing: '0.06em',
+      marginBottom: 8, paddingBottom: 6,
+      borderBottom: '2px solid var(--color-border)',
     }}>{title}</div>
   );
 }
@@ -172,15 +173,16 @@ function Champion({ name, color }) {
   if (!name) return null;
   return (
     <div style={{
-      textAlign: 'center', marginTop: 'var(--space-4)', padding: 'var(--space-4)',
-      background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
-      border: '1px solid var(--color-border-subtle)',
+      textAlign: 'center', marginTop: 16, padding: '16px 20px',
+      background: 'var(--color-accent-bg)',
+      border: '1px solid var(--color-accent-border)',
     }}>
-      <div style={{ fontSize: '1.1em', fontWeight: 'var(--weight-bold)', color: color || '#ffd700' }}>
-        🏆 {name}
-      </div>
-      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 'var(--space-1)' }}>
-        Champions
+      <div style={{
+        fontSize: 10, fontWeight: 600, color: 'var(--color-accent)',
+        textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4,
+      }}>Champion</div>
+      <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: color || 'var(--color-tier1)' }}>
+        {name}
       </div>
     </div>
   );
@@ -247,11 +249,11 @@ function T1Bracket({ pd, userId, active }) {
 
   return (
     <div>
-      {renderConf('East', eastTeams, '#fbbc04', 'Eastern')}
-      {renderConf('West', westTeams, '#667eea', 'Western')}
+      {renderConf('East', eastTeams, 'var(--color-warning)', 'Eastern')}
+      {renderConf('West', westTeams, 'var(--color-info)', 'Western')}
 
       <div style={{ marginTop: 'var(--space-4)' }}>
-        <SectionHeader title="Finals" color="#ffd700" />
+        <SectionHeader title="Finals" color="var(--color-tier1)" />
         {finalsResult ? (
           <MatchupCard
             higher={finalsResult.result?.higherSeed} lower={finalsResult.result?.lowerSeed}
@@ -262,7 +264,7 @@ function T1Bracket({ pd, userId, active }) {
         )}
       </div>
 
-      {champion && <Champion name={champion.name} color="#ffd700" />}
+      {champion && <Champion name={champion.name} color="var(--color-tier1)" />}
     </div>
   );
 }
@@ -338,7 +340,7 @@ function T2Bracket({ pd, userId, active }) {
         </div>
       </div>
 
-      {champion && <Champion name={champion.name} color="#c0c0c0" />}
+      {champion && <Champion name={champion.name} color="var(--color-tier2)" />}
     </div>
   );
 }
@@ -362,7 +364,7 @@ function T3Bracket({ pd, userId, active }) {
 
   return (
     <div>
-      <SectionHeader title="Your Path" color="#cd7f32" />
+      <SectionHeader title="Your Path" color="var(--color-tier3)" />
 
       {metro && (
         <div style={{ marginBottom: 'var(--space-4)' }}>
@@ -412,7 +414,7 @@ function T3Bracket({ pd, userId, active }) {
       )}
 
       <div style={{ marginTop: 'var(--space-6)' }}>
-        <SectionHeader title="National Tournament" color="#cd7f32" />
+        <SectionHeader title="National Tournament" color="var(--color-tier3)" />
         <div style={styles.rounds}>
           {stages.map((stage, r) => {
             let roundData = ir[stage] || null;
@@ -441,7 +443,7 @@ function T3Bracket({ pd, userId, active }) {
         </div>
       </div>
 
-      {champion && <Champion name={champion.name} color="#cd7f32" />}
+      {champion && <Champion name={champion.name} color="var(--color-tier3)" />}
     </div>
   );
 }
@@ -464,12 +466,13 @@ const styles = {
     flexDirection: 'column',
   },
   roundLabel: {
-    fontSize: 'var(--text-xs)',
+    fontSize: 10,
+    fontWeight: 600,
     textTransform: 'uppercase',
-    opacity: 0.5,
-    marginBottom: 'var(--space-2)',
+    color: 'var(--color-text-tertiary)',
+    letterSpacing: '0.04em',
+    marginBottom: 8,
     textAlign: 'center',
-    letterSpacing: '0.5px',
     flexShrink: 0,
   },
   roundMatchups: {
@@ -480,7 +483,6 @@ const styles = {
   },
   matchup: {
     background: 'var(--color-bg-sunken)',
-    borderRadius: 'var(--radius-md)',
     padding: 'var(--space-2)',
     border: '1px solid var(--color-border-subtle)',
     position: 'relative',
@@ -490,7 +492,6 @@ const styles = {
     alignItems: 'center',
     gap: 'var(--space-2)',
     padding: '4px var(--space-2)',
-    borderRadius: 'var(--radius-sm)',
     fontSize: 'var(--text-sm)',
   },
   teamDivider: {
@@ -532,7 +533,7 @@ const styles = {
     marginTop: -2,
     padding: 'var(--space-2)',
     background: 'var(--color-bg-active)',
-    borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+    
     border: '1px solid var(--color-border-subtle)',
     borderTop: 'none',
     fontSize: 'var(--text-xs)',

@@ -11,99 +11,97 @@ export function ComplianceModal({ isOpen, data, onManageRoster, onRecheck }) {
   const issues = [isOverCap, isOverMaximum, isUnderMinimum].filter(Boolean).length;
 
   return (
-    <Modal isOpen={isOpen} onClose={() => {}} maxWidth={520} zIndex={1300}>
-      <div style={{
-        padding: 'var(--space-5) var(--space-6)',
-        borderBottom: '1px solid var(--color-border-subtle)',
-        display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          background: 'var(--color-loss-bg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '18px', flexShrink: 0,
-        }}>⚠️</div>
-        <div>
-          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', color: 'var(--color-loss)' }}>
-            Roster Compliance Required
+    <Modal isOpen={isOpen} onClose={() => {}} maxWidth={480} zIndex={1300}>
+      <ModalBody style={{ padding: 0 }}>
+        <div style={{ borderTop: '3px solid var(--color-loss)' }}>
+          {/* Header */}
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)' }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: 'var(--color-loss)',
+              textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4,
+            }}>Compliance Required</div>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>Roster Issues</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+              {issues} issue{issues !== 1 ? 's' : ''} must be resolved before continuing
+            </div>
           </div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-            {issues} issue{issues !== 1 ? 's' : ''} must be resolved
-          </div>
-        </div>
-      </div>
 
-      <ModalBody>
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-          Fix the following before continuing to next season:
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          {isOverCap && (
-            <IssueCard icon="💰" title={`Over ${limitLabel}`} color="var(--color-loss)" bg="var(--color-loss-bg)">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
-                <div>
-                  <span style={{ color: 'var(--color-text-tertiary)' }}>Current Salary</span>
-                  <div style={{ fontWeight: 'var(--weight-semi)' }}>{fc(totalSalary)}</div>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--color-text-tertiary)' }}>{limitLabel}</span>
-                  <div style={{ fontWeight: 'var(--weight-semi)' }}>{fc(salaryCap)}</div>
-                </div>
-              </div>
+          <div style={{ padding: '16px 24px' }}>
+            {isOverCap && (
               <div style={{
-                marginTop: 'var(--space-2)', padding: 'var(--space-2)',
-                background: 'rgba(196,62,62,0.1)', borderRadius: 'var(--radius-sm)',
-                fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', color: 'var(--color-loss)',
-                textAlign: 'center',
+                padding: '12px 14px', marginBottom: 8,
+                background: 'var(--color-loss-bg)', borderLeft: '3px solid var(--color-loss)',
               }}>
-                {fc(totalSalary - salaryCap)} over limit
+                <div style={{
+                  fontSize: 'var(--text-xs)', fontWeight: 600,
+                  color: 'var(--color-loss)', marginBottom: 8,
+                }}>Over {limitLabel}</div>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                  fontSize: 'var(--text-sm)', marginBottom: 8,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>Current Salary</div>
+                    <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{fc(totalSalary)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>{limitLabel}</div>
+                    <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{fc(salaryCap)}</div>
+                  </div>
+                </div>
+                <div style={{
+                  padding: '6px 10px', background: 'var(--color-loss)10',
+                  fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-loss)',
+                  textAlign: 'center', fontFamily: 'var(--font-mono)',
+                }}>
+                  {fc(totalSalary - salaryCap)} over limit
+                </div>
               </div>
-            </IssueCard>
-          )}
+            )}
 
-          {isOverMaximum && (
-            <IssueCard icon="👥" title={`Over Maximum (${rosterSize}/15)`} color="var(--color-loss)" bg="var(--color-loss-bg)">
-              <div style={{ fontSize: 'var(--text-sm)' }}>
-                Need to cut <strong style={{ color: 'var(--color-loss)' }}>{rosterSize - 15} player{rosterSize - 15 > 1 ? 's' : ''}</strong>
+            {isOverMaximum && (
+              <div style={{
+                padding: '12px 14px', marginBottom: 8,
+                background: 'var(--color-loss-bg)', borderLeft: '3px solid var(--color-loss)',
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-xs)', fontWeight: 600,
+                  color: 'var(--color-loss)', marginBottom: 6,
+                }}>Over Maximum Roster ({rosterSize}/15)</div>
+                <div style={{ fontSize: 'var(--text-sm)' }}>
+                  Need to cut <strong style={{ color: 'var(--color-loss)' }}>
+                    {rosterSize - 15} player{rosterSize - 15 > 1 ? 's' : ''}
+                  </strong>
+                </div>
               </div>
-            </IssueCard>
-          )}
+            )}
 
-          {isUnderMinimum && (
-            <IssueCard icon="👤" title={`Below Minimum (${rosterSize}/12)`} color="var(--color-warning)" bg="var(--color-warning-bg)">
-              <div style={{ fontSize: 'var(--text-sm)' }}>
-                Need to sign <strong style={{ color: 'var(--color-warning)' }}>{12 - rosterSize} player{12 - rosterSize > 1 ? 's' : ''}</strong>
+            {isUnderMinimum && (
+              <div style={{
+                padding: '12px 14px', marginBottom: 8,
+                background: 'var(--color-warning-bg)', borderLeft: '3px solid var(--color-warning)',
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-xs)', fontWeight: 600,
+                  color: 'var(--color-warning)', marginBottom: 6,
+                }}>Below Minimum Roster ({rosterSize}/12)</div>
+                <div style={{ fontSize: 'var(--text-sm)' }}>
+                  Need to sign <strong style={{ color: 'var(--color-warning)' }}>
+                    {12 - rosterSize} player{12 - rosterSize > 1 ? 's' : ''}
+                  </strong>
+                </div>
               </div>
-            </IssueCard>
-          )}
+            )}
+          </div>
         </div>
       </ModalBody>
 
       <ModalFooter>
-        <div style={{ display: 'flex', gap: 'var(--space-3)', width: '100%', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
           <Button variant="primary" onClick={onManageRoster}>Manage Roster</Button>
           <Button variant="secondary" onClick={onRecheck}>Continue</Button>
         </div>
       </ModalFooter>
     </Modal>
-  );
-}
-
-function IssueCard({ icon, title, color, bg, children }) {
-  return (
-    <div style={{
-      padding: 'var(--space-4)', background: bg,
-      borderRadius: 'var(--radius-md)', border: '1px solid ' + color + '30',
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
-        marginBottom: 'var(--space-2)',
-      }}>
-        <span>{icon}</span>
-        <span style={{ fontWeight: 'var(--weight-semi)', color, fontSize: 'var(--text-sm)' }}>{title}</span>
-      </div>
-      {children}
-    </div>
   );
 }

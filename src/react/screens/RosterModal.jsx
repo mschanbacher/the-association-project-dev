@@ -66,7 +66,7 @@ export function RosterModal({ isOpen, data, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth={1500} zIndex={1300}>
       <ModalHeader onClose={onClose}>
-        {'\ud83d\udccb'} Roster Management
+        Roster Management
       </ModalHeader>
 
       <ModalBody style={{ maxHeight: '78vh', overflowY: 'auto' }}>
@@ -145,7 +145,7 @@ export function RosterModal({ isOpen, data, onClose }) {
           borderTop: '1px solid var(--color-border-subtle)',
         }}>
           <Button variant="secondary" onClick={handleOpenTrade}>
-            {'\ud83d\udcca'} Open Trade Screen
+            Open Trade Screen
           </Button>
           <Button variant="primary" onClick={onClose}>
             Done Managing Roster
@@ -173,7 +173,7 @@ function PositionBreakdown({ posBreakdown }) {
         const color = count === 0 ? 'var(--color-loss)' : count <= 1 ? 'var(--color-warning)' : 'var(--color-win)';
         return (
           <div key={pos} style={{
-            background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-md)',
+            background: 'var(--color-bg-sunken)', 
             padding: 'var(--space-2) var(--space-3)', textAlign: 'center',
             border: '1px solid var(--color-border-subtle)', minWidth: 60,
           }}>
@@ -199,7 +199,7 @@ function CapStatus({ capInfo, formatCurrency }) {
 
   return (
     <div style={{
-      background: 'var(--color-bg-sunken)', borderRadius: 'var(--radius-lg)',
+      background: 'var(--color-bg-sunken)', 
       padding: 'var(--space-3)', marginBottom: 'var(--space-3)',
       border: '1px solid var(--color-border-subtle)',
       fontSize: 'var(--text-sm)',
@@ -221,24 +221,24 @@ function CapStatus({ capInfo, formatCurrency }) {
           <span style={{ fontWeight: 'var(--weight-semi)' }}>Team Chemistry</span>
           <span style={{ color: chemistryColor, fontWeight: 'var(--weight-semi)' }}>{teamChemistry} - {chemistryDesc}</span>
         </div>
-        <div style={{ height: 8, background: 'var(--color-bg-active)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${teamChemistry || 0}%`, background: chemistryColor, borderRadius: 'var(--radius-full)', transition: 'width 0.3s' }} />
+        <div style={{ height: 8, background: 'var(--color-bg-active)',  overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${teamChemistry || 0}%`, background: chemistryColor,  transition: 'width 0.3s' }} />
         </div>
       </div>
 
       {/* Warnings */}
       {isOverCap && (
-        <CapWarning color="var(--color-loss)" icon={'\u26a0\ufe0f'}
+        <CapWarning color="var(--color-loss)" 
           title={`OVER ${isRevenueBasedCap ? 'SPENDING LIMIT' : 'CAP'}!`}
           text="You must drop players before advancing to next season." />
       )}
       {isUnderFloor && (
-        <CapWarning color="var(--color-warning)" icon={'\u26a0\ufe0f'}
+        <CapWarning color="var(--color-warning)" 
           title="UNDER SALARY FLOOR!"
           text={`You need to spend at least ${fc(salaryFloor)} on player salaries.`} />
       )}
       {hasCapBoost && (
-        <CapWarning color="#4ecdc4" icon={'\ud83d\udcc8'}
+        <CapWarning color="var(--color-rating-elite)" 
           title={boostLabel} text={`+${fc(boostAmount)} temporary cap boost to help transition your roster.`} />
       )}
     </div>
@@ -257,30 +257,30 @@ function CapRow({ label, value, valueColor, bold, suffix }) {
   );
 }
 
-function CapWarning({ color, icon, title, text }) {
+function CapWarning({ color, title, text }) {
   return (
     <div style={{
-      marginTop: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)',
-      background: `${color}15`, borderRadius: 'var(--radius-md)',
-      border: `1px solid ${color}40`, fontSize: 'var(--text-xs)',
+      marginTop: 8, padding: '6px 10px',
+      background: `${color}15`, borderLeft: `3px solid ${color}`,
+      fontSize: 'var(--text-xs)',
     }}>
-      <strong style={{ color }}>{icon} {title}</strong>
-      <span style={{ marginLeft: 'var(--space-1)' }}>{text}</span>
+      <strong style={{ color }}>{title}</strong>
+      <span style={{ marginLeft: 6 }}>{text}</span>
     </div>
   );
 }
 
 /* ── Compact Rating ── */
 function CompactRating({ player, getRatingColor }) {
-  const rc = getRatingColor || ((r) => r >= 85 ? '#4ecdc4' : r >= 78 ? '#45b7d1' : r >= 70 ? '#96ceb4' : r >= 60 ? '#fbbc04' : '#f28b82');
+  const rc = getRatingColor || ((r) => r >= 85 ? 'var(--color-rating-elite)' : r >= 78 ? 'var(--color-rating-good)' : r >= 70 ? '#96ceb4' : r >= 60 ? 'var(--color-warning)' : 'var(--color-loss)');
   const off = player.offRating;
   const def = player.defRating;
-  const offColor = off >= 80 ? '#4ecdc4' : off >= 70 ? '#45b7d1' : off >= 60 ? '#fbbc04' : '#f28b82';
-  const defColor = def >= 80 ? '#4ecdc4' : def >= 70 ? '#45b7d1' : def >= 60 ? '#fbbc04' : '#f28b82';
+  const offColor = off >= 80 ? 'var(--color-rating-elite)' : off >= 70 ? 'var(--color-rating-good)' : off >= 60 ? 'var(--color-warning)' : 'var(--color-loss)';
+  const defColor = def >= 80 ? 'var(--color-rating-elite)' : def >= 70 ? 'var(--color-rating-good)' : def >= 60 ? 'var(--color-warning)' : 'var(--color-loss)';
 
   return (
     <span>
-      <span style={{ color: rc(player.rating), fontWeight: 'var(--weight-bold)' }}>{'\u2b50'} {player.rating}</span>
+      <span style={{ color: rc(player.rating), fontWeight: 'var(--weight-bold)' }}>{player.rating}</span>
       {off !== undefined && def !== undefined && (
         <span style={{ opacity: 0.75, marginLeft: 6, fontSize: '0.88em' }}>
           (<span style={{ color: offColor }} title="Offensive Rating">{off}</span>
@@ -303,9 +303,9 @@ function RosterPlayerCard({
   let injuryBadge = null;
   if (player.injuryStatus === 'out') {
     const gamesOut = player.injury?.gamesRemaining || '?';
-    injuryBadge = <span style={{ color: 'var(--color-loss)', marginLeft: 8, fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-xs)' }}>{'\ud83c\udfe5'} OUT ({gamesOut} games)</span>;
+    injuryBadge = <span style={{ color: 'var(--color-loss)', marginLeft: 8, fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-xs)' }}>OUT ({gamesOut} games)</span>;
   } else if (player.injuryStatus === 'day-to-day') {
-    injuryBadge = <span style={{ color: 'var(--color-warning)', marginLeft: 8, fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-xs)' }}>{'\ud83e\ude79'} Day-to-Day</span>;
+    injuryBadge = <span style={{ color: 'var(--color-warning)', marginLeft: 8, fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-xs)' }}>Day-to-Day</span>;
   }
 
   const fatigue = player.fatigue || 0;
@@ -316,7 +316,7 @@ function RosterPlayerCard({
   const measStr = m ? `${formatHeight(m.height)} \u00b7 ${m.weight}lbs` : '';
 
   const collab = player.attributes?.collaboration || 50;
-  const collabIcon = collab >= 75 ? '\ud83e\udd1d' : collab >= 50 ? '' : collab >= 35 ? '\u26a0\ufe0f' : '\ud83d\udca2';
+  const collabIcon = null; // collaboration shown in attributes panel
 
   // Top 3 attributes preview
   const attrPreview = useMemo(() => {
@@ -325,49 +325,49 @@ function RosterPlayerCard({
       .sort(([, a], [, b]) => b - a).slice(0, 3)
       .map(([key, val]) => {
         const def = attrDefs[key];
-        return def ? { icon: def.icon, val, color: getAttrColor(val), name: def.name } : null;
+        return def ? { val, color: getAttrColor(val), name: def.name } : null;
       }).filter(Boolean);
   }, [player.attributes, attrDefs, getAttrColor]);
 
   return (
     <div style={{
       background: 'var(--color-bg-sunken)', padding: 'var(--space-3)',
-      borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)',
+       border: '1px solid var(--color-border-subtle)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)' }}>
             <strong>{player.name}</strong>
-            {collabIcon && <span title={`Collaboration: ${collab}`}>{collabIcon}</span>}
+            
             <span style={{ color: 'var(--color-text-tertiary)' }}>{player.position}</span>
             <span style={{ color: 'var(--color-text-tertiary)' }}>Age {player.age}</span>
             {measStr && <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)' }}>{measStr}</span>}
-            <span style={{ color: contractColor, fontWeight: 'var(--weight-bold)' }}>{'\ud83d\udcdd'} {contractYears}yr{contractYears > 1 ? 's' : ''}</span>
+            <span style={{ color: contractColor, fontWeight: 'var(--weight-bold)' }}>{contractYears}yr{contractYears > 1 ? 's' : ''}</span>
             {player.relegationRelease && (
-              <span style={{ color: '#e67e22', fontSize: 'var(--text-xs)' }} title="Relegation release clause">{'\ud83d\udeaa'} Release</span>
+              <span style={{ color: '#e67e22', fontSize: 'var(--text-xs)' }} title="Relegation release clause">Rel. clause</span>
             )}
             {injuryBadge}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)', marginTop: 2, fontSize: 'var(--text-sm)' }}>
             <CompactRating player={player} getRatingColor={getRatingColor} />
-            <span style={{ color: 'var(--color-text-tertiary)' }}>{'\ud83d\udcb0'} {formatCurrency(player.salary)}</span>
-            <span style={{ color: fatigueColor, fontWeight: 'var(--weight-semi)', fontSize: 'var(--text-xs)' }}>{'\ud83d\ude34'} {Math.round(fatigue)}% ({fatigueDesc})</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}>{formatCurrency(player.salary)}</span>
+            <span style={{ color: fatigueColor, fontWeight: 'var(--weight-semi)', fontSize: 'var(--text-xs)' }}>{Math.round(fatigue)}% ({fatigueDesc})</span>
             {attrPreview.map((a, i) => (
-              <span key={i} style={{ color: a.color, fontSize: 'var(--text-xs)' }} title={`${a.name}: ${a.val}`}>{a.icon}{a.val}</span>
+              <span key={i} style={{ color: a.color, fontSize: 'var(--text-xs)' }} title={`${a.name}: ${a.val}`}>{a.val}</span>
             ))}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-1)', alignItems: 'center', marginLeft: 'var(--space-2)' }}>
           <button onClick={onToggleExpand} style={{
             padding: '6px 10px', fontSize: 'var(--text-xs)', background: 'var(--color-bg-active)',
-            border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--color-border-subtle)', 
             color: 'var(--color-text)', cursor: 'pointer',
-          }}>{'\ud83d\udcca'}</button>
+          }}>'⋯'</button>
           <button onClick={onDrop} disabled={!canDrop} style={{
             padding: '6px 12px', fontSize: 'var(--text-xs)',
             background: canDrop ? 'var(--color-loss)20' : 'var(--color-bg-active)',
             border: `1px solid ${canDrop ? 'var(--color-loss)40' : 'var(--color-border-subtle)'}`,
-            borderRadius: 'var(--radius-sm)', color: canDrop ? 'var(--color-loss)' : 'var(--color-text-tertiary)',
+             color: canDrop ? 'var(--color-loss)' : 'var(--color-text-tertiary)',
             cursor: canDrop ? 'pointer' : 'not-allowed', opacity: canDrop ? 1 : 0.4,
           }}>Drop</button>
         </div>
@@ -396,10 +396,10 @@ function PlayerAttributesPanel({ player, attrDefs, physicalAttrs, mentalAttrs, g
     return (
       <div key={key} style={{ marginBottom: 'var(--space-1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', marginBottom: 1 }}>
-          <span>{def.icon} {def.name}</span>
+          <span>{def.name}</span>
           <span style={{ color, fontWeight: 'var(--weight-bold)' }}>{val}</span>
         </div>
-        <div style={{ height: 5, background: 'var(--color-bg-active)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+        <div style={{ height: 5, background: 'var(--color-bg-active)',  overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${val}%`, background: color, borderRadius: 'var(--radius-full)' }} />
         </div>
       </div>
@@ -423,24 +423,24 @@ function PlayerAttributesPanel({ player, attrDefs, physicalAttrs, mentalAttrs, g
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--space-3)', fontSize: '0.88em' }}>
         {/* Measurables */}
         <div>
-          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>{'\ud83d\udccf'} MEASURABLES</div>
+          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>MEASURABLES</div>
           <div style={{ marginBottom: 3 }}>Height: <strong>{formatHeight(m.height || 78)}</strong></div>
           <div style={{ marginBottom: 3 }}>Weight: <strong>{m.weight || 210} lbs</strong></div>
           <div style={{ marginBottom: 3 }}>Wingspan: <strong>{formatWingspan(m.wingspan || 82)}</strong></div>
         </div>
         {/* Offense */}
         <div>
-          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: '#4ecdc4' }}>{'\u2694\ufe0f'} OFFENSE</div>
+          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: 'var(--color-rating-elite)' }}>OFFENSE</div>
           {offKeys.map(k => attrBar(k))}
         </div>
         {/* Defense */}
         <div>
-          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: '#45b7d1' }}>{'\ud83d\udee1\ufe0f'} DEFENSE</div>
+          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: 'var(--color-rating-good)' }}>DEFENSE</div>
           {defKeys.map(k => attrBar(k))}
         </div>
         {/* Intangibles */}
         <div>
-          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: '#96ceb4' }}>{'\ud83e\udde0'} INTANGIBLES</div>
+          <div style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)', color: '#96ceb4' }}>INTANGIBLES</div>
           {intKeys.map(k => attrBar(k))}
         </div>
       </div>
@@ -458,7 +458,7 @@ function FreeAgentCard({ player, rosterFull, remainingCap, formatCurrency, getRa
   return (
     <div style={{
       background: 'var(--color-bg-sunken)', padding: 'var(--space-3)',
-      borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)',
+       border: '1px solid var(--color-border-subtle)',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -466,13 +466,13 @@ function FreeAgentCard({ player, rosterFull, remainingCap, formatCurrency, getRa
           <strong>{player.name}</strong>
           <span style={{ color: 'var(--color-text-tertiary)' }}>{player.position}</span>
           <span style={{ color: 'var(--color-text-tertiary)' }}>Age {player.age}</span>
-          <span style={{ color: contractColor, fontWeight: 'var(--weight-bold)' }}>{'\ud83d\udcdd'} {contractYears}yr{contractYears > 1 ? 's' : ''}</span>
+          <span style={{ color: contractColor, fontWeight: 'var(--weight-bold)' }}>{contractYears}yr{contractYears > 1 ? 's' : ''}</span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)', marginTop: 2, fontSize: 'var(--text-sm)' }}>
           <CompactRating player={player} getRatingColor={getRatingColor} />
-          <span style={{ color: 'var(--color-text-tertiary)' }}>{'\ud83d\udcb0'} {formatCurrency(player.salary)}/yr</span>
+          <span style={{ color: 'var(--color-text-tertiary)' }}>{formatCurrency(player.salary)}/yr</span>
           {!canAfford && !rosterFull && (
-            <span style={{ color: 'var(--color-loss)', fontSize: 'var(--text-xs)' }}>{'\u26a0\ufe0f'} Can't afford</span>
+            <span style={{ color: 'var(--color-loss)', fontSize: 'var(--text-xs)' }}>Can't afford</span>
           )}
         </div>
       </div>
@@ -482,7 +482,7 @@ function FreeAgentCard({ player, rosterFull, remainingCap, formatCurrency, getRa
           padding: '6px 14px', fontSize: 'var(--text-xs)', marginLeft: 'var(--space-2)',
           background: canSign ? 'var(--color-win)20' : 'var(--color-bg-active)',
           border: `1px solid ${canSign ? 'var(--color-win)40' : 'var(--color-border-subtle)'}`,
-          borderRadius: 'var(--radius-sm)', color: canSign ? 'var(--color-win)' : 'var(--color-text-tertiary)',
+           color: canSign ? 'var(--color-win)' : 'var(--color-text-tertiary)',
           cursor: canSign ? 'pointer' : 'not-allowed', opacity: canSign ? 1 : 0.4,
           whiteSpace: 'nowrap',
         }}>Sign</button>
@@ -494,9 +494,10 @@ function FreeAgentCard({ player, rosterFull, remainingCap, formatCurrency, getRa
 function FilterSelect({ value, onChange, options }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)} style={{
-      padding: '6px 10px', borderRadius: 'var(--radius-sm)',
-      background: 'var(--color-bg-active)', color: 'var(--color-text)',
+      padding: '6px 10px',
+      background: 'var(--color-bg-raised)', color: 'var(--color-text)',
       border: '1px solid var(--color-border-subtle)', fontSize: 'var(--text-xs)',
+      fontFamily: 'var(--font-body)',
     }}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -507,9 +508,10 @@ function SortButton({ active, onClick, label }) {
   return (
     <button onClick={onClick} style={{
       padding: '6px 12px', fontSize: 'var(--text-xs)', cursor: 'pointer',
-      background: active ? 'var(--color-accent)20' : 'var(--color-bg-active)',
-      border: `1px solid ${active ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
-      borderRadius: 'var(--radius-sm)', color: active ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+      border: 'none', fontFamily: 'var(--font-body)',
+      background: active ? 'var(--color-accent)' : 'transparent',
+      color: active ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+      fontWeight: active ? 600 : 400,
     }}>{label}</button>
   );
 }
@@ -530,10 +532,10 @@ function formatWingspan(inches) {
 }
 
 function data_getFatigueColor(f) {
-  if (f >= 80) return '#ea4335';
-  if (f >= 60) return '#fbbc04';
-  if (f >= 40) return '#f9d56e';
-  return '#34a853';
+  if (f >= 80) return 'var(--color-loss)';
+  if (f >= 60) return 'var(--color-warning)';
+  if (f >= 40) return 'var(--color-rating-avg)';
+  return 'var(--color-win)';
 }
 
 function data_getFatigueDesc(f) {

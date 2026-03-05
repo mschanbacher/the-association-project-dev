@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Modal, ModalHeader, ModalBody } from '../components/Modal.jsx';
 import { Button } from '../components/Button.jsx';
 
-// Helpers
 const rankSuffix = n => {
   if (!n && n !== 0) return '';
   const v = n % 100;
@@ -14,7 +13,7 @@ const rankSuffix = n => {
   return n + 'th';
 };
 const pct = (w, l) => { const t = w + l; return t > 0 ? (w / t * 100).toFixed(1) : '0.0'; };
-const winColor = (w, l) => { const p = w / Math.max(1, w + l); return p >= 0.6 ? '#4ecdc4' : p <= 0.4 ? '#ff6b6b' : 'var(--color-text)'; };
+const winColor = (w, l) => { const p = w / Math.max(1, w + l); return p >= 0.6 ? 'var(--color-win)' : p <= 0.4 ? 'var(--color-loss)' : 'var(--color-text)'; };
 const tierLabel = t => t === 1 ? 'Tier 1 — NAPL' : t === 2 ? 'Tier 2 — NARBL' : 'Tier 3 — MBL';
 const tierTeamCount = t => t === 1 ? 30 : t === 2 ? 86 : 144;
 
@@ -23,25 +22,22 @@ export function FranchiseHistoryModal({ isOpen, data, onClose }) {
   const { history = [] } = data;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth={1000} zIndex={1300}>
-      <ModalHeader>{'\ud83d\udcdc'} Franchise History</ModalHeader>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth={680} zIndex={1300}>
+      <ModalHeader onClose={onClose}>Franchise History</ModalHeader>
       <ModalBody style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-        {history.length === 0 ? <EmptyState /> : <HistoryContent history={history} />}
-        <div style={{ textAlign: 'center', marginTop: 'var(--space-4)' }}>
+        {history.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-tertiary)' }}>
+            <div style={{ fontSize: 'var(--text-md)', marginBottom: 4 }}>No completed seasons yet.</div>
+            <div style={{ fontSize: 'var(--text-sm)' }}>Complete your first season to start building your franchise history.</div>
+          </div>
+        ) : (
+          <HistoryContent history={history} />
+        )}
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
           <Button variant="ghost" onClick={onClose}>Close</Button>
         </div>
       </ModalBody>
     </Modal>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--color-text-tertiary)' }}>
-      <div style={{ fontSize: '3em', marginBottom: 'var(--space-3)' }}>{'\ud83d\udccb'}</div>
-      <div style={{ fontSize: 'var(--text-md)' }}>No completed seasons yet.</div>
-      <div style={{ marginTop: 'var(--space-1)' }}>Complete your first season to start building your franchise history!</div>
-    </div>
   );
 }
 
@@ -63,18 +59,13 @@ function HistoryContent({ history }) {
 
   return (
     <>
-      {/* Summary Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, var(--color-accent)10, var(--color-accent)05)',
-        borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', marginBottom: 'var(--space-5)',
-        border: '1px solid var(--color-accent)20',
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', textAlign: 'center' }}>
-          <StatBox value={history.length} label="Seasons" color="var(--color-accent)" />
-          <StatBox value={`${totalWins}-${totalLosses}`} label="All-Time Record" color="#4ecdc4" />
-          <StatBox value={championships} label="Championships" color="#ffd700" />
-          <StatBox value={`${pct(totalWins, totalLosses)}%`} label="Win Pct" color="#f9d56e" />
-        </div>
+      {/* Summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--gap)', marginBottom: 20 }}>
+        <MetricBox value={history.length} label="Seasons" />
+        <MetricBox value={`${totalWins}–${totalLosses}`} label="All-Time Record" />
+        <MetricBox value={championships} label="Championships"
+          highlight={championships > 0} />
+        <MetricBox value={`${pct(totalWins, totalLosses)}%`} label="Win Pct" />
       </div>
 
       {/* Season Cards */}
@@ -86,11 +77,21 @@ function HistoryContent({ history }) {
   );
 }
 
-function StatBox({ value, label, color }) {
+function MetricBox({ value, label, highlight }) {
   return (
-    <div>
-      <div style={{ fontSize: '2em', fontWeight: 'var(--weight-bold)', color }}>{value}</div>
-      <div style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)' }}>{label}</div>
+    <div style={{
+      padding: 12, textAlign: 'center',
+      background: highlight ? 'var(--color-tier1)' : 'var(--color-bg-sunken)',
+      border: highlight ? 'none' : '1px solid var(--color-border-subtle)',
+    }}>
+      <div style={{
+        fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-mono)',
+        color: highlight ? '#1C1C1C' : 'var(--color-text)',
+      }}>{value}</div>
+      <div style={{
+        fontSize: 10, marginTop: 2,
+        color: highlight ? 'rgba(28,28,28,0.7)' : 'var(--color-text-tertiary)',
+      }}>{label}</div>
     </div>
   );
 }
@@ -104,14 +105,14 @@ function SeasonCard({ season }) {
     return champ && champ.id === ut.id;
   })();
 
-  let promoRelStatus = '';
+  let promoRelStatus = null;
   if (season.promotions) {
     const promoted = [...(season.promotions.toT1 || []), ...(season.promotions.toT2 || [])];
-    if (promoted.some(t => t.id === ut.id)) promoRelStatus = '\u2b06\ufe0f Promoted';
+    if (promoted.some(t => t.id === ut.id)) promoRelStatus = { type: 'promoted', label: 'Promoted' };
   }
   if (season.relegations) {
     const relegated = [...(season.relegations.fromT1 || []), ...(season.relegations.fromT2 || [])];
-    if (relegated.some(t => t.id === ut.id)) promoRelStatus = '\u2b07\ufe0f Relegated';
+    if (relegated.some(t => t.id === ut.id)) promoRelStatus = { type: 'relegated', label: 'Relegated' };
   }
 
   const tierAwards = season.awards ? (ut.tier === 1 ? season.awards.tier1 : ut.tier === 2 ? season.awards.tier2 : season.awards.tier3) : null;
@@ -129,44 +130,59 @@ function SeasonCard({ season }) {
     season.champions.tier1 ? `T1: ${season.champions.tier1.name}` : null,
     season.champions.tier2 ? `T2: ${season.champions.tier2.name}` : null,
     season.champions.tier3 ? `T3: ${season.champions.tier3.name}` : null,
-  ].filter(Boolean).join(' \u00B7 ') : '';
+  ].filter(Boolean).join(' · ') : '';
 
   return (
     <div style={{
-      background: isChampion ? 'rgba(255,215,0,0.05)' : 'var(--color-bg-sunken)',
-      borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', marginBottom: 'var(--space-3)',
-      border: `1px solid ${isChampion ? 'rgba(255,215,0,0.35)' : 'var(--color-border-subtle)'}`,
+      padding: '14px 16px', marginBottom: 8,
+      background: isChampion ? 'var(--color-accent-bg)' : 'var(--color-bg-sunken)',
+      border: isChampion ? '1px solid var(--color-accent-border)' : '1px solid var(--color-border-subtle)',
+      borderLeft: isChampion ? '3px solid var(--color-accent)' : '3px solid transparent',
     }}>
-      {/* Header Row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)' }}>{season.seasonLabel}</span>
-          <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>{tierLabel(ut.tier)}</span>
-          {isChampion && <span style={{ color: '#ffd700' }}>{'\ud83c\udfc6'} CHAMPION</span>}
-          {promoRelStatus && <span style={{ fontSize: 'var(--text-sm)' }}>{promoRelStatus}</span>}
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>{season.seasonLabel}</span>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{tierLabel(ut.tier)}</span>
+          {isChampion && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: 'var(--color-accent)',
+              textTransform: 'uppercase', letterSpacing: '0.04em',
+            }}>Champion</span>
+          )}
+          {promoRelStatus && (
+            <span style={{
+              fontSize: 10, fontWeight: 600,
+              color: promoRelStatus.type === 'promoted' ? 'var(--color-win)' : 'var(--color-loss)',
+            }}>{promoRelStatus.label}</span>
+          )}
         </div>
-        <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', color: wCol }}>{ut.wins}-{ut.losses}</span>
+        <span style={{
+          fontSize: 'var(--text-md)', fontWeight: 700,
+          fontFamily: 'var(--font-mono)', color: wCol,
+        }}>{ut.wins}–{ut.losses}</span>
       </div>
 
-      {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
-        <div>{'\ud83d\udcca'} Finished {rankSuffix(ut.rank)} of {tierTeamCount(ut.tier)}</div>
-        <div>{'\ud83d\udc68\u200d\ud83d\udcbc'} Coach: {ut.coachName}</div>
-        {ut.topPlayer && <div>{'\u2b50'} Best: {ut.topPlayer.name} ({ut.topPlayer.rating} OVR, {ut.topPlayer.position})</div>}
-      </div>
-
-      {/* Awards */}
-      {userAwards.length > 0 && (
-        <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>{'\ud83c\udfc5'} {userAwards.join(' \u00B7 ')}</div>
-      )}
-      {tierAwards?.mvp && (
-        <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-          League MVP: {tierAwards.mvp.name} ({tierAwards.mvp.team}) — {tierAwards.mvp.ppg.toFixed(1)} PPG, {tierAwards.mvp.rpg.toFixed(1)} RPG, {tierAwards.mvp.apg.toFixed(1)} APG
+      {/* Details */}
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div>
+          Finished {rankSuffix(ut.rank)} of {tierTeamCount(ut.tier)} · Coach: {ut.coachName}
         </div>
-      )}
-      {champLine && (
-        <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{'\ud83c\udfc6'} {champLine}</div>
-      )}
+        {ut.topPlayer && (
+          <div>Best: {ut.topPlayer.name} ({ut.topPlayer.rating} OVR, {ut.topPlayer.position})</div>
+        )}
+        {userAwards.length > 0 && (
+          <div style={{ color: 'var(--color-accent)', fontWeight: 500 }}>{userAwards.join(' · ')}</div>
+        )}
+        {tierAwards?.mvp && (
+          <div style={{ color: 'var(--color-text-tertiary)' }}>
+            League MVP: {tierAwards.mvp.name} ({tierAwards.mvp.team}) — {tierAwards.mvp.ppg.toFixed(1)} PPG, {tierAwards.mvp.rpg.toFixed(1)} RPG, {tierAwards.mvp.apg.toFixed(1)} APG
+          </div>
+        )}
+        {champLine && (
+          <div style={{ color: 'var(--color-text-tertiary)', fontSize: 11 }}>Champions: {champLine}</div>
+        )}
+      </div>
     </div>
   );
 }
