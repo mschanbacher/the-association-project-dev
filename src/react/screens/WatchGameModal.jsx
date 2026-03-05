@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Modal, ModalBody } from '../components/Modal.jsx';
 import { Button } from '../components/Button.jsx';
-import { TEAM_COLORS } from '../styles/TeamColors.js';
 
 /**
  * WatchGameModal — native React live game viewer.
@@ -28,13 +27,8 @@ export function WatchGameModal({ isOpen, data, onClose }) {
     if (isOpen && data) {
       const root = document.documentElement;
       // Home team color is already --color-accent (user's team)
-      // Set away team color from their team data
-      const awayColors = data.awayTeamFullName ? TEAM_COLORS[data.awayTeamFullName] : null;
-      if (awayColors) {
-        root.style.setProperty('--color-away', awayColors.primary);
-      } else {
-        root.style.setProperty('--color-away', '#B5403A');
-      }
+      // Away side uses a neutral color to avoid same-color conflicts
+      root.style.setProperty('--color-away', '#6B6B65');
       // Home color matches user accent
       root.style.setProperty('--color-home', getComputedStyle(root).getPropertyValue('--color-accent').trim() || '#1B4D3E');
     }
