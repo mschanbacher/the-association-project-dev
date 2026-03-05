@@ -243,7 +243,7 @@ const S = {
     flex: 1, display: 'grid', gridTemplateColumns: '1fr 240px', overflow: 'hidden',
   },
   playsPanel: {
-    display: 'flex', flexDirection: 'column',
+    display: 'flex', flexDirection: 'column', overflow: 'hidden',
     borderRight: '1px solid var(--color-border-subtle)',
   },
   panelHeader: {
@@ -254,7 +254,6 @@ const S = {
   },
   playsFeed: {
     flex: 1, overflowY: 'auto', padding: '4px 0',
-    display: 'flex', flexDirection: 'column-reverse',
   },
   leadersPanel: {
     display: 'flex', flexDirection: 'column', flexShrink: 0,
