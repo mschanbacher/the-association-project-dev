@@ -24,7 +24,7 @@ export function CoachScreen() {
         <Card padding="lg">
           <div style={{
             textAlign: 'center', padding: 'var(--space-10) 0' }}>
-            <div style={{ fontSize: '3em', marginBottom: 'var(--space-4)' }}>⚠️</div>
+            
             <p style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semi)', color: 'var(--color-loss)', marginBottom: 'var(--space-2)' }}>
               No Head Coach
             </p>
@@ -40,7 +40,10 @@ export function CoachScreen() {
     );
   }
 
-  const synergy = CoachEngine?.calculateSynergy?.(coach, userTeam.roster) || 0;
+  const synergyData = CoachEngine?.calculateSynergy?.(coach, userTeam.roster) || { score: 50, grade: 'C', description: '' };
+  const synergy = typeof synergyData === 'number' ? synergyData : (synergyData.score || 0);
+  const synergyGrade = typeof synergyData === 'object' ? synergyData.grade : null;
+  const synergyDesc = typeof synergyData === 'object' ? synergyData.description : '';
   const traitDefs = CoachEngine?.TRAIT_DEFINITIONS || {};
 
   // Build trait list
@@ -50,7 +53,7 @@ export function CoachScreen() {
       .map(([key, val]) => {
         const def = traitDefs[key];
         if (!def) return null;
-        return { key, value: val, name: def.name || key, icon: def.icon || '📊', max: 100 };
+        return { key, value: val, name: def.name || key, icon: null, max: 100 };
       })
       .filter(Boolean)
       .sort((a, b) => b.value - a.value);
@@ -74,14 +77,8 @@ export function CoachScreen() {
       <Card padding="lg" className="animate-slide-up">
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 'var(--space-6)' }}>
-          {/* Avatar placeholder */}
-          <div style={{
-            width: 80, height: 80,
-            background: 'var(--color-bg-sunken)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            fontSize: '2em', flexShrink: 0 }}>
-            🎓
-          </div>
+          {/* Coach avatar — initials in team color */}
+          <CoachAvatar name={coach.name} archetype={coach.archetype} />
 
           {/* Info */}
           <div style={{ flex: 1 }}>
@@ -123,7 +120,7 @@ export function CoachScreen() {
                   fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)',
                   fontWeight: 'var(--weight-semi)',
                   color: synergy >= 70 ? 'var(--color-win)' : synergy >= 40 ? 'var(--color-warning)' : 'var(--color-loss)' }}>
-                  {Math.round(synergy)}%
+                  {synergyGrade || ''} ({Math.round(synergy)})
                 </span>
               </div>
               <ProgressBar value={synergy / 100} />
@@ -163,6 +160,42 @@ export function CoachScreen() {
 /* ═══════════════════════════════════════════════════════════════
    Sub-components
    ═══════════════════════════════════════════════════════════════ */
+
+function CoachAvatar({ name, archetype }) {
+  const initials = (name || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  // Archetype indicator: a subtle geometric mark in the bottom-right corner
+  const archetypeMarks = {
+    'Offensive Minded': '▲',
+    'Defensive Minded': '■',
+    'Player Development': '◆',
+    'Balanced': '●',
+    'Tempo Pusher': '▶',
+    'Three-Point Specialist': '△',
+    'Post-Up Heavy': '▼',
+    'Motion Offense': '◎',
+  };
+  const mark = archetypeMarks[archetype] || '●';
+
+  return (
+    <div style={{
+      width: 80, height: 80, flexShrink: 0,
+      background: 'var(--color-accent)', position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        fontSize: 28, fontWeight: 700, color: 'var(--color-text-inverse)',
+        letterSpacing: '-0.02em', lineHeight: 1,
+      }}>{initials}</div>
+      <div style={{
+        position: 'absolute', bottom: 4, right: 4,
+        fontSize: 10, color: 'var(--color-text-inverse)', opacity: 0.6,
+        lineHeight: 1,
+      }}>{mark}</div>
+    </div>
+  );
+}
+
 function TraitBar({ trait }) {
   const pct = Math.min(100, Math.max(0, trait.value));
   const color = pct >= 80 ? 'var(--color-rating-elite)' :

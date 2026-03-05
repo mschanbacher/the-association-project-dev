@@ -25,7 +25,7 @@ export function HistoryScreen() {
             textAlign: 'center', padding: 'var(--space-10) 0',
             color: 'var(--color-text-tertiary)',
           }}>
-            <div style={{ fontSize: '3em', marginBottom: 'var(--space-4)' }}>📋</div>
+            
             <p style={{ fontSize: 'var(--text-md)', marginBottom: 'var(--space-2)' }}>
               No completed seasons yet.
             </p>
@@ -160,7 +160,7 @@ function SeasonCard({ season }) {
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)' }}>
             {tierLabels[ut.tier] || `Tier ${ut.tier}`}
           </span>
-          {isChampion && <Badge variant="warning" style={{ fontWeight: 'var(--weight-bold)' }}>🏆 Champion</Badge>}
+          {isChampion && <Badge variant="warning" style={{ fontWeight: 'var(--weight-bold)' }}>Champion</Badge>}
           {promoRelStatus === 'promoted' && <Badge variant="win">⬆️ Promoted</Badge>}
           {promoRelStatus === 'relegated' && <Badge variant="loss">⬇️ Relegated</Badge>}
         </div>
@@ -191,7 +191,7 @@ function SeasonCard({ season }) {
           marginTop: 'var(--space-3)',
         }}>
           {userAwards.map((a, i) => (
-            <Badge key={i} variant="accent">🏅 {a.label}: {a.name}</Badge>
+            <Badge key={i} variant="accent">{a.label}: {a.name}</Badge>
           ))}
         </div>
       )}

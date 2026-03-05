@@ -49,11 +49,16 @@ export function NextGameWidget() {
   const { gameState, engines } = useGame();
   if (!gameState?.userTeam) return null;
 
-  const { userTeam, schedule, currentTier } = gameState;
+  const { userTeam, currentTier } = gameState;
   const { LeagueManager } = engines;
 
-  const nextGame = schedule?.find(g =>
-    !g.played && (g.home === userTeam.id || g.away === userTeam.id)
+  // Read tier-specific schedule (same pattern as ScheduleScreen)
+  const raw = gameState._raw || gameState;
+  const schedule = currentTier === 1 ? raw.tier1Schedule :
+                   currentTier === 2 ? raw.tier2Schedule : raw.tier3Schedule;
+
+  const nextGame = (schedule || []).find(g =>
+    !g.played && (g.homeTeamId === userTeam.id || g.awayTeamId === userTeam.id)
   );
 
   if (!nextGame) {
@@ -67,50 +72,109 @@ export function NextGameWidget() {
     );
   }
 
-  const isHome = nextGame.home === userTeam.id;
-  const opponentId = isHome ? nextGame.away : nextGame.home;
+  const isHome = nextGame.homeTeamId === userTeam.id;
+  const opponentId = isHome ? nextGame.awayTeamId : nextGame.homeTeamId;
   const teams = currentTier === 1 ? gameState.tier1Teams :
                 currentTier === 2 ? gameState.tier2Teams : gameState.tier3Teams;
   const opponent = teams.find(t => t.id === opponentId);
-  const oppStrength = opponent ? Math.round(LeagueManager?.calculateTeamStrength?.(opponent) || 0) : '?';
-  const userStrength = Math.round(LeagueManager?.calculateTeamStrength?.(userTeam) || 0);
+
+  // Calculate win probability from team strengths
+  const userStrength = LeagueManager?.calculateTeamStrength?.(userTeam) || 50;
+  const oppStrength = opponent ? (LeagueManager?.calculateTeamStrength?.(opponent) || 50) : 50;
+  const rawProb = userStrength / (userStrength + oppStrength);
+  // Apply home court advantage (~3-4% swing)
+  const winProb = isHome ? Math.min(0.95, rawProb + 0.03) : Math.max(0.05, rawProb - 0.03);
 
   return (
     <Card padding="md" style={{ display: 'flex', flexDirection: 'column' }}>
       <CardLabel>Next Game</CardLabel>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ textAlign: 'center', flex: 1 }}>
-            <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semi)' }}>{userTeam.city || userTeam.name.split(' ')[0]}</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{userTeam.wins}–{userTeam.losses}</div>
-          </div>
-          <div style={{ textAlign: 'center', padding: '0 var(--space-4)' }}>
-            <div style={{ fontSize: 10, fontWeight: 'var(--weight-semi)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              {isHome ? 'HOME' : 'AWAY'}
-            </div>
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', color: 'var(--color-text-tertiary)', margin: '2px 0' }}>vs</div>
-          </div>
-          <div style={{ textAlign: 'center', flex: 1 }}>
-            <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semi)' }}>{opponent?.city || opponent?.name?.split(' ')[0] || 'TBD'}</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{opponent ? `${opponent.wins}–${opponent.losses}` : '—'}</div>
-          </div>
-        </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4px 0' }}>
+        <WinProbArc probability={winProb} />
 
-        {/* Strength comparison */}
-        <div style={{ marginTop: 'var(--space-5)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', width: 24, textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{userStrength}</span>
-          <div style={{ flex: 1, height: 4, background: 'var(--color-bg-sunken)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{
-              position: 'absolute', left: 0, top: 0, height: '100%',
-              width: `${(userStrength / (userStrength + (oppStrength || 1))) * 100}%`,
-              background: 'var(--color-accent)', opacity: 0.7,
-            }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 8 }}>
+          <div style={{ textAlign: 'center', flex: 1 }}>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>
+              {userTeam.city || userTeam.name.split(' ')[0]}
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+              {userTeam.wins}–{userTeam.losses}
+            </div>
           </div>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', width: 24, fontFamily: 'var(--font-mono)' }}>{oppStrength}</span>
+          <div style={{ textAlign: 'center', padding: '0 8px' }}>
+            <div style={{
+              fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)',
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+            }}>{isHome ? 'HOME' : 'AWAY'}</div>
+          </div>
+          <div style={{ textAlign: 'center', flex: 1 }}>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>
+              {opponent?.city || opponent?.name?.split(' ')[0] || 'TBD'}
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+              {opponent ? `${opponent.wins}–${opponent.losses}` : '—'}
+            </div>
+          </div>
         </div>
       </div>
     </Card>
+  );
+}
+
+function WinProbArc({ probability, size = 140 }) {
+  const pct = Math.round(probability * 100);
+  const strokeWidth = 16;
+  const radius = (size - strokeWidth) / 2;
+  const cx = size / 2;
+  const cy = size / 2 + 10;
+
+  const startAngle = Math.PI;
+  const endAngle = 0;
+  const sweepAngle = startAngle - (startAngle - endAngle) * probability;
+
+  const x1 = cx + radius * Math.cos(startAngle);
+  const y1 = cy - radius * Math.sin(startAngle);
+  const x2 = cx + radius * Math.cos(sweepAngle);
+  const y2 = cy - radius * Math.sin(sweepAngle);
+  const bgX2 = cx + radius * Math.cos(endAngle);
+  const bgY2 = cy - radius * Math.sin(endAngle);
+
+  const arcColor = pct >= 60 ? 'var(--color-accent)' : pct >= 45 ? 'var(--color-text-secondary)' : 'var(--color-loss)';
+
+  return (
+    <div style={{ position: 'relative', width: size, height: size / 2 + 24, margin: '0 auto' }}>
+      <svg width={size} height={size / 2 + 24} viewBox={`0 0 ${size} ${size / 2 + 24}`}>
+        <defs>
+          <pattern id="winProbHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke={arcColor} strokeWidth="3" strokeOpacity="0.5" />
+          </pattern>
+        </defs>
+        {/* Hatched background arc */}
+        <path
+          d={`M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${bgX2} ${bgY2}`}
+          fill="none" stroke="url(#winProbHatch)" strokeWidth={strokeWidth} strokeLinecap="butt"
+        />
+        {/* Solid fill arc */}
+        {pct > 0 && (
+          <path
+            d={`M ${x1} ${y1} A ${radius} ${radius} 0 ${probability > 0.5 ? 1 : 0} 1 ${x2} ${y2}`}
+            fill="none" stroke={arcColor} strokeWidth={strokeWidth} strokeLinecap="butt"
+          />
+        )}
+      </svg>
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 6, textAlign: 'center',
+      }}>
+        <div style={{
+          fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-mono)',
+          color: arcColor, lineHeight: 1,
+        }}>{pct}%</div>
+        <div style={{
+          fontSize: 9, color: 'var(--color-text-tertiary)', textTransform: 'uppercase',
+          letterSpacing: '0.06em', marginTop: 2,
+        }}>Win Prob.</div>
+      </div>
+    </div>
   );
 }
 

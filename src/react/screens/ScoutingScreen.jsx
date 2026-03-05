@@ -16,10 +16,10 @@ export function ScoutingScreen() {
   }
 
   const tabs = [
-    { id: 'scanner', label: 'League Scanner', icon: '🔍' },
-    { id: 'pipeline', label: 'Draft Pipeline', icon: '🎓' },
-    { id: 'watchlist', label: 'Watch List', icon: '⭐' },
-    { id: 'needs', label: 'Team Needs', icon: '📊' },
+    { id: 'scanner', label: 'League Scanner' },
+    { id: 'pipeline', label: 'Draft Pipeline' },
+    { id: 'watchlist', label: 'Watch List' },
+    { id: 'needs', label: 'Team Needs' },
   ];
 
   return (
@@ -42,7 +42,7 @@ export function ScoutingScreen() {
             color: activeTab === tab.id ? 'var(--color-text)' : 'var(--color-text-tertiary)',
             boxShadow: activeTab === tab.id ? 'var(--shadow-xs)' : 'none',
             transition: 'all var(--duration-fast) ease' }}>
-            {tab.icon} {tab.label}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -257,11 +257,11 @@ function ScannerTab({ gameState, engines }) {
                     <Td>
                       <span onClick={e => { e.stopPropagation(); toggleWatch(p.id); }}
                         style={{ cursor: 'pointer', fontSize: '1em' }}>
-                        {watched ? '⭐' : '☆'}
+                        {watched ? '★' : '☆'}
                       </span>
                     </Td>
                     <Td align="left" style={{ fontWeight: 'var(--weight-semi)' }}>
-                      {p.name}{p.isCollegeGrad ? ' 🎓' : ''}
+                      {p.name}{p.isCollegeGrad ? ' (CG)' : ''}
                     </Td>
                     <Td style={{ fontWeight: 'var(--weight-semi)' }}>{p.position}</Td>
                     <Td mono>{p.age}</Td>
@@ -276,7 +276,7 @@ function ScannerTab({ gameState, engines }) {
                     <Td style={{ fontWeight: 'var(--weight-bold)', color: gradeColor(fit?.grade) }}>{fit?.grade || '—'}</Td>
                     <Td style={{ color: gradeColor(fit?.systemFit?.grade) }}>{fit?.systemFit?.grade || '—'}</Td>
                     <Td style={{ fontSize: 'var(--text-xs)' }}>
-                      {(fit?.roleFit?.label || '—').replace(/🔥|📢|⬆️|⚠️/g, '').trim()}
+                      {(fit?.roleFit?.label || '—')}
                     </Td>
                     <Td align="right" mono>{formatCurrency(p.salary || 0)}</Td>
                     <Td mono>{p.contractYears}yr</Td>
@@ -320,11 +320,11 @@ function PlayerDetail({ player, fit, gameState, onBack, onToggleWatch, watchVers
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
           <div>
             <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-bold)' }}>
-              {player.name} {player.isCollegeGrad ? '🎓' : ''}
+              {player.name} {player.isCollegeGrad ? '(CG)' : ''}
             </div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginTop: 4 }}>
               {player.position} · Age {player.age} · T{player._teamTier} {player._teamName}
-              {player.college ? ` · 🎓 ${player.college}` : ''}
+              {player.college ? ` · ${player.college}` : ''}
             </div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
               {formatCurrency(player.salary || 0)} · {player.contractYears}yr
@@ -403,7 +403,7 @@ function PlayerDetail({ player, fit, gameState, onBack, onToggleWatch, watchVers
       {/* Actions */}
       <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
         <Button variant={watched ? 'secondary' : 'primary'} onClick={onToggleWatch}>
-          {watched ? '⭐ On Watch List (remove)' : '☆ Add to Watch List'}
+          {watched ? '★ On Watch List (remove)' : '☆ Add to Watch List'}
         </Button>
         <Button variant="ghost" onClick={onBack}>← Back to Results</Button>
       </div>
@@ -431,7 +431,7 @@ function PipelineTab({ gameState, engines }) {
     return (
       <Card padding="lg" className="animate-fade-in">
         <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--color-text-tertiary)' }}>
-          <div style={{ fontSize: '2em', marginBottom: 'var(--space-3)' }}>🎓</div>
+          
           <p>Pipeline preview generates when you open scouting during a season.</p>
           <p style={{ fontSize: 'var(--text-sm)' }}>Open the legacy scouting modal first to populate the draft class.</p>
           <Button variant="secondary" size="sm" onClick={() => window.openScoutingModal?.()}
@@ -480,7 +480,7 @@ function PipelineTab({ gameState, engines }) {
                 return (
                   <tr key={i} style={trowStyle}>
                     <Td align="left" style={{ fontWeight: 'var(--weight-semi)' }}>{p.name}</Td>
-                    <Td style={{ fontSize: 'var(--text-sm)' }}>🎓 {p.college}</Td>
+                    <Td style={{ fontSize: 'var(--text-sm)' }}>{p.college}</Td>
                     <Td style={{ fontWeight: 'var(--weight-semi)' }}>{p.position}</Td>
                     <Td mono>
                       <span style={{ opacity: 0.5 }}>{p.ratingLow}</span>
@@ -567,7 +567,7 @@ function WatchListTab({ gameState, engines }) {
               return (
                 <tr key={p.id} style={trowStyle}>
                   <Td align="left" style={{ fontWeight: 'var(--weight-semi)' }}>
-                    {p.name}{p.isCollegeGrad ? ' 🎓' : ''}
+                    {p.name}{p.isCollegeGrad ? ' (CG)' : ''}
                   </Td>
                   <Td style={{ fontWeight: 'var(--weight-semi)' }}>{p.position}</Td>
                   <Td mono>{p.age}</Td>
@@ -581,7 +581,7 @@ function WatchListTab({ gameState, engines }) {
                   </Td>
                   <Td style={{ fontWeight: 'var(--weight-bold)', color: gradeColor(fit.grade) }}>{fit.grade}</Td>
                   <Td align="right" mono>{formatCurrency(p.salary || 0)}</Td>
-                  <Td style={{ color: contractColor }}>{p.contractYears}yr{p.contractYears <= 1 ? ' ⚠️' : ''}</Td>
+                  <Td style={{ color: contractColor }}>{p.contractYears}yr{p.contractYears <= 1 ? ' (exp)' : ''}</Td>
                   <Td align="left" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
                     T{p._teamTier} {p._teamName}
                   </Td>
@@ -694,7 +694,7 @@ function NeedsTab({ gameState, engines }) {
         {expiring.length > 0 ? (
           <div style={{ marginBottom: 'var(--space-3)' }}>
             <div style={{ fontWeight: 'var(--weight-semi)', color: 'var(--color-warning)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
-              ⚠️ Expiring This Year ({expiring.length})
+              Expiring This Year ({expiring.length})
             </div>
             {expiring.map(p => (
               <div key={p.id} style={{ fontSize: 'var(--text-sm)', padding: '3px 0', color: 'var(--color-text-secondary)' }}>
