@@ -75,11 +75,11 @@ export function RosterModal({ isOpen, data, onClose }) {
   const usagePct = salaryCap > 0 ? Math.min(100, (totalSalary / salaryCap) * 100) : 0;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth={960} zIndex={1300}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth={1500} zIndex={1300}>
       <ModalHeader onClose={onClose}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 16 }}>
           <span>Roster Management</span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             <Button variant="secondary" size="sm" onClick={handleOpenTrade}>Open Trade Screen</Button>
             <Button variant="primary" size="sm" onClick={onClose}>Done</Button>
           </div>
