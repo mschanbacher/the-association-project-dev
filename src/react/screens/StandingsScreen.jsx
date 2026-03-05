@@ -19,9 +19,9 @@ export function StandingsScreen() {
                 activeTier === 2 ? gameState.tier2Teams : gameState.tier3Teams;
 
   const leagueNames = {
-    1: 'North American Premier League',
+    1: 'National Basketball Association',
     2: 'North American Regional Basketball League',
-    3: 'Metro Basketball League' };
+    3: 'North American Metro Basketball League' };
 
   return (
     <div style={{
@@ -46,9 +46,10 @@ export function StandingsScreen() {
             Standings
           </h2>
           <TierBadge tier={activeTier} />
-          {activeTier !== gameState.currentTier && (
-            <Badge variant="info">{leagueNames[activeTier]}</Badge>
-          )}
+          <span style={{
+            fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)',
+            fontWeight: 400,
+          }}>{leagueNames[activeTier]}</span>
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
