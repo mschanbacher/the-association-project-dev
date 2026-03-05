@@ -145,8 +145,8 @@ function SeasonCard({ season }) {
 
   return (
     <Card padding="lg" className="animate-slide-up" style={isChampion ? {
-      borderColor: 'rgba(212, 168, 67, 0.4)',
-      background: 'rgba(212, 168, 67, 0.04)',
+      borderColor: 'var(--color-accent-border)',
+      background: 'var(--color-accent-bg)',
     } : {}}>
       {/* Header row */}
       <div style={{
