@@ -82,7 +82,7 @@ const tierData = [
     teams: 86, games: 60,
     desc: 'The stepping stone. 86 teams, 60-game season, revenue-based budgets, fierce competition for promotion.',
     details: ['Revenue-based spending limits', '12 divisions', 'Promotion to T1 · Relegation to T3'] },
-  { tier: 3, name: 'Metro Basketball League', abbrev: 'MBL', color: 'var(--color-tier3)',
+  { tier: 3, name: 'North American Metro Basketball League', abbrev: 'MBL', color: 'var(--color-tier3)',
     teams: 144, games: 40,
     desc: 'Where every journey begins. 144 metro teams, 40-game season. Build from the ground up.',
     details: ['Revenue-based spending limits', '16 divisions', 'Promotion to T2'] },
