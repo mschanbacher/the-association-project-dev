@@ -275,5 +275,6 @@ export function emptyStatLine(player, isStarter) {
         fieldGoalsMade: 0, fieldGoalsAttempted: 0,
         threePointersMade: 0, threePointersAttempted: 0,
         freeThrowsMade: 0, freeThrowsAttempted: 0,
+        plusMinus: 0,
     };
 }

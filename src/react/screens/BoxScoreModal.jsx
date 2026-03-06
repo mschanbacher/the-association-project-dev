@@ -98,6 +98,35 @@ function QuarterTable({ home, away, quarterScores }) {
 
 const qCell = { padding: '3px 10px', textAlign: 'center' };
 
+// ── Game Score (Hollinger) ────────────────────────────────────────
+// ORB estimated by position since box score doesn't split ORB/DRB
+const ORB_RATE = { PG: 0.06, SG: 0.08, SF: 0.12, PF: 0.22, C: 0.28 };
+function calcGameScore(p) {
+  const orbRate = ORB_RATE[p.pos] || 0.10;
+  const orb = Math.round((p.reb || 0) * orbRate);
+  const drb = (p.reb || 0) - orb;
+  return (
+    (p.pts  || 0) * 1.0 +
+    (p.fgm  || 0) * 0.4 -
+    (p.fga  || 0) * 0.7 -
+    ((p.fta || 0) - (p.ftm || 0)) * 0.4 +
+    orb            * 0.7 +
+    drb            * 0.3 +
+    (p.stl  || 0) * 1.0 +
+    (p.ast  || 0) * 0.7 +
+    (p.blk  || 0) * 0.7 -
+    (p.pf   || 0) * 0.4 -
+    (p.to   || 0) * 1.0
+  );
+}
+function gmScColor(score) {
+  if (score >= 25) return 'var(--color-rating-elite)';
+  if (score >= 15) return 'var(--color-rating-good)';
+  if (score >= 8)  return 'var(--color-rating-avg)';
+  if (score >= 3)  return 'var(--color-text-tertiary)';
+  return 'var(--color-rating-below)';
+}
+
 function TeamBoxTable({ team }) {
   const players = team.players || [];
   if (players.length === 0) return null;
@@ -155,6 +184,7 @@ function TeamBoxTable({ team }) {
             }}>
               <Th left>Player</Th>
               <Th>MIN</Th>
+              <Th gmsc>GmSc</Th>
               <Th bold>PTS</Th>
               <Th>REB</Th>
               <Th>AST</Th>
@@ -166,13 +196,14 @@ function TeamBoxTable({ team }) {
               <Th>3PT</Th>
               <Th>3P%</Th>
               <Th>FT</Th>
+              <Th>+/-</Th>
             </tr>
           </thead>
           <tbody>
             {starters.map((p, i) => <PRow key={i} p={p} highlight={p.name === topPlayerName} />)}
             {bench.length > 0 && (
               <tr>
-                <td colSpan={13} style={{
+                <td colSpan={15} style={{
                   padding: '4px 6px', fontSize: 10, fontFamily: 'var(--font-body)',
                   color: 'var(--color-text-tertiary)', letterSpacing: '0.04em',
                   borderTop: '1px solid var(--color-border-subtle)',
@@ -183,6 +214,7 @@ function TeamBoxTable({ team }) {
             {bench.map((p, i) => <PRow key={`b${i}`} p={p} highlight={p.name === topPlayerName} />)}
             <tr style={{ borderTop: '2px solid var(--color-border)', fontWeight: 700 }}>
               <Td left>TOTAL</Td>
+              <Td></Td>
               <Td></Td>
               <Td>{totals.pts}</Td>
               <Td>{totals.reb}</Td>
@@ -195,6 +227,7 @@ function TeamBoxTable({ team }) {
               <Td>{totals.tpm}–{totals.tpa}</Td>
               <Td>{pctFmt(totals.tpm, totals.tpa)}</Td>
               <Td>{totals.ftm}–{totals.fta}</Td>
+              <Td></Td>
             </tr>
           </tbody>
         </table>
@@ -215,6 +248,7 @@ function PRow({ p, highlight }) {
         <span style={{ color: 'var(--color-text-tertiary)' }}>{p.pos}</span>
       </Td>
       <Td>{p.min}</Td>
+      <Td><GmScCell p={p} /></Td>
       <Td bold>{p.pts}</Td>
       <Td>{p.reb}</Td>
       <Td>{p.ast}</Td>
@@ -226,15 +260,41 @@ function PRow({ p, highlight }) {
       <Td>{p.tpm}–{p.tpa}</Td>
       <Td>{pctFmt(p.tpm, p.tpa)}</Td>
       <Td>{p.ftm}–{p.fta}</Td>
+      <Td><PlusMinus value={p.pm} /></Td>
     </tr>
   );
 }
 
-function Th({ children, left, bold }) {
+function PlusMinus({ value }) {
+  const v = value || 0;
+  const color = v > 0 ? 'var(--color-win)' : v < 0 ? 'var(--color-loss)' : 'var(--color-text-tertiary)';
+  const label = v > 0 ? `+${v}` : `${v}`;
+  return (
+    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color }}>
+      {label}
+    </span>
+  );
+}
+
+function GmScCell({ p }) {
+  const score = calcGameScore(p);
+  return (
+    <span style={{
+      fontFamily: 'var(--font-mono)',
+      fontWeight: 600,
+      color: gmScColor(score),
+    }}>
+      {score.toFixed(1)}
+    </span>
+  );
+}
+
+function Th({ children, left, bold, gmsc }) {
   return (
     <th style={{
       padding: '5px 4px', textAlign: left ? 'left' : 'center',
       fontWeight: bold ? 700 : 600,
+      color: gmsc ? 'var(--color-rating-good)' : undefined,
     }}>{children}</th>
   );
 }

@@ -368,14 +368,14 @@ export class GameSimController {
                     city: this._watchHomeTeam.city || '', score: result.homeScore,
                     players: result.homePlayerStats.filter(p => p.minutesPlayed > 0)
                         .sort((a, b) => b.minutesPlayed - a.minutesPlayed)
-                        .map(p => ({ name: p.playerName, pos: p.position, min: p.minutesPlayed, pts: p.points, reb: p.rebounds, ast: p.assists, stl: p.steals, blk: p.blocks, to: p.turnovers, pf: p.fouls, fgm: p.fieldGoalsMade, fga: p.fieldGoalsAttempted, tpm: p.threePointersMade, tpa: p.threePointersAttempted, ftm: p.freeThrowsMade, fta: p.freeThrowsAttempted, starter: p.gamesStarted > 0 }))
+                        .map(p => ({ name: p.playerName, pos: p.position, min: p.minutesPlayed, pts: p.points, reb: p.rebounds, ast: p.assists, stl: p.steals, blk: p.blocks, to: p.turnovers, pf: p.fouls, fgm: p.fieldGoalsMade, fga: p.fieldGoalsAttempted, tpm: p.threePointersMade, tpa: p.threePointersAttempted, ftm: p.freeThrowsMade, fta: p.freeThrowsAttempted, starter: p.gamesStarted > 0, pm: p.plusMinus || 0 }))
                 },
                 away: {
                     teamId: this._watchAwayTeam.id, teamName: this._watchAwayTeam.name,
                     city: this._watchAwayTeam.city || '', score: result.awayScore,
                     players: result.awayPlayerStats.filter(p => p.minutesPlayed > 0)
                         .sort((a, b) => b.minutesPlayed - a.minutesPlayed)
-                        .map(p => ({ name: p.playerName, pos: p.position, min: p.minutesPlayed, pts: p.points, reb: p.rebounds, ast: p.assists, stl: p.steals, blk: p.blocks, to: p.turnovers, pf: p.fouls, fgm: p.fieldGoalsMade, fga: p.fieldGoalsAttempted, tpm: p.threePointersMade, tpa: p.threePointersAttempted, ftm: p.freeThrowsMade, fta: p.freeThrowsAttempted, starter: p.gamesStarted > 0 }))
+                        .map(p => ({ name: p.playerName, pos: p.position, min: p.minutesPlayed, pts: p.points, reb: p.rebounds, ast: p.assists, stl: p.steals, blk: p.blocks, to: p.turnovers, pf: p.fouls, fgm: p.fieldGoalsMade, fga: p.fieldGoalsAttempted, tpm: p.threePointersMade, tpa: p.threePointersAttempted, ftm: p.freeThrowsMade, fta: p.freeThrowsAttempted, starter: p.gamesStarted > 0, pm: p.plusMinus || 0 }))
                 },
                 quarterScores: result.quarterScores,
                 events: result.events.filter(e => ['made_shot', 'run', 'quarter_end'].includes(e.type)).slice(-30)
@@ -720,7 +720,7 @@ export class GameSimController {
                 pf: p.fouls || 0, starter: p.gamesStarted > 0,
                 fgm: p.fieldGoalsMade || 0, fga: p.fieldGoalsAttempted || 0,
                 tpm: p.threePointersMade || 0, tpa: p.threePointersAttempted || 0,
-                ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0
+                ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0, pm: p.plusMinus || 0
             }));
 
         const boxScore = {
@@ -791,7 +791,7 @@ export class GameSimController {
                         pf: p.fouls || 0, starter: p.gamesStarted > 0,
                         fgm: p.fieldGoalsMade || 0, fga: p.fieldGoalsAttempted || 0,
                         tpm: p.threePointersMade || 0, tpa: p.threePointersAttempted || 0,
-                        ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0
+                        ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0, pm: p.plusMinus || 0
                     }));
                 gameEntry.boxScore = {
                     home: { city: homeTeam.city || '', name: homeTeam.name, score: gameResult.homeScore, players: mapStats(gameResult.homePlayerStats) },

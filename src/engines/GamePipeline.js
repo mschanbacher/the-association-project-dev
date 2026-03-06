@@ -249,6 +249,10 @@ export class GamePipeline {
             game.awayPlayerStats[entry.player.id] = GamePipeline._emptyStatLine(entry.player, entry.isStarter);
         }
 
+        // Plus/minus lookup maps: playerId → rotation entry (entry.onCourt is the live flag)
+        game._homeOnCourt = Object.fromEntries(homeRotation.map(e => [e.player.id, e]));
+        game._awayOnCourt = Object.fromEntries(awayRotation.map(e => [e.player.id, e]));
+
         return {
             homeRotation, awayRotation,
             homeChemistry, awayChemistry,
@@ -609,6 +613,20 @@ export class GamePipeline {
             game.awayRun += points;
             game.homeRun = 0;
             game.momentum = Math.max(-10, game.momentum - points * 0.3);
+        }
+
+        // Plus/minus: players on court for the scoring team get +points, opponents get -points
+        for (const [playerId, stat] of Object.entries(game.homePlayerStats)) {
+            const entry = game._homeOnCourt && game._homeOnCourt[playerId];
+            if (entry && entry.onCourt) {
+                stat.plusMinus += isHome ? points : -points;
+            }
+        }
+        for (const [playerId, stat] of Object.entries(game.awayPlayerStats)) {
+            const entry = game._awayOnCourt && game._awayOnCourt[playerId];
+            if (entry && entry.onCourt) {
+                stat.plusMinus += isHome ? -points : points;
+            }
         }
 
         const qi = Math.min(game.clock.quarter - 1, game.quarterScores.home.length - 1);
