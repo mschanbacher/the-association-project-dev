@@ -324,7 +324,7 @@ function PlayerRow({ player, engines, expanded, onToggle }) {
         </div>
       </td>
     </tr>
-    {expanded && <PlayerDetailRow player={player} engines={engines} />}
+    {expanded && <PlayerDetailRow player={player} engines={engines} team={userTeam} />}
     </>
   );
 }
@@ -332,7 +332,7 @@ function PlayerRow({ player, engines, expanded, onToggle }) {
 /* ═══════════════════════════════════════════════════════════════
    Player Detail — Expanded inline panel with full attributes + season stats
    ═══════════════════════════════════════════════════════════════ */
-function PlayerDetailRow({ player, engines }) {
+function PlayerDetailRow({ player, engines, team }) {
   const { PlayerAttributes: PA, StatEngine } = engines;
   const m = player.measurables;
   const attrs = player.attributes || {};
@@ -341,8 +341,8 @@ function PlayerDetailRow({ player, engines }) {
     ? `${PA.formatHeight(m.height)} · ${m.weight}lbs · ${PA.formatWingspan ? PA.formatWingspan(m.wingspan) : m.wingspan + '"'} WS`
     : '';
 
-  // Analytics
-  const analytics = StatEngine?.getPlayerAnalytics?.(player) || null;
+  // Pass team context so contractVerdict uses current tier (not birth tier)
+  const analytics = StatEngine?.getPlayerAnalytics?.(player, team || null) || null;
   const avgs = analytics?.avgs || null;
   const hasStats = avgs && avgs.gamesPlayed > 0;
 
@@ -565,6 +565,137 @@ function PlayerDetailRow({ player, engines }) {
               No games played this season yet.
             </div>
           )}
+
+          {/* ── Scoring Profile ── */}
+          {player.scoringProfile && (() => {
+            const sp = player.scoringProfile;
+            const shape = sp.shotShape || {};
+            const rimPct   = Math.round((shape.rim      || 0) * 100);
+            const midPct   = Math.round((shape.midrange  || 0) * 100);
+            const threePct = Math.round((shape.three     || 0) * 100);
+
+            // Usage label: how shot-hungry relative to the 0.4–1.8 scale
+            const usageLabel =
+              sp.usageTendency >= 1.45 ? 'Very High' :
+              sp.usageTendency >= 1.15 ? 'High' :
+              sp.usageTendency >= 0.85 ? 'Average' :
+              sp.usageTendency >= 0.60 ? 'Low' : 'Very Low';
+
+            // Variance label: how streaky
+            const varianceLabel =
+              sp.variance >= 0.38 ? 'Very Streaky' :
+              sp.variance >= 0.28 ? 'Streaky' :
+              sp.variance >= 0.18 ? 'Consistent' : 'Very Consistent';
+
+            // Efficiency label
+            const effLabel =
+              sp.efficiency >= 1.08 ? 'Elite' :
+              sp.efficiency >= 1.02 ? 'Above Avg' :
+              sp.efficiency >= 0.96 ? 'Average' :
+              sp.efficiency >= 0.90 ? 'Below Avg' : 'Poor';
+
+            const effColor =
+              sp.efficiency >= 1.08 ? 'var(--color-rating-elite)' :
+              sp.efficiency >= 1.02 ? 'var(--color-win)' :
+              sp.efficiency >= 0.96 ? 'var(--color-text-secondary)' :
+              sp.efficiency >= 0.90 ? 'var(--color-warning)' : 'var(--color-loss)';
+
+            // Usage dot color
+            const usageColor =
+              sp.usageTendency >= 1.45 ? 'var(--color-loss)' :
+              sp.usageTendency >= 1.15 ? 'var(--color-warning)' :
+              sp.usageTendency >= 0.85 ? 'var(--color-text-secondary)' : 'var(--color-win)';
+
+            return (
+              <div>
+                <SectionLabel>Scoring Profile</SectionLabel>
+
+                {/* Archetype badge + meta row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {/* Archetype label — primary identity */}
+                  <div style={{
+                    fontSize: 13, fontWeight: 700, color: 'var(--color-accent)',
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                  }}>
+                    {sp.label || sp.archetype}
+                  </div>
+
+                  {/* Usage pill */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Usage</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: usageColor, fontFamily: 'var(--font-mono)' }}>{usageLabel}</span>
+                  </div>
+
+                  {/* Variance pill */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Night-to-Night</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>{varianceLabel}</span>
+                  </div>
+
+                  {/* Efficiency pill */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Efficiency</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: effColor, fontFamily: 'var(--font-mono)' }}>{effLabel}</span>
+                  </div>
+                </div>
+
+                {/* Shot shape stacked bar */}
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                    Shot Distribution
+                  </div>
+
+                  {/* The bar */}
+                  <div style={{ display: 'flex', height: 20, width: '100%', overflow: 'hidden', gap: 1 }}>
+                    {rimPct > 0 && (
+                      <div style={{
+                        width: `${rimPct}%`, background: 'var(--color-chart-2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)',
+                        minWidth: rimPct < 8 ? 0 : 'auto', overflow: 'hidden',
+                      }}>
+                        {rimPct >= 8 ? `${rimPct}%` : ''}
+                      </div>
+                    )}
+                    {midPct > 0 && (
+                      <div style={{
+                        width: `${midPct}%`, background: 'var(--color-chart-4)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)',
+                        minWidth: midPct < 8 ? 0 : 'auto', overflow: 'hidden',
+                      }}>
+                        {midPct >= 8 ? `${midPct}%` : ''}
+                      </div>
+                    )}
+                    {threePct > 0 && (
+                      <div style={{
+                        flex: 1, background: 'var(--color-chart-1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)',
+                      }}>
+                        {threePct >= 8 ? `${threePct}%` : ''}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Legend */}
+                  <div style={{ display: 'flex', gap: 16, marginTop: 6 }}>
+                    {[
+                      { label: 'At Rim', pct: rimPct,   color: 'var(--color-chart-2)' },
+                      { label: 'Midrange', pct: midPct,  color: 'var(--color-chart-4)' },
+                      { label: 'Three',   pct: threePct, color: 'var(--color-chart-1)' },
+                    ].map(({ label, pct: p, color }) => (
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 8, height: 8, background: color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>{label}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>{p}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Attributes ── */}
           <div>

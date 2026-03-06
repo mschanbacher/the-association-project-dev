@@ -373,41 +373,77 @@ export const StatEngine = {
             statLine.steals = Math.max(0, Math.round(statLine.steals + speedStealBoost));
         }
 
-        // Shooting — coach modifiers scaled by coachability
-        const fgaBase = archetype.fgaPer36 * minutesFactor * usageMod;
-        const fgaVariance = 1 + this._normalRandom() * 0.25;
+        // ── SHOOTING ─────────────────────────────────────────────────────────
+        // If the player has a scoringProfile (all newly generated players do),
+        // use it to drive shot volume, shot shape, and game-to-game variance.
+        // Falls back to position-archetype behavior for old saves without a profile.
+        //
+        // Coach modifiers still apply — they shift tendencies on top of the profile.
+        // Defense modifiers still apply — opponent D still suppresses shooting pcts.
+        // Normalization (_normalizeTeamStats) is unchanged and remains the
+        // calibration guardian — whatever raw totals we produce here get rescaled
+        // to the TIER_PACE targets, so these changes cannot break score calibration.
+
+        const profile = player.scoringProfile || null;
+
+        // --- FGA volume ---
+        // Profile-driven: usageTendency replaces rating-based usageMod for shot volume.
+        // Variance envelope is per-player (streaky scorers swing wider).
+        // Fallback: archetype fgaPer36 × old usageMod (pre-Phase2 behavior).
+        const usageForShots = profile ? profile.usageTendency : usageMod;
+        const varianceScale = profile ? profile.variance : 0.25;
+        const fgaBase = archetype.fgaPer36 * minutesFactor * usageForShots;
+        const fgaVariance = 1 + this._normalRandom() * varianceScale;
         const fga = Math.max(1, Math.round(fgaBase * fgaVariance));
-        // Coach 3PT tendency shifts the three-point attempt rate (scaled by coachability)
-        const adjustedThreePtRate = Math.max(0.05, Math.min(0.60, archetype.threePtRate + scaledThreePtMod));
+
+        // --- Shot shape: three-point rate ---
+        // Profile shotShape.three drives the split; coach 3PT modifier still shifts it.
+        // Fallback: archetype.threePtRate + coach modifier.
+        const baseThreePtRate = profile ? profile.shotShape.three : archetype.threePtRate;
+        const adjustedThreePtRate = Math.max(0.05, Math.min(0.72, baseThreePtRate + scaledThreePtMod));
         const threePA = Math.round(fga * adjustedThreePtRate);
         const twoPA = fga - threePA;
 
-        const fgPctBonus = offRatingDelta * 0.003;
-        const threePctBonus = offRatingDelta * 0.0015;
-        const ftPctBonus = offRatingDelta * 0.002;
-        const shootingHeat = this._normalRandom() * 0.06;
-        // Opponent defense: coaching scheme + roster defensive talent
-        const oppCoachDefPenalty = scaledDefMod;
+        // --- Shooting percentages ---
+        // Profile efficiency scalar applied on top of base archetype pcts.
+        // Rim-heavy shot shapes improve 2PT pct; three-heavy shapes use 3P base.
+        // All existing defense modifiers (coach + roster) still apply.
+        const efficiencyMod = profile ? (profile.efficiency - 1.0) : 0;
+        const fgPctBonus    = offRatingDelta * 0.003 + efficiencyMod * 0.5;
+        const threePctBonus = offRatingDelta * 0.0015 + efficiencyMod * 0.3;
+        const ftPctBonus    = offRatingDelta * 0.002  + efficiencyMod * 0.2;
+        const shootingHeat  = this._normalRandom() * 0.06;
+
+        // Opponent defense: coaching scheme + roster defensive talent (unchanged)
+        const oppCoachDefPenalty  = scaledDefMod;
         const oppRosterDefPenalty = oppTeamDefMod || 0;
-        const totalDefPenalty = oppCoachDefPenalty + oppRosterDefPenalty;
+        const totalDefPenalty     = oppCoachDefPenalty + oppRosterDefPenalty;
 
-        const twoPtPct = Math.max(0.30, Math.min(0.62, (archetype.baseFgPct + 0.04) + fgPctBonus + shootingHeat + totalDefPenalty));
-        const threePtPct = Math.max(0.15, Math.min(0.45, archetype.baseThreePct + threePctBonus + shootingHeat + totalDefPenalty * 0.8));
-        const ftPct = Math.max(0.40, Math.min(0.95, archetype.baseFtPct + ftPctBonus + (this._normalRandom() * 0.05)));
+        // Rim-heavy shot shapes improve 2PT efficiency (closer shots = higher FG%)
+        // Three-heavy shapes don't get this bonus (long distance stays hard)
+        const rimBonus = profile ? (profile.shotShape.rim - 0.30) * 0.06 : 0;
 
-        const twoPM = this._binomialRoll(twoPA, twoPtPct);
-        const threePM = this._binomialRoll(threePA, threePtPct);
+        const twoPtPct  = Math.max(0.30, Math.min(0.66, (archetype.baseFgPct + 0.04) + fgPctBonus + shootingHeat + totalDefPenalty + rimBonus));
+        const threePtPct = Math.max(0.15, Math.min(0.48, archetype.baseThreePct + threePctBonus + shootingHeat + totalDefPenalty * 0.8));
+        const ftPct     = Math.max(0.40, Math.min(0.95, archetype.baseFtPct + ftPctBonus + (this._normalRandom() * 0.05)));
 
-        statLine.fieldGoalsMade = twoPM + threePM;
-        statLine.fieldGoalsAttempted = fga;
-        statLine.threePointersMade = threePM;
+        const twoPM   = this._binomialRoll(twoPA,   twoPtPct);
+        const threePM = this._binomialRoll(threePA,  threePtPct);
+
+        statLine.fieldGoalsMade       = twoPM + threePM;
+        statLine.fieldGoalsAttempted  = fga;
+        statLine.threePointersMade    = threePM;
         statLine.threePointersAttempted = threePA;
 
-        const ftaBase = fga * archetype.ftRate;
+        // --- Free throws ---
+        // Rim-heavy and slasher profiles draw more fouls → higher FT rate.
+        // Profile derives a ftRateModifier from shotShape.rim; archetype base still anchors it.
+        const ftRateMod = profile ? (profile.shotShape.rim - 0.30) * 0.20 : 0;
+        const ftaBase = fga * (archetype.ftRate + ftRateMod);
         const fta = Math.max(0, Math.round(ftaBase * (1 + this._normalRandom() * 0.4)));
         const ftm = this._binomialRoll(fta, ftPct);
-        statLine.freeThrowsMade = ftm;
-        statLine.freeThrowsAttempted = fta;
+        statLine.freeThrowsMade       = ftm;
+        statLine.freeThrowsAttempted  = fta;
 
         statLine.points = (twoPM * 2) + (threePM * 3) + ftm;
         return statLine;
@@ -472,45 +508,166 @@ export const StatEngine = {
     },
 
     _normalizeTeamStats(playerStats, pace, team, tier) {
+        // ── Phase 3: Profile-aware FGA budget enforcement ────────────────────
+        //
+        // Previously each player's FGA was generated independently, causing
+        // multi-star rosters to inflate total possessions. Phase 3 establishes
+        // a fixed team FGA budget and redistributes shots proportionally by
+        // each player's usageTendency × minute share — so the pie is shared.
+        //
+        // Score calibration is unchanged: the target score and strength bonus
+        // math is preserved. What changes is *how* we get to that score —
+        // through realistic individual FGA rather than a uniform scale factor.
+        //
+        // FGA budget targets (per game, pre-strength-bonus):
+        //   T1: 88-92  (NBA ~88)
+        //   T2: 80-86  (G-League ~82)
+        //   T3: 70-76  (college ~72)
+        // ─────────────────────────────────────────────────────────────────────
+
         const rawTotal = playerStats.reduce((sum, s) => sum + s.points, 0);
         if (rawTotal === 0) return playerStats;
 
+        const activePlayers = playerStats.filter(s => s.minutesPlayed > 0);
+        if (activePlayers.length === 0) return playerStats;
+
+        // ── 1. Compute target score (unchanged calibration logic) ─────────────
         const teamStrength = this._quickTeamStrength(playerStats);
         const strengthDelta = teamStrength - 75;
-        // Lower tiers: strength differences matter more
         const strengthMult = tier === 1 ? 0.3 : tier === 2 ? 0.5 : 0.7;
         const strengthBonus = strengthDelta * strengthMult;
         const targetBase = pace.targetPoints + strengthBonus;
-        const target = targetBase + (Math.random() - 0.5) * pace.variance * 2;
-        const scaleFactor = target / rawTotal;
+        const targetScore = targetBase + (Math.random() - 0.5) * pace.variance * 2;
 
-        // Normalize to keep scores realistic — lower tiers allow wider swing
-        const clampRange = tier === 1 ? 0.25 : tier === 2 ? 0.35 : 0.45;
+        // ── 2. Establish team FGA budget ──────────────────────────────────────
+        // Derive FGA budget from the calibrated targetScore and the team's
+        // actual pts/FGA ratio from raw stats. This keeps score calibration
+        // exact (same as before Phase 3) while letting Phase 3 control *how*
+        // those FGA are distributed across players.
+        //
+        // Fallback: if raw stats are degenerate, use tier-based FGA baseline.
+        const rawFGATotal = activePlayers.reduce((s, p) => s + p.fieldGoalsAttempted, 0);
+        const rawPtsTotal = activePlayers.reduce((s, p) => s + p.points, 0);
+        const rawFTATotal = activePlayers.reduce((s, p) => s + p.freeThrowsAttempted, 0);
+        const rawFTMTotal = activePlayers.reduce((s, p) => s + p.freeThrowsMade, 0);
+
+        // pts = FGA × ptsPerFGA (2PM×2 + 3PM×3 + FTM) / FGA
+        // We want pts to equal targetScore, so: FGA = targetScore / ptsPerFGA
+        const ptsPerFGA = rawFGATotal > 0 ? rawPtsTotal / rawFGATotal : 1.20;
+
+        // Tier FGA caps: prevent runaway scores even if ptsPerFGA is low
+        const fgaCap = tier === 1 ? 96 : tier === 2 ? 90 : 80;
+        const fgaFloor = tier === 1 ? 78 : tier === 2 ? 72 : 62;
+        const derivedFGA = ptsPerFGA > 0 ? targetScore / ptsPerFGA : 88;
+        const teamFGABudget = Math.round(Math.max(fgaFloor, Math.min(fgaCap, derivedFGA)));
+
+        // ── 3. Compute each player's usage weight ─────────────────────────────
+        const totalMinutes = activePlayers.reduce((s, p) => s + p.minutesPlayed, 0);
+
+        const weights = activePlayers.map(stat => {
+            // Try to get scoringProfile from the player object if attached
+            // (Stats don't carry profiles directly — use raw FGA as proxy for old saves)
+            const minShare = stat.minutesPlayed / totalMinutes;
+            // We use raw FGA as the usage signal because it was already shaped by
+            // the profile in Phase 2 (_generatePlayerGameStats). This means
+            // a floor_spacer who generated 4 raw FGA still gets a proportionally
+            // small slice, and a volume_scorer who generated 18 gets a large slice.
+            return { stat, weight: stat.fieldGoalsAttempted / Math.max(1, rawFGATotal), minShare };
+        });
+
+        // ── 4. Distribute FGA budget proportionally ───────────────────────────
+        // Apply a minimum of 2 FGA for players with 10+ minutes (realistic floor)
+        // and clamp the star's share to prevent >32% of team FGA
+        const MIN_FGA_THRESHOLD_MIN = 10;
+        const MIN_FGA = 2;
+        const MAX_STAR_SHARE = 0.32;
+
+        // First pass: raw proportional allocation
+        let allocations = weights.map(({ stat, weight }) => ({
+            stat,
+            fga: teamFGABudget * weight,
+        }));
+
+        // Clamp star share
+        allocations = allocations.map(a => ({
+            ...a,
+            fga: Math.min(a.fga, teamFGABudget * MAX_STAR_SHARE),
+        }));
+
+        // Apply minute-based minimum floor
+        allocations = allocations.map(a => ({
+            ...a,
+            fga: a.stat.minutesPlayed >= MIN_FGA_THRESHOLD_MIN
+                ? Math.max(MIN_FGA, a.fga)
+                : Math.max(1, a.fga),
+        }));
+
+        // Re-normalise to hit the budget exactly after clamping/floor adjustments
+        const allocSum = allocations.reduce((s, a) => s + a.fga, 0);
+        const budgetScale = teamFGABudget / allocSum;
+        allocations = allocations.map(a => ({
+            ...a,
+            fga: Math.max(1, Math.round(a.fga * budgetScale)),
+        }));
+
+        // Fix rounding drift (budget may be off by 1-2 FGA)
+        let fgaDrift = teamFGABudget - allocations.reduce((s, a) => s + a.fga, 0);
+        const sortedByFGA = [...allocations].sort((a, b) => b.fga - a.fga);
+        let driftIdx = 0;
+        while (Math.abs(fgaDrift) > 0 && driftIdx < sortedByFGA.length) {
+            const target = sortedByFGA[driftIdx % sortedByFGA.length];
+            const alloc = allocations.find(a => a.stat === target.stat);
+            if (alloc) {
+                alloc.fga += fgaDrift > 0 ? 1 : -1;
+                fgaDrift += fgaDrift > 0 ? -1 : 1;
+            }
+            driftIdx++;
+        }
+
+        // Build a lookup map for fast access
+        const fgaMap = new Map(allocations.map(a => [a.stat.playerId, a.fga]));
+
+        // ── 5. Apply new FGA and re-roll outcomes to hit target score ─────────
+        // Three-point rate and shooting pcts are preserved from raw stats.
+        // We scale FTA proportionally with FGA to keep FT volume realistic.
         return playerStats.map(stat => {
             if (stat.minutesPlayed === 0) return stat;
             const scaled = { ...stat };
-            const pointScale = Math.max(1 - clampRange, Math.min(1 + clampRange, scaleFactor));
 
-            scaled.fieldGoalsAttempted = Math.max(1, Math.round(stat.fieldGoalsAttempted * pointScale));
-            scaled.threePointersAttempted = Math.max(0, Math.round(stat.threePointersAttempted * pointScale));
-            scaled.freeThrowsAttempted = Math.max(0, Math.round(stat.freeThrowsAttempted * pointScale));
+            const newFGA = fgaMap.get(stat.playerId) ?? Math.max(1, Math.round(stat.fieldGoalsAttempted));
+            const fgaRatio = newFGA / Math.max(1, stat.fieldGoalsAttempted);
 
-            const fgPct = stat.fieldGoalsAttempted > 0 ? stat.fieldGoalsMade / stat.fieldGoalsAttempted : 0.45;
-            const threePct = stat.threePointersAttempted > 0 ? stat.threePointersMade / stat.threePointersAttempted : 0.33;
-            const ftPct = stat.freeThrowsAttempted > 0 ? stat.freeThrowsMade / stat.freeThrowsAttempted : 0.75;
+            // Preserve shot shape ratios from Phase 2 (three-point rate)
+            const rawThreeRate = stat.fieldGoalsAttempted > 0
+                ? stat.threePointersAttempted / stat.fieldGoalsAttempted
+                : 0.35;
+            const newThreePA = Math.max(0, Math.round(newFGA * rawThreeRate));
+            const newTwoPA = newFGA - newThreePA;
 
-            const twoPA = scaled.fieldGoalsAttempted - scaled.threePointersAttempted;
-            const twoPtPctEff = stat.fieldGoalsAttempted > 0
-                ? ((stat.fieldGoalsMade - stat.threePointersMade) / Math.max(1, stat.fieldGoalsAttempted - stat.threePointersAttempted))
+            // FTA scales proportionally with FGA change (more/fewer possessions = more/fewer FT opps)
+            const newFTA = Math.max(0, Math.round(stat.freeThrowsAttempted * fgaRatio));
+
+            // Recover shooting pcts from raw stats
+            const twoPtPctEff = (stat.fieldGoalsAttempted - stat.threePointersAttempted) > 0
+                ? (stat.fieldGoalsMade - stat.threePointersMade) / (stat.fieldGoalsAttempted - stat.threePointersAttempted)
                 : 0.48;
+            const threePct = stat.threePointersAttempted > 0
+                ? stat.threePointersMade / stat.threePointersAttempted
+                : 0.33;
+            const ftPct = stat.freeThrowsAttempted > 0
+                ? stat.freeThrowsMade / stat.freeThrowsAttempted
+                : 0.75;
 
-            const newTwoPM = this._binomialRoll(twoPA, twoPtPctEff);
-            const newThreePM = this._binomialRoll(scaled.threePointersAttempted, threePct);
-            const newFTM = this._binomialRoll(scaled.freeThrowsAttempted, ftPct);
+            const newTwoPM   = this._binomialRoll(newTwoPA,   twoPtPctEff);
+            const newThreePM = this._binomialRoll(newThreePA,  threePct);
+            const newFTM     = this._binomialRoll(newFTA,      ftPct);
 
-            scaled.fieldGoalsMade = newTwoPM + newThreePM;
-            scaled.threePointersMade = newThreePM;
-            scaled.freeThrowsMade = newFTM;
+            scaled.fieldGoalsAttempted    = newFGA;
+            scaled.threePointersAttempted = newThreePA;
+            scaled.freeThrowsAttempted    = newFTA;
+            scaled.fieldGoalsMade         = newTwoPM + newThreePM;
+            scaled.threePointersMade      = newThreePM;
+            scaled.freeThrowsMade         = newFTM;
             scaled.points = (newTwoPM * 2) + (newThreePM * 3) + newFTM;
             return scaled;
         });
@@ -703,16 +860,57 @@ export const StatEngine = {
                    : 'End of Bench';
 
         // ── Contract value ───────────────────────────────────────────────────
-        // Is this player over/under performing their contract?
-        // Uses a simple salary-per-value-point ratio vs team average.
+        // Tier-aware: compare the player's actual salary against what the
+        // *current team tier* would normally pay for their rating.
+        // This correctly handles promotion/relegation — a relegated T1 player
+        // earning a T1 salary while playing in T2 is flagged overpaid, and a
+        // promoted T3 player on a T3 salary in T2 is flagged a great deal.
+        //
+        // currentTier comes from the team object (updated on promo/relegation).
+        // Falls back to player.tier if no team context is provided.
         const salary = player.salary || 0;
-        const valuePerDollar = salary > 0 ? valueScore / (salary / 1_000_000) : null;
+        const currentTier = team?.tier || player.tier || 2;
+
+        // Inline tier-appropriate market value for player.rating at currentTier.
+        // Uses midpoints of TeamFactory.generateSalary ranges (deterministic).
+        const r = player.rating || 60;
+        let marketValue;
+        if (currentTier === 1) {
+            marketValue = r >= 95 ? 21_500_000
+                        : r >= 90 ? 15_000_000
+                        : r >= 85 ? 10_000_000
+                        : r >= 80 ?  6_500_000
+                        : r >= 75 ?  4_000_000
+                        : r >= 70 ?  2_250_000
+                        :            1_000_000;
+        } else if (currentTier === 2) {
+            marketValue = r >= 85 ? 1_500_000
+                        : r >= 80 ? 1_000_000
+                        : r >= 75 ?   650_000
+                        : r >= 70 ?   400_000
+                        : r >= 65 ?   250_000
+                        : r >= 60 ?   160_000
+                        :            100_000;
+        } else {
+            marketValue = r >= 75 ? 150_000
+                        : r >= 70 ? 105_000
+                        : r >= 65 ?  80_000
+                        : r >= 60 ?  60_000
+                        : r >= 55 ?  42_000
+                        :            30_000;
+        }
+
+        // salaryRatio: 1.0 = exactly market rate for this tier
+        //   < 0.65 → great deal (well below market)
+        //   < 1.10 → good value (at or slightly below market)
+        //   < 1.60 → fair (somewhat above market, acceptable)
+        //   ≥ 1.60 → overpaid (significantly above market for this tier)
         let contractVerdict = null;
-        if (valuePerDollar !== null) {
-            // Calibrated roughly: 10+ value/M = great deal, <3 = overpaid
-            contractVerdict = valuePerDollar >= 10 ? 'great_deal'
-                            : valuePerDollar >= 6  ? 'good_value'
-                            : valuePerDollar >= 3  ? 'fair'
+        if (salary > 0 && marketValue > 0) {
+            const salaryRatio = salary / marketValue;
+            contractVerdict = salaryRatio < 0.65 ? 'great_deal'
+                            : salaryRatio < 1.10 ? 'good_value'
+                            : salaryRatio < 1.60 ? 'fair'
                             : 'overpaid';
         }
 
@@ -759,7 +957,7 @@ export const StatEngine = {
             valueScore,
             role,
             contractVerdict,
-            valuePerDollar:  valuePerDollar ? +valuePerDollar.toFixed(1) : null,
+            salaryRatio:     salary > 0 && marketValue > 0 ? +(salary / marketValue).toFixed(2) : null,
             shootingProfile,
             flags,
             // Convenience pass-throughs for the UI

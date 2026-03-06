@@ -50,6 +50,237 @@ export class TeamFactory {
     ];
 
     // ─────────────────────────────────────────────────────────────
+    // SCORING PROFILES
+    // ─────────────────────────────────────────────────────────────
+    //
+    // Every player gets a scoringProfile at birth that describes HOW
+    // they score, not just how much. This is permanent — a relegated
+    // T1 player keeps their T1 profile in T2, which is intentional
+    // and realistic (better players play differently).
+    //
+    // Structure:
+    //   archetype      — named type for display and downstream logic
+    //   usageTendency  — 0.4–1.8, replaces rating-only usageShare
+    //   shotShape      — { rim, midrange, three } summing to 1.0
+    //   variance       — 0.0–0.5, game-to-game streakiness
+    //   efficiency     — scalar on base shooting pcts (0.88–1.12)
+    //
+    // Tier gradient: position-less archetypes (versatile_scorer,
+    // three_point_shooter, floor_spacer) skew toward T1. Traditional
+    // archetypes (post_scorer, rim_runner) dominate T3. T1 is still
+    // mostly conventional — roughly 20-25% of T1 players get a
+    // "modern" archetype. The rest span the realistic range.
+    // ─────────────────────────────────────────────────────────────
+
+    // Base archetype definitions — shot shapes and usage ranges.
+    // usageRange: [min, max] randomised at generation.
+    // varianceRange: [min, max] randomised, then age-adjusted.
+    // efficiency: [min, max] randomised.
+    static SCORING_ARCHETYPES = {
+        rim_runner: {
+            label: 'Rim Runner',
+            shotShape: { rim: 0.74, midrange: 0.10, three: 0.16 },
+            usageRange:    [0.70, 1.10],
+            varianceRange: [0.12, 0.28],
+            efficiencyRange: [1.00, 1.10],  // high FG% at rim
+        },
+        post_scorer: {
+            label: 'Post Scorer',
+            shotShape: { rim: 0.52, midrange: 0.38, three: 0.10 },
+            usageRange:    [0.85, 1.30],
+            varianceRange: [0.15, 0.32],
+            efficiencyRange: [0.95, 1.06],
+        },
+        midrange_artist: {
+            label: 'Midrange Artist',
+            shotShape: { rim: 0.20, midrange: 0.54, three: 0.26 },
+            usageRange:    [0.80, 1.25],
+            varianceRange: [0.18, 0.38],  // midrange is streaky
+            efficiencyRange: [0.92, 1.04],
+        },
+        three_point_shooter: {
+            label: 'Three-Point Shooter',
+            shotShape: { rim: 0.14, midrange: 0.14, three: 0.72 },
+            usageRange:    [0.55, 0.90],
+            varianceRange: [0.20, 0.42],  // hot/cold nights
+            efficiencyRange: [0.96, 1.08],
+        },
+        volume_scorer: {
+            label: 'Volume Scorer',
+            shotShape: { rim: 0.34, midrange: 0.24, three: 0.42 },
+            usageRange:    [1.15, 1.70],
+            varianceRange: [0.20, 0.40],
+            efficiencyRange: [0.88, 1.00],  // high volume, not always efficient
+        },
+        slasher: {
+            label: 'Slasher',
+            shotShape: { rim: 0.60, midrange: 0.14, three: 0.26 },
+            usageRange:    [0.80, 1.20],
+            varianceRange: [0.14, 0.30],
+            efficiencyRange: [0.98, 1.08],  // gets to line
+        },
+        versatile_scorer: {
+            label: 'Versatile Scorer',
+            shotShape: { rim: 0.28, midrange: 0.20, three: 0.52 },
+            usageRange:    [1.10, 1.65],
+            varianceRange: [0.16, 0.34],
+            efficiencyRange: [0.96, 1.08],  // the position-less archetype
+        },
+        facilitator: {
+            label: 'Facilitator',
+            shotShape: { rim: 0.26, midrange: 0.20, three: 0.54 },
+            usageRange:    [0.45, 0.75],
+            varianceRange: [0.10, 0.24],  // low usage = consistent
+            efficiencyRange: [0.94, 1.04],
+        },
+        floor_spacer: {
+            label: 'Floor Spacer',
+            shotShape: { rim: 0.08, midrange: 0.10, three: 0.82 },
+            usageRange:    [0.40, 0.65],
+            varianceRange: [0.22, 0.46],  // binary: hot or not
+            efficiencyRange: [0.96, 1.10],
+        },
+    };
+
+    // Probability weights for each archetype by position and tier.
+    // Format: [T1_weight, T2_weight, T3_weight]
+    // Higher = more likely to be selected. Weights are relative (normalised).
+    //
+    // Design intent:
+    //  - post_scorer fades from T1 to T3 (extinct at top, common at bottom)
+    //  - three_point_shooter / floor_spacer skew T1 (modern game)
+    //  - versatile_scorer is the rarest but exists in T1
+    //  - rim_runner and slasher are evergreen across all tiers
+    //  - facilitator is consistent (every tier has passers who don't shoot much)
+    static ARCHETYPE_WEIGHTS = {
+        PG: {
+            rim_runner:          [4,  5,  5],
+            post_scorer:         [0,  1,  3],
+            midrange_artist:     [4,  7,  9],
+            three_point_shooter: [12, 10,  7],
+            volume_scorer:       [10,  9,  8],
+            slasher:             [10,  9,  8],
+            versatile_scorer:    [12,  6,  2],
+            facilitator:         [20, 20, 22],
+            floor_spacer:        [4,  3,  1],
+        },
+        SG: {
+            rim_runner:          [5,  6,  7],
+            post_scorer:         [1,  3,  6],
+            midrange_artist:     [6,  9, 12],
+            three_point_shooter: [16, 13, 10],
+            volume_scorer:       [14, 13, 12],
+            slasher:             [12, 11, 10],
+            versatile_scorer:    [12,  6,  2],
+            facilitator:         [8,  9, 10],
+            floor_spacer:        [8,  6,  3],
+        },
+        SF: {
+            rim_runner:          [8,  9, 10],
+            post_scorer:         [3,  6, 10],
+            midrange_artist:     [7, 10, 13],
+            three_point_shooter: [12, 10,  7],
+            volume_scorer:       [12, 11, 10],
+            slasher:             [12, 11, 10],
+            versatile_scorer:    [14,  7,  2],
+            facilitator:         [10, 10, 11],
+            floor_spacer:        [6,  4,  2],
+        },
+        PF: {
+            rim_runner:          [14, 14, 14],
+            post_scorer:         [8, 14, 22],
+            midrange_artist:     [8, 10, 12],
+            three_point_shooter: [10,  7,  4],
+            volume_scorer:       [10,  9,  8],
+            slasher:             [12, 11, 10],
+            versatile_scorer:    [12,  5,  1],
+            facilitator:         [12, 12, 12],
+            floor_spacer:        [6,  4,  2],
+        },
+        C: {
+            rim_runner:          [22, 22, 20],
+            post_scorer:         [14, 20, 28],
+            midrange_artist:     [5,  8, 10],
+            three_point_shooter: [6,  4,  2],
+            volume_scorer:       [8,  8,  8],
+            slasher:             [10, 10, 10],
+            versatile_scorer:    [8,  3,  1],
+            facilitator:         [14, 14, 14],
+            floor_spacer:        [2,  1,  0],
+        },
+    };
+
+    /**
+     * Generate a scoring profile for a player.
+     *
+     * @param {string} position  - PG / SG / SF / PF / C
+     * @param {number} tier      - 1 / 2 / 3 (birth tier, not current)
+     * @param {number} age       - affects variance (young = streakier)
+     * @param {number} rating    - affects efficiency range and usage ceiling
+     * @returns {Object} scoringProfile
+     */
+    static generateScoringProfile(position, tier, age, rating) {
+        const pos = position || 'SF';
+        const tierIdx = Math.min(2, Math.max(0, (tier || 3) - 1));  // 0=T1, 1=T2, 2=T3
+
+        // --- Select archetype via weighted random ---
+        const weights = TeamFactory.ARCHETYPE_WEIGHTS[pos] ||
+                        TeamFactory.ARCHETYPE_WEIGHTS['SF'];
+        const total = Object.values(weights).reduce((s, w) => s + w[tierIdx], 0);
+        let roll = Math.random() * total;
+        let archetype = 'volume_scorer';
+        for (const [key, w] of Object.entries(weights)) {
+            roll -= w[tierIdx];
+            if (roll <= 0) { archetype = key; break; }
+        }
+
+        const def = TeamFactory.SCORING_ARCHETYPES[archetype];
+
+        // --- Shot shape: small random perturbation so no two players
+        //     are identical even with the same archetype ---
+        const jitter = () => (Math.random() - 0.5) * 0.08;
+        const rimRaw      = Math.max(0.04, def.shotShape.rim      + jitter());
+        const midrangeRaw = Math.max(0.04, def.shotShape.midrange + jitter());
+        const threeRaw    = Math.max(0.04, def.shotShape.three    + jitter());
+        const total3 = rimRaw + midrangeRaw + threeRaw;
+        const shotShape = {
+            rim:      +( rimRaw      / total3).toFixed(3),
+            midrange: +( midrangeRaw / total3).toFixed(3),
+            three:    +( threeRaw    / total3).toFixed(3),
+        };
+        // Force exactly 1.0 to avoid floating-point drift
+        shotShape.three = +(1 - shotShape.rim - shotShape.midrange).toFixed(3);
+
+        // --- Usage tendency ---
+        const [uMin, uMax] = def.usageRange;
+        // High-rated players trend toward the upper half of their range
+        const ratingBias = Math.max(0, Math.min(1, (rating - 60) / 35));
+        const usageBase = uMin + (uMax - uMin) * (0.3 + ratingBias * 0.5 + Math.random() * 0.2);
+        const usageTendency = +Math.max(0.40, Math.min(1.80, usageBase)).toFixed(3);
+
+        // --- Variance: young players are streakier ---
+        const [vMin, vMax] = def.varianceRange;
+        const ageVarianceMod = age <= 22 ? 0.06 : age >= 32 ? -0.04 : 0;
+        const variance = +Math.max(0.08, Math.min(0.50,
+            vMin + Math.random() * (vMax - vMin) + ageVarianceMod
+        )).toFixed(3);
+
+        // --- Efficiency: high-rated players skew toward upper range ---
+        const [eMin, eMax] = def.efficiencyRange;
+        const efficiencyBias = Math.max(0, Math.min(1, (rating - 60) / 35));
+        const efficiency = +( eMin + (eMax - eMin) * (0.2 + efficiencyBias * 0.6 + Math.random() * 0.2)).toFixed(3);
+
+        return {
+            archetype,
+            label: def.label,
+            usageTendency,
+            shotShape,
+            variance,
+            efficiency,
+        };
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // EMPTY SEASON STATS
     // ─────────────────────────────────────────────────────────────
 
@@ -204,6 +435,7 @@ export class TeamFactory {
         const salary = TeamFactory.generateSalary(rating, tier);
         const contractYears = TeamFactory.determineContractLength(age, rating);
         const enduranceThreshold = Math.max(60, Math.min(90, 65 + Math.round((attributes.endurance - 50) * 0.4)));
+        const scoringProfile = TeamFactory.generateScoringProfile(position, tier, age, rating);
 
         return {
             id: playerId,
@@ -212,6 +444,7 @@ export class TeamFactory {
             contractYears,
             originalContractLength: contractYears,
             measurables, attributes,
+            scoringProfile,
             chemistry: 75, gamesWithTeam: 0,
             injuryStatus: 'healthy', injury: null,
             fatigue: 0, fatigueThreshold: enduranceThreshold, gamesRested: 0,
@@ -244,6 +477,10 @@ export class TeamFactory {
         const enduranceThreshold = Math.max(60, Math.min(90, 65 + Math.round((attributes.endurance - 50) * 0.4)));
         const potentialBoost = Math.floor(3 + Math.random() * 12);
         const projectedCeiling = Math.min(92, clampedRating + potentialBoost);
+        // College graduates enter at their draft tier but with a slightly
+        // wider variance — they're unproven. Efficiency skews toward lower end.
+        const scoringProfile = TeamFactory.generateScoringProfile(position, targetTier, age, clampedRating);
+        scoringProfile.variance = Math.min(0.50, scoringProfile.variance + 0.04);
 
         return {
             id: playerId,
@@ -252,6 +489,7 @@ export class TeamFactory {
             salary, contractYears,
             originalContractLength: contractYears,
             measurables, attributes,
+            scoringProfile,
             chemistry: 75, gamesWithTeam: 0,
             injuryStatus: 'healthy', injury: null,
             fatigue: 0, fatigueThreshold: enduranceThreshold, gamesRested: 0,
@@ -325,6 +563,8 @@ export class TeamFactory {
             player.rating = regen.rating;
             player.salary = TeamFactory.generateSalary(player.rating, tier);
             player.fatigueThreshold = Math.max(60, Math.min(90, 65 + Math.round((player.attributes.endurance - 50) * 0.4)));
+            // Regenerate profile now that position and rating are finalised
+            player.scoringProfile = TeamFactory.generateScoringProfile(player.position, tier, player.age, player.rating);
             return player;
         }
 
