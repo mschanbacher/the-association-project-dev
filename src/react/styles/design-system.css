@@ -203,3 +203,28 @@
 .stagger > *:nth-child(6) { animation-delay: 150ms; }
 .stagger > *:nth-child(7) { animation-delay: 180ms; }
 .stagger > *:nth-child(8) { animation-delay: 210ms; }
+
+/* ─── Stat Tooltip ──────────────────────────────────────────── */
+.stat-tooltip {
+  position: fixed;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 7px 11px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.55;
+  max-width: 220px;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+  pointer-events: none;
+  z-index: 9999;
+  transform: translateX(-50%);
+  animation: fadeIn var(--duration-fast) var(--ease-out) both;
+}
+
+.stat-tooltip-trigger {
+  cursor: default;
+  border-bottom: 1px dotted var(--color-text-tertiary);
+}

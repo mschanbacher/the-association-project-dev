@@ -149,11 +149,11 @@ export function RosterScreen() {
                 <SortTh label="OVR" col="rating" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={80} />
                 <SortTh label="OFF" col="offRating" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={56} />
                 <SortTh label="DEF" col="defRating" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={56} />
-                <SortTh label="Salary" col="salary" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={90} />
                 <SortTh label="PTS" col="pts" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={52} />
                 <SortTh label="REB" col="reb" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={52} />
                 <SortTh label="AST" col="ast" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={52} />
                 <SortTh label="+/-" col="pm" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={56} />
+                <SortTh label="Salary" col="salary" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} width={90} />
                 <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, width: 56 }}>Yrs</th>
                 <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, width: 100 }}>Status</th>
               </tr>
@@ -369,17 +369,6 @@ function PlayerDetailRow({ player, engines }) {
     </div>
   );
 
-  const StatCell = ({ label, value, color, sub }) => (
-    <div style={{ textAlign: 'center', minWidth: 52 }}>
-      <div style={{
-        fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-mono)',
-        color: color || 'var(--color-text)', lineHeight: 1.1,
-      }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>{sub}</div>}
-    </div>
-  );
-
   const offKeys = [
     { key: 'clutch', label: 'Clutch' },
     { key: 'basketballIQ', label: 'Basketball IQ' },
@@ -455,35 +444,105 @@ function PlayerDetailRow({ player, engines }) {
           {hasStats ? (
             <div>
               <SectionLabel>This Season — {avgs.gamesPlayed}G · {avgs.minutesPerGame} MPG</SectionLabel>
-              {/* Per-game key stats row */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <StatCell label="PTS" value={stat(avgs.pointsPerGame)} />
-                <Divider />
-                <StatCell label="REB" value={stat(avgs.reboundsPerGame)} />
-                <StatCell label="AST" value={stat(avgs.assistsPerGame)} />
-                <StatCell label="STL" value={stat(avgs.stealsPerGame)} />
-                <StatCell label="BLK" value={stat(avgs.blocksPerGame)} />
-                <StatCell label="TOV" value={stat(avgs.turnoversPerGame)} color={avgs.turnoversPerGame > 2.5 ? 'var(--color-warning)' : undefined} />
-                <Divider />
-                <StatCell label="FG%" value={pct(avgs.fieldGoalPct)} />
-                <StatCell label="3P%" value={pct(avgs.threePointPct)} />
-                <StatCell label="FT%" value={pct(avgs.freeThrowPct)} />
-                <StatCell label="TS%" value={pct(avgs.trueShootingPct)}
-                  color={avgs.trueShootingPct >= 0.60 ? 'var(--color-win)' : avgs.trueShootingPct < 0.48 ? 'var(--color-warning)' : undefined} />
-                <Divider />
-                <StatCell label="+/- /G" value={pm(avgs.plusMinusPerGame)} color={pmColor(avgs.plusMinusPerGame)} />
-                <StatCell label="+/- TOT" value={pm(avgs.plusMinus)} color={pmColor(avgs.plusMinus)} />
+
+              {/* Counting stats: aligned grid — per-game row + per-36 row beneath */}
+              <div style={{ marginBottom: 16 }}>
+                {/* Column headers */}
+                {(() => {
+                  const COUNTING_TIPS = {
+                    PTS: 'Points per game scored.',
+                    REB: 'Total rebounds per game\n(offensive + defensive).',
+                    AST: 'Assists per game — passes\ndirectly leading to a basket.',
+                    STL: 'Steals per game — deflections\nor take-aways on defense.',
+                    BLK: 'Blocks per game — shots\nswatted at the rim.',
+                    TOV: 'Turnovers per game — times\nthe ball is lost to the opponent.\nLower is better.',
+                  };
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '64px repeat(6, 1fr)', marginBottom: 4 }}>
+                      <div />
+                      {Object.entries(COUNTING_TIPS).map(([col, tip]) => (
+                        <div key={col} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Tooltip text={tip}>{col}</Tooltip>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                {/* Per Game row */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '64px repeat(6, 1fr)',
+                  padding: '6px 0', borderTop: '1px solid var(--color-border-subtle)',
+                }}>
+                  <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontWeight: 600, alignSelf: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Per Game</div>
+                  {[
+                    stat(avgs.pointsPerGame),
+                    stat(avgs.reboundsPerGame),
+                    stat(avgs.assistsPerGame),
+                    stat(avgs.stealsPerGame),
+                    stat(avgs.blocksPerGame),
+                  ].map((v, i) => (
+                    <div key={i} style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>{v}</div>
+                  ))}
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color: avgs.turnoversPerGame > 2.5 ? 'var(--color-warning)' : 'var(--color-text)' }}>
+                    {stat(avgs.turnoversPerGame)}
+                  </div>
+                </div>
+                {/* Per 36 row */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '64px repeat(6, 1fr)',
+                  padding: '6px 0', borderTop: '1px solid var(--color-border-subtle)',
+                }}>
+                  <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontWeight: 600, alignSelf: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Per 36</div>
+                  {[
+                    stat(analytics.per36.points),
+                    stat(analytics.per36.rebounds),
+                    stat(analytics.per36.assists),
+                    stat(analytics.per36.steals),
+                    stat(analytics.per36.blocks),
+                    stat(analytics.per36.turnovers),
+                  ].map((v, i) => (
+                    <div key={i} style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600, color: 'var(--color-text-secondary)' }}>{v}</div>
+                  ))}
+                </div>
               </div>
 
-              {/* Per-36 row */}
-              <SectionLabel>Per 36 Minutes</SectionLabel>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <StatCell label="PTS" value={stat(analytics.per36.points)} />
-                <StatCell label="REB" value={stat(analytics.per36.rebounds)} />
-                <StatCell label="AST" value={stat(analytics.per36.assists)} />
-                <StatCell label="STL" value={stat(analytics.per36.steals)} />
-                <StatCell label="BLK" value={stat(analytics.per36.blocks)} />
-                <StatCell label="TOV" value={stat(analytics.per36.turnovers)} />
+              {/* Shooting + +/- row */}
+              <div style={{ marginBottom: 16 }}>
+                {/* Column headers */}
+                {(() => {
+                  const SHOOTING_TIPS = {
+                    'FG%': 'Field Goal % — made field goals\ndivided by attempted.\nIncludes 2s and 3s.',
+                    '3P%': '3-Point % — three-pointers made\ndivided by three-pointers attempted.',
+                    'FT%': 'Free Throw % — free throws made\ndivided by free throws attempted.',
+                    'TS%': 'True Shooting % — overall shooting\nefficiency accounting for 2s, 3s,\nand free throws.\nFormula: PTS ÷ (2 × (FGA + 0.44×FTA))\n55%+ is good, 60%+ is elite.',
+                    '+/- /G': 'Plus/Minus per game — average\npoint differential while this\nplayer is on the court.',
+                    '+/- TOT': 'Plus/Minus total — cumulative\npoint differential across all\ngames this season.',
+                  };
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '64px repeat(6, 1fr)', marginBottom: 4 }}>
+                      <div />
+                      {Object.entries(SHOOTING_TIPS).map(([col, tip]) => (
+                        <div key={col} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Tooltip text={tip}>{col}</Tooltip>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '64px repeat(6, 1fr)',
+                  padding: '6px 0', borderTop: '1px solid var(--color-border-subtle)',
+                }}>
+                  <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontWeight: 600, alignSelf: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Season</div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>{pct(avgs.fieldGoalPct)}</div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>{pct(avgs.threePointPct)}</div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>{pct(avgs.freeThrowPct)}</div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700,
+                    color: avgs.trueShootingPct >= 0.60 ? 'var(--color-win)' : avgs.trueShootingPct < 0.48 ? 'var(--color-warning)' : 'var(--color-text)',
+                  }}>{pct(avgs.trueShootingPct)}</div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color: pmColor(avgs.plusMinusPerGame) }}>{pm(avgs.plusMinusPerGame)}</div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color: pmColor(avgs.plusMinus) }}>{pm(avgs.plusMinus)}</div>
+                </div>
               </div>
 
               {/* Flags */}
@@ -532,6 +591,36 @@ function PlayerDetailRow({ player, engines }) {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Stat Tooltip
+   ═══════════════════════════════════════════════════════════════ */
+function Tooltip({ text, children }) {
+  const [visible, setVisible] = React.useState(false);
+  const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const ref = React.useRef(null);
+
+  const show = () => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 6, left: r.left + r.width / 2 });
+    setVisible(true);
+  };
+  const hide = () => setVisible(false);
+
+  return (
+    <>
+      <span ref={ref} onMouseEnter={show} onMouseLeave={hide} className="stat-tooltip-trigger">
+        {children}
+      </span>
+      {visible && (
+        <div className="stat-tooltip" style={{ top: pos.top, left: pos.left }}>
+          {text}
+        </div>
+      )}
+    </>
+  );
+}
+
 function SectionLabel({ children }) {
   return (
     <div style={{
@@ -544,11 +633,7 @@ function SectionLabel({ children }) {
   );
 }
 
-function Divider() {
-  return (
-    <div style={{ width: 1, background: 'var(--color-border)', alignSelf: 'stretch', margin: '0 4px' }} />
-  );
-}
+
 
 /* ═══════════════════════════════════════════════════════════════
    Summary Card
