@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Modal, ModalHeader, ModalBody } from '../components/Modal.jsx';
 
 export function GameMenuModal({ isOpen, onClose }) {
+  const [confirming, setConfirming] = useState(false);
+
   if (!isOpen) return null;
 
   const handleDownload = () => {
@@ -14,7 +16,10 @@ export function GameMenuModal({ isOpen, onClose }) {
   };
 
   const handleReset = () => {
-    onClose();
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
     window.resetGame?.();
   };
 
@@ -27,8 +32,13 @@ export function GameMenuModal({ isOpen, onClose }) {
 
         <div style={{ height: 1, background: 'var(--color-border)', margin: '8px 0' }} />
 
-        <MenuRow label="Reset Game" desc="Start over — all progress will be lost"
-          danger onClick={handleReset} />
+        {!confirming ? (
+          <MenuRow label="Reset Game" desc="Start over — all progress will be lost"
+            danger onClick={handleReset} />
+        ) : (
+          <MenuRow label="Confirm Reset?" desc="Click again to permanently erase your save"
+            danger active onClick={handleReset} />
+        )}
       </ModalBody>
     </Modal>
   );
