@@ -21905,7 +21905,6 @@ function EmptyState({ children }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "var(--color-text-tertiary)", fontSize: "var(--text-sm)" }, children });
 }
 function GameMenuModal({ isOpen, onClose }) {
-  const [confirming, setConfirming] = reactExports.useState(false);
   if (!isOpen) return null;
   const handleDownload = () => {
     var _a2;
@@ -21918,10 +21917,7 @@ function GameMenuModal({ isOpen, onClose }) {
   };
   const handleReset = () => {
     var _a2;
-    if (!confirming) {
-      setConfirming(true);
-      return;
-    }
+    onClose();
     (_a2 = window.resetGame) == null ? void 0 : _a2.call(window);
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(Modal, { isOpen, onClose, maxWidth: 360, children: [
@@ -21930,7 +21926,7 @@ function GameMenuModal({ isOpen, onClose }) {
       /* @__PURE__ */ jsxRuntimeExports.jsx(MenuRow, { label: "Download Save", desc: "Export your game to a file", onClick: handleDownload }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(MenuRow, { label: "Load Save", desc: "Import a save file (replaces current)", onClick: handleUpload }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { height: 1, background: "var(--color-border)", margin: "8px 0" } }),
-      !confirming ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
         MenuRow,
         {
           label: "Reset Game",
@@ -21938,21 +21934,12 @@ function GameMenuModal({ isOpen, onClose }) {
           danger: true,
           onClick: handleReset
         }
-      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-        MenuRow,
-        {
-          label: "Confirm Reset?",
-          desc: "Click again to permanently erase your save",
-          danger: true,
-          active: true,
-          onClick: handleReset
-        }
       )
     ] })
   ] });
 }
 function MenuRow({ label, desc, danger, active, onClick }) {
-  const [hovered, setHovered] = reactExports.useState(false);
+  const [hovered, setHovered] = useState(false);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "button",
     {
@@ -36480,22 +36467,11 @@ ${aiTeam.name} says: "${result.reason}"`);
     });
   }
   showAiTradeProposal() {
-    const { gameState, helpers } = this.ctx;
+    const { gameState } = this.ctx;
     const proposal = gameState.pendingTradeProposal;
     if (!proposal) return;
-    if (proposal.aiGivesPicks && proposal.aiGivesPicks.length > 0) ;
-    document.getElementById("aiProposalYouReceive").innerHTML = youReceiveHtml;
-    proposal.userGives.reduce((sum, p) => sum + p.rating, 0);
-    let aiGivesValue = proposal.aiGives.reduce((sum, p) => sum + p.rating, 0);
-    if (proposal.aiGivesPicks && proposal.aiGivesPicks.length > 0) {
-      proposal.aiGivesPicks.forEach((pick) => {
-        aiGivesValue += helpers.calculatePickValue(pick.year, pick.round);
-      });
-    }
     if (window._reactOpenAiTrade) {
       window._reactOpenAiTrade();
-    } else {
-      document.getElementById("aiTradeProposalModal").classList.remove("hidden");
     }
   }
   acceptAiTradeProposal() {
@@ -36548,25 +36524,9 @@ ${aiTeam.name} says: "${result.reason}"`);
     const seasonComplete = gameState.schedule && gameState.schedule.every((g) => g.played);
     if (seasonComplete) {
       console.log("Season complete after accepting trade, showing season end...");
-      alert(`Trade Complete!
-
-You traded with ${proposal.aiTeamName}.`);
       setTimeout(() => {
         this.ctx.simulationController.showSeasonEnd();
       }, 100);
-    } else {
-      const gamesRemaining = gameState.schedule.filter((g) => !g.played).length;
-      if (gamesRemaining > 0) {
-        alert(`Trade Complete!
-
-You traded with ${proposal.aiTeamName}.
-
-${gamesRemaining} games remaining. Click "Finish Season" to continue simulating.`);
-      } else {
-        alert(`Trade Complete!
-
-You traded with ${proposal.aiTeamName}.`);
-      }
     }
   }
   rejectAiTradeProposal() {
@@ -36588,15 +36548,6 @@ You traded with ${proposal.aiTeamName}.`);
       setTimeout(() => {
         this.ctx.simulationController.showSeasonEnd();
       }, 100);
-    } else {
-      const gamesRemaining = gameState.schedule.filter((g) => !g.played).length;
-      if (gamesRemaining > 0) {
-        setTimeout(() => {
-          alert(`Trade declined.
-
-${gamesRemaining} games remaining. Click "Finish Season" to continue simulating.`);
-        }, 100);
-      }
     }
   }
 }
@@ -40713,7 +40664,7 @@ This will replace your current save. This cannot be undone.`)) {
   }
   /** Reset game — clears all storage and reloads */
   reset() {
-    if (confirm("Are you sure you want to reset? All progress will be lost.")) {
+    {
       this.StorageEngine.clearAll().then(() => {
         location.reload();
       }).catch(() => {

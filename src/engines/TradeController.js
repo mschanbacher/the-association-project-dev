@@ -505,40 +505,12 @@ export class TradeController {
     }
 
     showAiTradeProposal() {
-        const { gameState, helpers } = this.ctx;
+        const { gameState } = this.ctx;
         const proposal = gameState.pendingTradeProposal;
         if (!proposal) return;
 
-        // [LEGACY REMOVED] document.getElementById('aiProposalTeam').innerHTML = UIRenderer.aiTradeProposalHeader(proposal.aiTeamName);
-
-        // [LEGACY REMOVED] document.getElementById('aiProposalYouGive').innerHTML = proposal.userGives.map(player =>
-            // [LEGACY REMOVED] UIRenderer.aiTradeProposalPlayerCard({ player, getRatingColor: helpers.getRatingColor, formatCurrency: helpers.formatCurrency })
-        // ).join('');
-
-        // [LEGACY REMOVED] let youReceiveHtml = proposal.aiGives.map(player =>
-            // [LEGACY REMOVED] UIRenderer.aiTradeProposalPlayerCard({ player, getRatingColor: helpers.getRatingColor, formatCurrency: helpers.formatCurrency })
-        // ).join('');
-
-        if (proposal.aiGivesPicks && proposal.aiGivesPicks.length > 0) {
-            // [LEGACY REMOVED] youReceiveHtml += proposal.aiGivesPicks.map(pick =>
-                // [LEGACY REMOVED] UIRenderer.aiTradeProposalPickCard({ pick, pickValue: helpers.calculatePickValue(pick.year, pick.round) })
-            // ).join('');
-        }
-        document.getElementById('aiProposalYouReceive').innerHTML = youReceiveHtml;
-
-        const userGivesValue = proposal.userGives.reduce((sum, p) => sum + p.rating, 0);
-        let aiGivesValue = proposal.aiGives.reduce((sum, p) => sum + p.rating, 0);
-        if (proposal.aiGivesPicks && proposal.aiGivesPicks.length > 0) {
-            proposal.aiGivesPicks.forEach(pick => {
-                aiGivesValue += helpers.calculatePickValue(pick.year, pick.round);
-            });
-        }
-
-        // [LEGACY REMOVED] document.getElementById('aiProposalSummary').innerHTML = UIRenderer.aiTradeProposalSummary({ userGivesValue, aiGivesValue });
         if (window._reactOpenAiTrade) {
             window._reactOpenAiTrade();
-        } else {
-            document.getElementById('aiTradeProposalModal').classList.remove('hidden');
         }
     }
 
@@ -604,15 +576,7 @@ export class TradeController {
         const seasonComplete = gameState.schedule && gameState.schedule.every(g => g.played);
         if (seasonComplete) {
             console.log('Season complete after accepting trade, showing season end...');
- alert(`Trade Complete!\n\nYou traded with ${proposal.aiTeamName}.`);
             setTimeout(() => { this.ctx.simulationController.showSeasonEnd(); }, 100);
-        } else {
-            const gamesRemaining = gameState.schedule.filter(g => !g.played).length;
-            if (gamesRemaining > 0) {
- alert(`Trade Complete!\n\nYou traded with ${proposal.aiTeamName}.\n\n${gamesRemaining} games remaining. Click "Finish Season" to continue simulating.`);
-            } else {
- alert(`Trade Complete!\n\nYou traded with ${proposal.aiTeamName}.`);
-            }
         }
     }
 
@@ -635,13 +599,6 @@ export class TradeController {
         if (seasonComplete) {
             console.log('Season complete after rejecting trade, showing season end...');
             setTimeout(() => { this.ctx.simulationController.showSeasonEnd(); }, 100);
-        } else {
-            const gamesRemaining = gameState.schedule.filter(g => !g.played).length;
-            if (gamesRemaining > 0) {
-                setTimeout(() => {
-                    alert(`Trade declined.\n\n${gamesRemaining} games remaining. Click "Finish Season" to continue simulating.`);
-                }, 100);
-            }
         }
     }
 }
