@@ -2,10 +2,7 @@ import React, { useMemo } from 'react';
 import { useGame } from '../hooks/GameBridge.jsx';
 import { Card } from '../components/Card.jsx';
 import { Badge } from '../components/Badge.jsx';
-import {
-  HexChart, HEX_AXES, hexToArray, hexComponentsFromProfile,
-  MiniHex,
-} from '../visualizations/PlayerVisuals.jsx';
+import { HexChart } from '../visualizations/PlayerVisuals.jsx';
 
 /* ─── Helpers ──────────────────────────────────────────────────────── */
 const rankSuffix = n => {
@@ -23,9 +20,8 @@ const tierLabel = t => ({ 1: 'Tier 1 · NAPL', 2: 'Tier 2 · NARBL', 3: 'Tier 3 
 
 // Derive hex components from snapshot player stats
 function hexFromTopPlayer(tp) {
-  if (!tp) return null;
-  // Approximate components from per-game stats
-  const scoring    = Math.min(30, Math.max(0, (tp.ppg || 0) * 0.9));
+  if (!tp || !tp.ppg) return null;
+  const scoring    = Math.min(30, Math.max(0, tp.ppg * 0.9));
   const effScalar  = tp.fgPct > 0 ? tp.fgPct / 100 : 0.45;
   const efficiency = Math.min(20, Math.max(0, (effScalar - 0.42) * 80));
   const pos        = tp.position || 'SF';
@@ -82,16 +78,15 @@ export function HistoryScreen() {
     });
     const total = wins + losses;
     const winPct = total > 0 ? wins / total : 0.5;
-    const pct = total > 0 ? (winPct * 100).toFixed(1) : '0.0';
     const recordColor = winPct >= 0.5 ? 'var(--color-win)' : 'var(--color-loss)';
-    return { wins, losses, championships, pct, seasons: history.length, playoffApps, recordColor };
+    return { wins, losses, championships, seasons: history.length, playoffApps, recordColor };
   }, [history]);
 
   const sorted = useMemo(() =>
     [...history].sort((a, b) => {
-      const aYear = parseInt((a.seasonLabel || a.season || '').split('-')[0]) || 0;
-      const bYear = parseInt((b.seasonLabel || b.season || '').split('-')[0]) || 0;
-      return bYear - aYear;
+      const ay = parseInt((a.seasonLabel || a.season || '').split('-')[0]) || 0;
+      const by = parseInt((b.seasonLabel || b.season || '').split('-')[0]) || 0;
+      return by - ay;
     }), [history]);
 
   return (
@@ -105,7 +100,7 @@ export function HistoryScreen() {
 
       {/* All-time summary */}
       <Card padding="lg" className="animate-slide-up">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)', textAlign: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--space-4)', textAlign: 'center' }}>
           <AllTimeStat label="Seasons"         value={stats.seasons}                   color="var(--color-text-secondary)" />
           <AllTimeStat label="All-Time Record"  value={`${stats.wins}–${stats.losses}`} color={stats.recordColor} />
           <AllTimeStat label="Playoff Apps"    value={stats.playoffApps}               color="var(--color-info)" />
@@ -113,7 +108,6 @@ export function HistoryScreen() {
         </div>
       </Card>
 
-      {/* Season Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         {sorted.map((season, i) => (
           <SeasonCard key={season.season || i} season={season} />
@@ -131,8 +125,9 @@ function PlayoffSection({ playoff, isChampion }) {
   if (result === 'missed') {
     return (
       <div style={{
-        padding: '8px 12px', marginTop: 'var(--space-2)',
-        background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)',
+        padding: '7px 12px', marginBottom: 'var(--space-2)',
+        background: 'var(--color-bg-sunken)',
+        border: '1px solid var(--color-border-subtle)',
         fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)',
       }}>
         Missed Playoffs
@@ -143,19 +138,29 @@ function PlayoffSection({ playoff, isChampion }) {
   if (isChampion) {
     return (
       <div style={{
-        padding: '12px 16px', marginTop: 'var(--space-2)',
+        padding: '12px 16px', marginBottom: 'var(--space-2)',
         background: 'var(--color-tier1-bg)',
         border: '2px solid var(--color-tier1)',
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 14,
       }}>
-        <span style={{ fontSize: 28, lineHeight: 1 }}>🏆</span>
+        {/* Typographic trophy mark — no emoji */}
+        <div style={{
+          width: 32, height: 32, flexShrink: 0,
+          border: '2px solid var(--color-tier1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 2 L10 6 L14 6.5 L11 9.5 L11.8 13.5 L8 11.5 L4.2 13.5 L5 9.5 L2 6.5 L6 6 Z"
+              fill="var(--color-tier1)" />
+          </svg>
+        </div>
         <div>
-          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-warning)' }}>
-            CHAMPIONS
+          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-warning)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Champions
           </div>
           {seed && (
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: 2 }}>
-              #{seed} {conf} seed
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: 3 }}>
+              #{seed} {conf || ''} seed
             </div>
           )}
         </div>
@@ -163,20 +168,20 @@ function PlayoffSection({ playoff, isChampion }) {
     );
   }
 
-  // In playoffs but eliminated
+  // Eliminated
   const seedStr = seed ? `#${seed} ${conf || ''} seed` : null;
   return (
     <div style={{
-      padding: '8px 12px', marginTop: 'var(--space-2)',
+      padding: '8px 12px', marginBottom: 'var(--space-2)',
       background: 'var(--color-info-bg)',
-      border: '1px solid var(--color-border-subtle)',
-      display: 'flex', flexDirection: 'column', gap: 2,
+      border: '1px solid var(--color-border)',
+      borderLeft: '3px solid var(--color-info)',
     }}>
       <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-info)' }}>
         {label}
       </div>
       {seedStr && (
-        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
           {seedStr}
         </div>
       )}
@@ -185,12 +190,10 @@ function PlayoffSection({ playoff, isChampion }) {
 }
 
 /* ─── Team MVP Panel ───────────────────────────────────────────────── */
-function MVPPanel({ topPlayer }) {
+function MVPPanel({ topPlayer, isLeagueMvp }) {
   if (!topPlayer) return null;
   const hasPts = topPlayer.ppg > 0;
-
   const hexComponents = hasPts ? hexFromTopPlayer(topPlayer) : null;
-  const hexArray = hexComponents ? hexToArray(hexComponents) : null;
 
   const blurb = (() => {
     if (!hasPts) return null;
@@ -208,47 +211,65 @@ function MVPPanel({ topPlayer }) {
     return parts.length > 0 ? parts.slice(0, 2).join(', ') : null;
   })();
 
+  const panelBorder = isLeagueMvp ? 'var(--color-warning)' : 'var(--color-accent)';
+  const panelBg     = isLeagueMvp ? 'var(--color-warning-bg)' : 'var(--color-bg)';
+  const labelColor  = isLeagueMvp ? 'var(--color-warning)' : 'var(--color-text-tertiary)';
+  const pillBg      = isLeagueMvp ? 'rgba(196,138,24,0.06)' : 'var(--color-bg-sunken)';
+  const pillBorder  = isLeagueMvp ? 'rgba(196,138,24,0.2)' : 'var(--color-border-subtle)';
+
   return (
     <div style={{
-      marginTop: 'var(--space-3)',
       border: '1px solid var(--color-border-subtle)',
-      borderLeft: '2px solid var(--color-accent)',
-      background: 'var(--color-bg-page)',
+      borderLeft: `2px solid ${panelBorder}`,
+      background: panelBg,
       overflow: 'hidden',
+      marginTop: 'var(--space-2)',
     }}>
-      {/* MVP label */}
+      {/* Label row */}
       <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '6px 12px',
-        borderBottom: '1px solid var(--color-border-subtle)',
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-        textTransform: 'uppercase', color: 'var(--color-text-tertiary)',
+        borderBottom: `1px solid ${isLeagueMvp ? 'rgba(196,138,24,0.2)' : 'var(--color-border-subtle)'}`,
+        background: isLeagueMvp ? 'var(--color-warning-bg)' : 'transparent',
       }}>
-        Team MVP
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+          textTransform: 'uppercase', color: labelColor,
+        }}>
+          Team MVP
+        </span>
+        {isLeagueMvp && (
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: '2px 7px',
+            background: 'var(--color-warning)', color: 'var(--color-text-inverse)',
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+          }}>
+            League MVP
+          </span>
+        )}
       </div>
 
-      {/* Body: hex left, stats right */}
-      <div style={{ display: 'flex', gap: 0 }}>
-
-        {/* Hex graphic */}
-        {hexArray && (
+      {/* Body */}
+      <div style={{ display: 'flex' }}>
+        {/* Hex chart */}
+        {hexComponents && (
           <div style={{
-            padding: '12px 10px 12px 14px',
+            padding: '14px 10px 14px 14px',
             borderRight: '1px solid var(--color-border-subtle)',
             display: 'flex', alignItems: 'center', flexShrink: 0,
           }}>
-            <HexChart components={hexComponents} size={110} />
+            <HexChart components={hexComponents} size={130} />
           </div>
         )}
 
         {/* Stats */}
-        <div style={{ padding: '12px 14px', flex: 1, minWidth: 0 }}>
-          {/* Name row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+        <div style={{ padding: '14px', flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
             <div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: 2 }}>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: 4 }}>
                 {topPlayer.name}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{
                   fontSize: 10, fontWeight: 600, padding: '1px 5px',
                   background: 'var(--color-bg-sunken)', color: 'var(--color-text-secondary)',
@@ -268,15 +289,13 @@ function MVPPanel({ topPlayer }) {
 
           {hasPts && (
             <>
-              {/* Stat pills */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                <StatPill label="PPG" value={topPlayer.ppg} />
-                <StatPill label="RPG" value={topPlayer.rpg} />
-                <StatPill label="APG" value={topPlayer.apg} />
-                {topPlayer.spg > 0 && <StatPill label="SPG" value={topPlayer.spg} />}
-                {topPlayer.bpg > 0 && <StatPill label="BPG" value={topPlayer.bpg} />}
+                <StatPill label="PPG" value={topPlayer.ppg} pillBg={pillBg} pillBorder={pillBorder} />
+                <StatPill label="RPG" value={topPlayer.rpg} pillBg={pillBg} pillBorder={pillBorder} />
+                <StatPill label="APG" value={topPlayer.apg} pillBg={pillBg} pillBorder={pillBorder} />
+                {topPlayer.spg > 0 && <StatPill label="SPG" value={topPlayer.spg} pillBg={pillBg} pillBorder={pillBorder} />}
+                {topPlayer.bpg > 0 && <StatPill label="BPG" value={topPlayer.bpg} pillBg={pillBg} pillBorder={pillBorder} />}
               </div>
-              {/* Shooting */}
               <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
                 FG {topPlayer.fgPct}%
                 {topPlayer.threePct > 0 && ` · 3P ${topPlayer.threePct}%`}
@@ -291,12 +310,13 @@ function MVPPanel({ topPlayer }) {
   );
 }
 
-function StatPill({ label, value }) {
+function StatPill({ label, value, pillBg, pillBorder }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      padding: '3px 8px', background: 'var(--color-bg-sunken)',
-      border: '1px solid var(--color-border-subtle)', minWidth: 40,
+      padding: '3px 8px', minWidth: 42,
+      background: pillBg || 'var(--color-bg-sunken)',
+      border: `1px solid ${pillBorder || 'var(--color-border-subtle)'}`,
     }}>
       <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{value}</span>
       <span style={{ fontSize: 9, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -333,11 +353,16 @@ function SeasonCard({ season }) {
   const tierAwards = season.awards
     ? (ut.tier === 1 ? season.awards.tier1 : ut.tier === 2 ? season.awards.tier2 : season.awards.tier3)
     : null;
+
+  // Check if team MVP is also league MVP
+  const isLeagueMvp = tierAwards?.mvp?.teamId === ut.id;
+
   const userAwards = [];
   if (tierAwards) {
     const awardLabels = { mvp: 'MVP', dpoy: 'DPOY', roy: 'ROY', sixthMan: '6MOY', mostImproved: 'MIP' };
     Object.entries(awardLabels).forEach(([key, label]) => {
-      if (tierAwards[key]?.teamId === ut.id) userAwards.push({ label, name: tierAwards[key].name });
+      if (key !== 'mvp' && tierAwards[key]?.teamId === ut.id)
+        userAwards.push({ label, name: tierAwards[key].name });
     });
   }
 
@@ -360,7 +385,7 @@ function SeasonCard({ season }) {
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)' }}>
             {tierLabel(ut.tier)}
           </span>
-          {promoRelStatus === 'promoted' && <Badge variant="win">Promoted</Badge>}
+          {promoRelStatus === 'promoted'  && <Badge variant="win">Promoted</Badge>}
           {promoRelStatus === 'relegated' && <Badge variant="loss">Relegated</Badge>}
         </div>
         <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', color: wCol, fontVariantNumeric: 'tabular-nums' }}>
@@ -368,18 +393,14 @@ function SeasonCard({ season }) {
         </span>
       </div>
 
-      {/* Standing + coach */}
-      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-1)' }}>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-2)' }}>
         Finished {rankSuffix(ut.rank)} of {getTotalTeams(ut)} · Coach: {ut.coachName || '—'}
       </div>
 
-      {/* Playoff section */}
       <PlayoffSection playoff={ut.playoff} isChampion={isChampion} />
 
-      {/* Team MVP */}
-      <MVPPanel topPlayer={ut.topPlayer} />
+      <MVPPanel topPlayer={ut.topPlayer} isLeagueMvp={isLeagueMvp} />
 
-      {/* User awards */}
       {userAwards.length > 0 && (
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: 'var(--space-3)' }}>
           {userAwards.map((a, i) => (
@@ -388,25 +409,24 @@ function SeasonCard({ season }) {
         </div>
       )}
 
-      {/* League MVP + champions footnote */}
-      {(tierAwards?.mvp || champLine) && (
+      {(!isLeagueMvp && tierAwards?.mvp) || champLine ? (
         <div style={{
           marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)',
           borderTop: '1px solid var(--color-border-subtle)',
           fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)',
           display: 'flex', flexDirection: 'column', gap: 4,
         }}>
-          {tierAwards?.mvp && (
+          {!isLeagueMvp && tierAwards?.mvp && (
             <span>League MVP: {tierAwards.mvp.name} ({tierAwards.mvp.team}) — {tierAwards.mvp.ppg?.toFixed(1)} PPG, {tierAwards.mvp.rpg?.toFixed(1)} RPG, {tierAwards.mvp.apg?.toFixed(1)} APG</span>
           )}
           {champLine && <span>Champions: {champLine}</span>}
         </div>
-      )}
+      ) : null}
     </Card>
   );
 }
 
-/* ─── Sub-components ───────────────────────────────────────────────── */
+/* ─── Primitives ───────────────────────────────────────────────────── */
 function AllTimeStat({ label, value, color }) {
   return (
     <div>

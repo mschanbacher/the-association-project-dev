@@ -2,6 +2,18 @@
    The Association Project — Design System
    Dieter Rams: Less But Better
    Sharp geometry · Tight spacing · Team identity through color
+
+   VISUAL LANGUAGE PRINCIPLES
+   ─────────────────────────────────────────────────────────────
+   NO EMOJIS — ever. Emojis are decorative clutter and conflict
+   with the Dieter Rams aesthetic of purposeful restraint.
+   Use typographic symbols (→ · — ×) or geometric SVG marks
+   when a visual indicator is needed. Status and achievement
+   are communicated through color, weight, and layout — not icons.
+
+   ICONOGRAPHY — use only when a text label alone is insufficient.
+   Prefer simple geometric SVG shapes (circles, lines, polygons)
+   over pictographic icon sets. Every mark must earn its place.
    ═══════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap');

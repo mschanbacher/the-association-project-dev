@@ -13790,10 +13790,6 @@ function hexComponentsFromProfile(player) {
     isProjection: true
   };
 }
-function hexToArray(hexObj) {
-  if (!hexObj) return null;
-  return HEX_AXES.map((ax) => ({ label: ax.short, value: hexObj[ax.key] ?? 0, max: ax.max }));
-}
 function HexChart({ components, size = 180, hoveredAxis, onHoverAxis }) {
   const cx = size / 2, cy = size / 2;
   const maxR = size * 0.36;
@@ -17839,8 +17835,8 @@ const rankSuffix$1 = (n) => {
 const getTotalTeams$1 = (ut) => ut.totalTeams || (ut.tier === 1 ? 30 : ut.tier === 2 ? 86 : 144);
 const tierLabel$1 = (t) => ({ 1: "Tier 1 · NAPL", 2: "Tier 2 · NARBL", 3: "Tier 3 · MBL" })[t] || `Tier ${t}`;
 function hexFromTopPlayer(tp) {
-  if (!tp) return null;
-  const scoring = Math.min(30, Math.max(0, (tp.ppg || 0) * 0.9));
+  if (!tp || !tp.ppg) return null;
+  const scoring = Math.min(30, Math.max(0, tp.ppg * 0.9));
   const effScalar = tp.fgPct > 0 ? tp.fgPct / 100 : 0.45;
   const efficiency = Math.min(20, Math.max(0, (effScalar - 0.42) * 80));
   const pos = tp.position || "SF";
@@ -17890,14 +17886,13 @@ function HistoryScreen() {
     });
     const total = wins + losses;
     const winPct = total > 0 ? wins / total : 0.5;
-    const pct = total > 0 ? (winPct * 100).toFixed(1) : "0.0";
     const recordColor = winPct >= 0.5 ? "var(--color-win)" : "var(--color-loss)";
-    return { wins, losses, championships, pct, seasons: history.length, playoffApps, recordColor };
+    return { wins, losses, championships, seasons: history.length, playoffApps, recordColor };
   }, [history]);
   const sorted = reactExports.useMemo(() => [...history].sort((a, b) => {
-    const aYear = parseInt((a.seasonLabel || a.season || "").split("-")[0]) || 0;
-    const bYear = parseInt((b.seasonLabel || b.season || "").split("-")[0]) || 0;
-    return bYear - aYear;
+    const ay = parseInt((a.seasonLabel || a.season || "").split("-")[0]) || 0;
+    const by = parseInt((b.seasonLabel || b.season || "").split("-")[0]) || 0;
+    return by - ay;
   }), [history]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
     maxWidth: "var(--content-max)",
@@ -17908,7 +17903,7 @@ function HistoryScreen() {
     gap: "var(--space-5)"
   }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: { fontSize: "var(--text-xl)", fontWeight: "var(--weight-bold)", margin: 0 }, children: "Franchise History" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { padding: "lg", className: "animate-slide-up", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-4)", textAlign: "center" }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { padding: "lg", className: "animate-slide-up", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "var(--space-4)", textAlign: "center" }, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(AllTimeStat, { label: "Seasons", value: stats.seasons, color: "var(--color-text-secondary)" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(AllTimeStat, { label: "All-Time Record", value: `${stats.wins}–${stats.losses}`, color: stats.recordColor }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(AllTimeStat, { label: "Playoff Apps", value: stats.playoffApps, color: "var(--color-info)" }),
@@ -17922,8 +17917,8 @@ function PlayoffSection({ playoff, isChampion }) {
   const { result, label, seed, conf } = playoff;
   if (result === "missed") {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
-      padding: "8px 12px",
-      marginTop: "var(--space-2)",
+      padding: "7px 12px",
+      marginBottom: "var(--space-2)",
       background: "var(--color-bg-sunken)",
       border: "1px solid var(--color-border-subtle)",
       fontSize: "var(--text-xs)",
@@ -17933,21 +17928,35 @@ function PlayoffSection({ playoff, isChampion }) {
   if (isChampion) {
     return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
       padding: "12px 16px",
-      marginTop: "var(--space-2)",
+      marginBottom: "var(--space-2)",
       background: "var(--color-tier1-bg)",
       border: "2px solid var(--color-tier1)",
       display: "flex",
       alignItems: "center",
-      gap: 12
+      gap: 14
     }, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: 28, lineHeight: 1 }, children: "🏆" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
+        width: 32,
+        height: 32,
+        flexShrink: 0,
+        border: "2px solid var(--color-tier1)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }, children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "none", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "path",
+        {
+          d: "M8 2 L10 6 L14 6.5 L11 9.5 L11.8 13.5 L8 11.5 L4.2 13.5 L5 9.5 L2 6.5 L6 6 Z",
+          fill: "var(--color-tier1)"
+        }
+      ) }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-warning)" }, children: "CHAMPIONS" }),
-        seed && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", marginTop: 2 }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-warning)", letterSpacing: "0.05em", textTransform: "uppercase" }, children: "Champions" }),
+        seed && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", marginTop: 3 }, children: [
           "#",
           seed,
           " ",
-          conf,
+          conf || "",
           " seed"
         ] })
       ] })
@@ -17956,22 +17965,19 @@ function PlayoffSection({ playoff, isChampion }) {
   const seedStr = seed ? `#${seed} ${conf || ""} seed` : null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
     padding: "8px 12px",
-    marginTop: "var(--space-2)",
+    marginBottom: "var(--space-2)",
     background: "var(--color-info-bg)",
-    border: "1px solid var(--color-border-subtle)",
-    display: "flex",
-    flexDirection: "column",
-    gap: 2
+    border: "1px solid var(--color-border)",
+    borderLeft: "3px solid var(--color-info)"
   }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-info)" }, children: label }),
-    seedStr && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 11, color: "var(--color-text-tertiary)" }, children: seedStr })
+    seedStr && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 2 }, children: seedStr })
   ] });
 }
-function MVPPanel$1({ topPlayer }) {
+function MVPPanel$1({ topPlayer, isLeagueMvp }) {
   if (!topPlayer) return null;
   const hasPts = topPlayer.ppg > 0;
   const hexComponents = hasPts ? hexFromTopPlayer(topPlayer) : null;
-  const hexArray = hexComponents ? hexToArray(hexComponents) : null;
   const blurb = (() => {
     if (!hasPts) return null;
     const { ppg, rpg, apg, spg, bpg, fgPct } = topPlayer;
@@ -17987,35 +17993,56 @@ function MVPPanel$1({ topPlayer }) {
     if (fgPct >= 52) parts.push("efficient shooter");
     return parts.length > 0 ? parts.slice(0, 2).join(", ") : null;
   })();
+  const panelBorder = isLeagueMvp ? "var(--color-warning)" : "var(--color-accent)";
+  const panelBg = isLeagueMvp ? "var(--color-warning-bg)" : "var(--color-bg)";
+  const labelColor = isLeagueMvp ? "var(--color-warning)" : "var(--color-text-tertiary)";
+  const pillBg = isLeagueMvp ? "rgba(196,138,24,0.06)" : "var(--color-bg-sunken)";
+  const pillBorder = isLeagueMvp ? "rgba(196,138,24,0.2)" : "var(--color-border-subtle)";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
-    marginTop: "var(--space-3)",
     border: "1px solid var(--color-border-subtle)",
-    borderLeft: "2px solid var(--color-accent)",
-    background: "var(--color-bg-page)",
-    overflow: "hidden"
+    borderLeft: `2px solid ${panelBorder}`,
+    background: panelBg,
+    overflow: "hidden",
+    marginTop: "var(--space-2)"
   }, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
       padding: "6px 12px",
-      borderBottom: "1px solid var(--color-border-subtle)",
-      fontSize: 10,
-      fontWeight: 700,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
-      color: "var(--color-text-tertiary)"
-    }, children: "Team MVP" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: 0 }, children: [
-      hexArray && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
-        padding: "12px 10px 12px 14px",
+      borderBottom: `1px solid ${isLeagueMvp ? "rgba(196,138,24,0.2)" : "var(--color-border-subtle)"}`,
+      background: isLeagueMvp ? "var(--color-warning-bg)" : "transparent"
+    }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: {
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: labelColor
+      }, children: "Team MVP" }),
+      isLeagueMvp && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: {
+        fontSize: 10,
+        fontWeight: 700,
+        padding: "2px 7px",
+        background: "var(--color-warning)",
+        color: "var(--color-text-inverse)",
+        letterSpacing: "0.04em",
+        textTransform: "uppercase"
+      }, children: "League MVP" })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex" }, children: [
+      hexComponents && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
+        padding: "14px 10px 14px 14px",
         borderRight: "1px solid var(--color-border-subtle)",
         display: "flex",
         alignItems: "center",
         flexShrink: 0
-      }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(HexChart, { components: hexComponents, size: 110 }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "12px 14px", flex: 1, minWidth: 0 }, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }, children: [
+      }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(HexChart, { components: hexComponents, size: 130 }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "14px", flex: 1, minWidth: 0 }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: "var(--text-sm)", fontWeight: 700, marginBottom: 2 }, children: topPlayer.name }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: "var(--text-sm)", fontWeight: 700, marginBottom: 4 }, children: topPlayer.name }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }, children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: {
                 fontSize: 10,
                 fontWeight: 600,
@@ -18034,11 +18061,11 @@ function MVPPanel$1({ topPlayer }) {
         ] }),
         hasPts && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "PPG", value: topPlayer.ppg }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "RPG", value: topPlayer.rpg }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "APG", value: topPlayer.apg }),
-            topPlayer.spg > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "SPG", value: topPlayer.spg }),
-            topPlayer.bpg > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "BPG", value: topPlayer.bpg })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "PPG", value: topPlayer.ppg, pillBg, pillBorder }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "RPG", value: topPlayer.rpg, pillBg, pillBorder }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "APG", value: topPlayer.apg, pillBg, pillBorder }),
+            topPlayer.spg > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "SPG", value: topPlayer.spg, pillBg, pillBorder }),
+            topPlayer.bpg > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$3, { label: "BPG", value: topPlayer.bpg, pillBg, pillBorder })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: 11, color: "var(--color-text-tertiary)" }, children: [
             "FG ",
@@ -18053,22 +18080,22 @@ function MVPPanel$1({ topPlayer }) {
     ] })
   ] });
 }
-function StatPill$3({ label, value }) {
+function StatPill$3({ label, value, pillBg, pillBorder }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     padding: "3px 8px",
-    background: "var(--color-bg-sunken)",
-    border: "1px solid var(--color-border-subtle)",
-    minWidth: 40
+    minWidth: 42,
+    background: pillBg || "var(--color-bg-sunken)",
+    border: `1px solid ${pillBorder || "var(--color-border-subtle)"}`
   }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: 13, fontWeight: 700, lineHeight: 1.2 }, children: value }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: 9, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em" }, children: label })
   ] });
 }
 function SeasonCard$1({ season }) {
-  var _a2, _b2, _c, _d;
+  var _a2, _b2, _c, _d, _e;
   const ut = season.userTeam;
   if (!ut) return null;
   const winPct = (ut.wins || 0) / Math.max(1, (ut.wins || 0) + (ut.losses || 0));
@@ -18087,12 +18114,14 @@ function SeasonCard$1({ season }) {
       promoRelStatus = "relegated";
   }
   const tierAwards = season.awards ? ut.tier === 1 ? season.awards.tier1 : ut.tier === 2 ? season.awards.tier2 : season.awards.tier3 : null;
+  const isLeagueMvp = ((_b2 = tierAwards == null ? void 0 : tierAwards.mvp) == null ? void 0 : _b2.teamId) === ut.id;
   const userAwards = [];
   if (tierAwards) {
     const awardLabels = { mvp: "MVP", dpoy: "DPOY", roy: "ROY", sixthMan: "6MOY", mostImproved: "MIP" };
     Object.entries(awardLabels).forEach(([key, label]) => {
       var _a3;
-      if (((_a3 = tierAwards[key]) == null ? void 0 : _a3.teamId) === ut.id) userAwards.push({ label, name: tierAwards[key].name });
+      if (key !== "mvp" && ((_a3 = tierAwards[key]) == null ? void 0 : _a3.teamId) === ut.id)
+        userAwards.push({ label, name: tierAwards[key].name });
     });
   }
   const champLine = season.champions ? [
@@ -18117,7 +18146,7 @@ function SeasonCard$1({ season }) {
         ut.losses
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginBottom: "var(--space-1)" }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginBottom: "var(--space-2)" }, children: [
       "Finished ",
       rankSuffix$1(ut.rank),
       " of ",
@@ -18126,13 +18155,13 @@ function SeasonCard$1({ season }) {
       ut.coachName || "—"
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(PlayoffSection, { playoff: ut.playoff, isChampion }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(MVPPanel$1, { topPlayer: ut.topPlayer }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(MVPPanel$1, { topPlayer: ut.topPlayer, isLeagueMvp }),
     userAwards.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-3)" }, children: userAwards.map((a, i2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "accent", children: [
       a.label,
       ": ",
       a.name
     ] }, i2)) }),
-    ((tierAwards == null ? void 0 : tierAwards.mvp) || champLine) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+    !isLeagueMvp && (tierAwards == null ? void 0 : tierAwards.mvp) || champLine ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
       marginTop: "var(--space-3)",
       paddingTop: "var(--space-3)",
       borderTop: "1px solid var(--color-border-subtle)",
@@ -18142,24 +18171,24 @@ function SeasonCard$1({ season }) {
       flexDirection: "column",
       gap: 4
     }, children: [
-      (tierAwards == null ? void 0 : tierAwards.mvp) && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+      !isLeagueMvp && (tierAwards == null ? void 0 : tierAwards.mvp) && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
         "League MVP: ",
         tierAwards.mvp.name,
         " (",
         tierAwards.mvp.team,
         ") — ",
-        (_b2 = tierAwards.mvp.ppg) == null ? void 0 : _b2.toFixed(1),
+        (_c = tierAwards.mvp.ppg) == null ? void 0 : _c.toFixed(1),
         " PPG, ",
-        (_c = tierAwards.mvp.rpg) == null ? void 0 : _c.toFixed(1),
+        (_d = tierAwards.mvp.rpg) == null ? void 0 : _d.toFixed(1),
         " RPG, ",
-        (_d = tierAwards.mvp.apg) == null ? void 0 : _d.toFixed(1),
+        (_e = tierAwards.mvp.apg) == null ? void 0 : _e.toFixed(1),
         " APG"
       ] }),
       champLine && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
         "Champions: ",
         champLine
       ] })
-    ] })
+    ] }) : null
   ] });
 }
 function AllTimeStat({ label, value, color }) {
@@ -48120,6 +48149,18 @@ StorageEngine$1.init().then(() => {
    The Association Project — Design System
    Dieter Rams: Less But Better
    Sharp geometry · Tight spacing · Team identity through color
+
+   VISUAL LANGUAGE PRINCIPLES
+   ─────────────────────────────────────────────────────────────
+   NO EMOJIS — ever. Emojis are decorative clutter and conflict
+   with the Dieter Rams aesthetic of purposeful restraint.
+   Use typographic symbols (→ · — ×) or geometric SVG marks
+   when a visual indicator is needed. Status and achievement
+   are communicated through color, weight, and layout — not icons.
+
+   ICONOGRAPHY — use only when a text label alone is insufficient.
+   Prefer simple geometric SVG shapes (circles, lines, polygons)
+   over pictographic icon sets. Every mark must earn its place.
    ═══════════════════════════════════════════════════════════════ */
 :root {
   /* ── Surfaces ── */
