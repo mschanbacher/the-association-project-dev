@@ -272,15 +272,108 @@ export class OffseasonController {
                 const userTier = gameState.currentTier;
                 const tierStandings = userTier === 1 ? snapshot.standings.tier1 : userTier === 2 ? snapshot.standings.tier2 : snapshot.standings.tier3;
                 const userStanding = tierStandings.find(t => t.id === userTeamSnap.id);
+
+                // Build rich topPlayer snapshot with full stat line
+                let topPlayer = null;
+                if (userTeamSnap.roster && userTeamSnap.roster.length > 0) {
+                    const best = [...userTeamSnap.roster].sort((a, b) => b.rating - a.rating)[0];
+                    const ss = best.seasonStats;
+                    const gp = ss && ss.gamesPlayed > 0 ? ss.gamesPlayed : 1;
+                    topPlayer = {
+                        name: best.name, rating: best.rating, position: best.position,
+                        gamesPlayed: ss ? ss.gamesPlayed : 0,
+                        ppg: ss ? +(ss.points / gp).toFixed(1) : 0,
+                        rpg: ss ? +(ss.rebounds / gp).toFixed(1) : 0,
+                        apg: ss ? +(ss.assists / gp).toFixed(1) : 0,
+                        spg: ss ? +(ss.steals / gp).toFixed(1) : 0,
+                        bpg: ss ? +(ss.blocks / gp).toFixed(1) : 0,
+                        fgPct: ss && ss.fieldGoalsAttempted > 0
+                            ? +(ss.fieldGoalsMade / ss.fieldGoalsAttempted * 100).toFixed(1) : 0,
+                        threePct: ss && ss.threePointersAttempted > 0
+                            ? +(ss.threePointersMade / ss.threePointersAttempted * 100).toFixed(1) : 0,
+                        ftPct: ss && ss.freeThrowsAttempted > 0
+                            ? +(ss.freeThrowsMade / ss.freeThrowsAttempted * 100).toFixed(1) : 0,
+                    };
+                }
+
+                // Determine user's playoff result for this season
+                const playoffResult = (() => {
+                    const action = gameState.userPlayoffResult;
+                    if (!action || action === 'stay') return { result: 'missed', label: 'Missed Playoffs' };
+
+                    if (userTier === 1) {
+                        if (action !== 'championship') return { result: 'missed', label: 'Missed Playoffs' };
+                        const cpd = gameState.championshipPlayoffData;
+                        let seed = null, conf = null;
+                        if (cpd) {
+                            const eastIdx = cpd.eastTeams ? cpd.eastTeams.findIndex(t => t.id === userTeamSnap.id) : -1;
+                            const westIdx = cpd.westTeams ? cpd.westTeams.findIndex(t => t.id === userTeamSnap.id) : -1;
+                            if (eastIdx >= 0) { seed = eastIdx + 1; conf = 'East'; }
+                            else if (westIdx >= 0) { seed = westIdx + 1; conf = 'West'; }
+                        }
+                        const roundNames = ['First Round', 'Conf. Semifinals', 'Conf. Finals', 'Finals'];
+                        let eliminatedRound = null;
+                        let isChamp = false;
+                        if (cpd && cpd.roundResults) {
+                            for (let r = 0; r < cpd.roundResults.length; r++) {
+                                const roundSeries = cpd.roundResults[r];
+                                const userSeries = roundSeries.find(s =>
+                                    s.result && (s.result.loser && s.result.loser.id === userTeamSnap.id ||
+                                                 s.result.winner && s.result.winner.id === userTeamSnap.id)
+                                );
+                                if (userSeries) {
+                                    if (userSeries.result.loser && userSeries.result.loser.id === userTeamSnap.id) {
+                                        eliminatedRound = roundNames[r] || ('Round ' + (r + 1));
+                                        break;
+                                    }
+                                    if (r === 3 && userSeries.result.winner && userSeries.result.winner.id === userTeamSnap.id) {
+                                        isChamp = true;
+                                    }
+                                }
+                            }
+                        }
+                        if (isChamp) return { result: 'champion', label: 'Champion', seed, conf };
+                        if (eliminatedRound) return { result: 'eliminated', label: 'Eliminated — ' + eliminatedRound, seed, conf };
+                        return { result: 'playoffs', label: 'Playoffs', seed, conf };
+                    }
+
+                    if (userTier === 2) {
+                        if (action !== 't2-championship') return { result: 'missed', label: 'Missed Playoffs' };
+                        const pr = postseason.t2;
+                        if (!pr) return { result: 'playoffs', label: 'Playoffs' };
+                        if (pr.champion && pr.champion.id === userTeamSnap.id) return { result: 'champion', label: 'T2 Champion' };
+                        let reachedFinal = false, reachedSemis = false;
+                        (pr.divisions || []).forEach(d => {
+                            if (!d) return;
+                            if (d.finalResult && d.finalResult.loser && d.finalResult.loser.id === userTeamSnap.id) reachedFinal = true;
+                            if (d.semi1Result && d.semi1Result.loser && d.semi1Result.loser.id === userTeamSnap.id) reachedSemis = true;
+                            if (d.semi2Result && d.semi2Result.loser && d.semi2Result.loser.id === userTeamSnap.id) reachedSemis = true;
+                        });
+                        if (reachedFinal) return { result: 'eliminated', label: 'Eliminated — Division Final' };
+                        if (reachedSemis) return { result: 'eliminated', label: 'Eliminated — Division Semis' };
+                        return { result: 'playoffs', label: 'Playoffs' };
+                    }
+
+                    if (userTier === 3) {
+                        if (action !== 't3-championship') return { result: 'missed', label: 'Missed Playoffs' };
+                        const pr = postseason.t3;
+                        if (!pr) return { result: 'playoffs', label: 'Playoffs' };
+                        if (pr.champion && pr.champion.id === userTeamSnap.id) return { result: 'champion', label: 'T3 Champion' };
+                        return { result: 'eliminated', label: 'Playoffs' };
+                    }
+
+                    return { result: 'missed', label: 'Missed Playoffs' };
+                })();
+
                 snapshot.userTeam = {
                     id: userTeamSnap.id, name: userTeamSnap.name, city: userTeamSnap.city,
                     tier: userTier, wins: userTeamSnap.wins, losses: userTeamSnap.losses,
                     rank: userStanding ? userStanding.rank : null,
+                    totalTeams: tierStandings.length,
                     coachName: userTeamSnap.coach ? userTeamSnap.coach.name : 'None',
                     rosterSize: userTeamSnap.roster ? userTeamSnap.roster.length : 0,
-                    topPlayer: userTeamSnap.roster && userTeamSnap.roster.length > 0
-                        ? (() => { const best = [...userTeamSnap.roster].sort((a, b) => b.rating - a.rating)[0]; return { name: best.name, rating: best.rating, position: best.position }; })()
-                        : null
+                    topPlayer,
+                    playoff: playoffResult,
                 };
             }
 

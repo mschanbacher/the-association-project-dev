@@ -13936,7 +13936,7 @@ function HexAxisTooltip({ axis, components }) {
   const value = components[axis.key] ?? 0;
   const norm = hexNorm(components, axis);
   const color = hexPerfColor(norm);
-  const pct2 = Math.round(norm * 100);
+  const pct = Math.round(norm * 100);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
     background: "var(--color-bg-raised)",
     border: `1px solid ${color}`,
@@ -13953,7 +13953,7 @@ function HexAxisTooltip({ axis, components }) {
         axis.max
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { height: 4, background: "var(--color-bg-sunken)", marginBottom: 6 }, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { height: "100%", width: `${pct2}%`, background: color } }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { height: 4, background: "var(--color-bg-sunken)", marginBottom: 6 }, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { height: "100%", width: `${pct}%`, background: color } }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { color: "var(--color-text-tertiary)", lineHeight: 1.4, whiteSpace: "pre-line" }, children: axis.tip })
   ] });
 }
@@ -14062,10 +14062,10 @@ function computePercentile(value, pool) {
   if (pool.length === 0) return 0;
   return pool.filter((v) => v < value).length / pool.length;
 }
-function pctBarColor(pct2) {
-  if (pct2 >= 0.9) return "var(--color-rating-elite)";
-  if (pct2 >= 0.75) return "var(--color-rating-good)";
-  if (pct2 >= 0.25) return "var(--color-rating-avg)";
+function pctBarColor(pct) {
+  if (pct >= 0.9) return "var(--color-rating-elite)";
+  if (pct >= 0.75) return "var(--color-rating-good)";
+  if (pct >= 0.25) return "var(--color-rating-avg)";
   return "var(--color-rating-poor)";
 }
 function LeaguePercentileSection({ avgs, tierPool, playerPos, currentTier }) {
@@ -14126,14 +14126,14 @@ function LeaguePercentileSection({ avgs, tierPool, playerPos, currentTier }) {
       if (playerVal == null) return null;
       const poolVals = activePool.map((p) => p.avgs[stat.key]).filter((v) => v != null);
       if (poolVals.length === 0) return null;
-      const pct2 = computePercentile(playerVal, poolVals);
-      const rank = Math.round((1 - pct2) * n) + 1;
-      const color = pctBarColor(pct2);
+      const pct = computePercentile(playerVal, poolVals);
+      const rank = Math.round((1 - pct) * n) + 1;
+      const color = pctBarColor(pct);
       return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "grid", gridTemplateColumns: "36px 1fr 48px 62px", gap: 0, alignItems: "center", padding: "6px 0" }, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 10, fontWeight: 700, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em" }, children: stat.label }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { position: "relative", height: 14, marginLeft: 6, marginRight: 8, background: "var(--color-bg-sunken)", overflow: "hidden" }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: 0, height: "100%", width: `${(pct2 * 100).toFixed(1)}%`, background: color, opacity: 0.75 } }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: 0, height: "100%", width: `${(pct * 100).toFixed(1)}%`, background: color, opacity: 0.75 } }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: "50%", width: 1, height: "100%", background: "var(--color-border)" } }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: "75%", width: 1, height: "100%", background: "var(--color-border)", opacity: 0.5 } })
           ] }),
@@ -14169,7 +14169,7 @@ function PlayerStatGrid({ avgs, analytics }) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 12, color: "var(--color-text-tertiary)", fontStyle: "italic" }, children: "No games played this season yet." });
   }
   const stat = (v, d = 1) => v != null ? Number(v).toFixed(d) : "—";
-  const pct2 = (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—";
+  const pct = (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—";
   const pm = (v) => v == null ? "—" : v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1);
   const pmColor = (v) => v > 0 ? "var(--color-win)" : v < 0 ? "var(--color-loss)" : "var(--color-text-tertiary)";
   const flagColors = { warning: "var(--color-warning)", positive: "var(--color-win)", info: "var(--color-accent)" };
@@ -14182,12 +14182,12 @@ function PlayerStatGrid({ avgs, analytics }) {
     { label: "TOV", val: stat(avgs.turnoversPerGame) }
   ];
   const SHOOTING = [
-    { label: "FG%", val: pct2(avgs.fieldGoalPct) },
-    { label: "3P%", val: pct2(avgs.threePointPct) },
-    { label: "FT%", val: pct2(avgs.freeThrowPct) },
+    { label: "FG%", val: pct(avgs.fieldGoalPct) },
+    { label: "3P%", val: pct(avgs.threePointPct) },
+    { label: "FT%", val: pct(avgs.freeThrowPct) },
     {
       label: "TS%",
-      val: pct2(avgs.trueShootingPct),
+      val: pct(avgs.trueShootingPct),
       color: avgs.trueShootingPct >= 0.6 ? "var(--color-win)" : avgs.trueShootingPct < 0.48 ? "var(--color-warning)" : "var(--color-text)"
     },
     { label: "+/-/G", val: pm(avgs.plusMinusPerGame), color: pmColor(avgs.plusMinusPerGame) },
@@ -14859,13 +14859,13 @@ function NextGameWidget() {
   ] });
 }
 function WinProbArc({ probability, size = 140 }) {
-  const pct2 = Math.round(probability * 100);
+  const pct = Math.round(probability * 100);
   const strokeWidth = 16;
   const radius = (size - strokeWidth) / 2;
   const cx = size / 2;
   const cy = size / 2 + 10;
   const prob = Math.max(0.02, Math.min(0.98, probability));
-  const arcColor = pct2 >= 60 ? "var(--color-accent)" : pct2 >= 45 ? "var(--color-text-secondary)" : "var(--color-loss)";
+  const arcColor = pct >= 60 ? "var(--color-accent)" : pct >= 45 ? "var(--color-text-secondary)" : "var(--color-loss)";
   const leftX = cx - radius, leftY = cy;
   const topX = cx, topY = cy - radius;
   const rightX = cx + radius, rightY = cy;
@@ -14886,7 +14886,7 @@ function WinProbArc({ probability, size = 140 }) {
           strokeLinecap: "butt"
         }
       ),
-      pct2 > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      pct > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "path",
         {
           d: fillPath,
@@ -14911,7 +14911,7 @@ function WinProbArc({ probability, size = 140 }) {
         color: arcColor,
         lineHeight: 1
       }, children: [
-        pct2,
+        pct,
         "%"
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
@@ -15439,7 +15439,7 @@ function OverallStandings({ teams, tier, gameState, engines }) {
       const zone = getZone(rank, sorted.length, tier);
       const isUser = team.id === gameState.userTeamId;
       const total = team.wins + team.losses;
-      const pct2 = total > 0 ? (team.wins / total).toFixed(3).slice(1) : ".000";
+      const pct = total > 0 ? (team.wins / total).toFixed(3).slice(1) : ".000";
       const gb = rank === 1 ? "—" : (leaderWins - team.wins + team.losses - leaderLosses) / 2;
       const gbStr = gb === "—" ? "—" : gb === 0 ? "—" : gb.toFixed(1);
       const diff = team.pointDiff || 0;
@@ -15456,7 +15456,7 @@ function OverallStandings({ teams, tier, gameState, engines }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "left", style: { color: "var(--color-text-tertiary)", fontSize: "var(--text-sm)" }, children: team.division || "—" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, style: { color: "var(--color-win)" }, children: team.wins }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, style: { color: "var(--color-loss)" }, children: team.losses }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, children: pct2 }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, children: pct }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, style: { color: "var(--color-text-tertiary)" }, children: gbStr }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(Td$2, { align: "center", mono: true, style: {
           color: diff > 0 ? "var(--color-win)" : diff < 0 ? "var(--color-loss)" : "var(--color-text-tertiary)"
@@ -15518,7 +15518,7 @@ function DivisionStandings({ teams, tier, gameState, engines }) {
       /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: divisions[divName].map((team, i2) => {
         const isUser = team.id === gameState.userTeamId;
         const total = team.wins + team.losses;
-        const pct2 = total > 0 ? (team.wins / total).toFixed(3).slice(1) : ".000";
+        const pct = total > 0 ? (team.wins / total).toFixed(3).slice(1) : ".000";
         const diff = team.pointDiff || 0;
         return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { style: {
           ...trowStyle$1,
@@ -15529,7 +15529,7 @@ function DivisionStandings({ teams, tier, gameState, engines }) {
           /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "left", style: { color: isUser ? "var(--color-accent)" : "var(--color-text)" }, children: team.name }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, style: { color: "var(--color-win)" }, children: team.wins }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, style: { color: "var(--color-loss)" }, children: team.losses }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, children: pct2 }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Td$2, { align: "center", mono: true, children: pct }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(Td$2, { align: "center", mono: true, style: {
             color: diff > 0 ? "var(--color-win)" : diff < 0 ? "var(--color-loss)" : "var(--color-text-tertiary)"
           }, children: [
@@ -16872,7 +16872,7 @@ function PlayerDetailRow({ player, engines, team }) {
     return { tierPool: pool, tierPoolByPos: byPos };
   }, [gameState, StatEngine2]);
   const pmColor = (v) => v > 0 ? "var(--color-win)" : v < 0 ? "var(--color-loss)" : "var(--color-text-tertiary)";
-  const pct2 = (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—";
+  const pct = (v) => v != null ? `${(v * 100).toFixed(1)}%` : "—";
   const stat = (v, decimals = 1) => v != null ? v.toFixed(decimals) : "—";
   const pm = (v) => v == null ? "—" : v > 0 ? `+${v}` : `${v}`;
   const verdictLabel = {
@@ -16996,16 +16996,16 @@ function PlayerDetailRow({ player, engines, team }) {
           borderTop: "1px solid var(--color-border-subtle)"
         }, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 10, color: "var(--color-text-tertiary)", fontWeight: 600, alignSelf: "center", textTransform: "uppercase", letterSpacing: "0.04em" }, children: "Season" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }, children: pct2(avgs.fieldGoalPct) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }, children: pct2(avgs.threePointPct) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }, children: pct2(avgs.freeThrowPct) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }, children: pct(avgs.fieldGoalPct) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }, children: pct(avgs.threePointPct) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }, children: pct(avgs.freeThrowPct) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
             textAlign: "center",
             fontFamily: "var(--font-mono)",
             fontSize: 16,
             fontWeight: 700,
             color: avgs.trueShootingPct >= 0.6 ? "var(--color-win)" : avgs.trueShootingPct < 0.48 ? "var(--color-warning)" : "var(--color-text)"
-          }, children: pct2(avgs.trueShootingPct) }),
+          }, children: pct(avgs.trueShootingPct) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: pmColor(avgs.plusMinusPerGame) }, children: pm(avgs.plusMinusPerGame) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: pmColor(avgs.plusMinus) }, children: pm(avgs.plusMinus) })
         ] })
@@ -17058,15 +17058,15 @@ function PlayerDetailRow({ player, engines, team }) {
             mid: "var(--color-zone-mid)",
             three: "var(--color-zone-three)"
           };
-          const tierColor = (pct22, zone) => {
-            const d = pct22 - LEAGUE_AVG[zone];
+          const tierColor = (pct2, zone) => {
+            const d = pct2 - LEAGUE_AVG[zone];
             if (d >= 0.07) return "var(--color-rating-elite)";
             if (d >= 0.02) return "var(--color-win)";
             if (d >= -0.03) return "var(--color-text-secondary)";
             return "var(--color-loss)";
           };
-          const tierLabel2 = (pct22, zone) => {
-            const d = pct22 - LEAGUE_AVG[zone];
+          const tierLabel2 = (pct2, zone) => {
+            const d = pct2 - LEAGUE_AVG[zone];
             if (d >= 0.07) return "Elite";
             if (d >= 0.02) return "Good";
             if (d >= -0.03) return "Avg";
@@ -17369,14 +17369,14 @@ function PlayerDetailRow({ player, engines, team }) {
           if (playerVal == null) return null;
           const poolVals = activePool.map((p) => p.avgs[stat2.key]).filter((v) => v != null);
           if (poolVals.length === 0) return null;
-          const pct22 = computePercentile(playerVal, poolVals);
-          const rank = Math.round((1 - pct22) * n) + 1;
-          const color = pctBarColor(pct22);
+          const pct2 = computePercentile(playerVal, poolVals);
+          const rank = Math.round((1 - pct2) * n) + 1;
+          const color = pctBarColor(pct2);
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "grid", gridTemplateColumns: "36px 1fr 48px 62px", gap: 0, alignItems: "center", padding: "6px 0" }, children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 10, fontWeight: 700, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em" }, children: stat2.label }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { position: "relative", height: 14, marginLeft: 6, marginRight: 8, background: "var(--color-bg-sunken)", overflow: "hidden" }, children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: 0, height: "100%", width: `${(pct22 * 100).toFixed(1)}%`, background: color, opacity: 0.75 } }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: 0, height: "100%", width: `${(pct2 * 100).toFixed(1)}%`, background: color, opacity: 0.75 } }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: "50%", width: 1, height: "100%", background: "var(--color-border)" } }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "absolute", top: 0, left: "75%", width: 1, height: "100%", background: "var(--color-border)", opacity: 0.5 } })
               ] }),
@@ -17722,8 +17722,8 @@ function StatCard({ label, value, valueColor, sub, subColor }) {
   ] });
 }
 function ProgressBar$1({ value, floorPct }) {
-  const pct2 = Math.min(1, Math.max(0, value));
-  const color = pct2 > 0.9 ? "var(--color-loss)" : pct2 > 0.8 ? "var(--color-warning)" : "var(--color-win)";
+  const pct = Math.min(1, Math.max(0, value));
+  const color = pct > 0.9 ? "var(--color-loss)" : pct > 0.8 ? "var(--color-warning)" : "var(--color-win)";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
     background: "var(--color-bg-sunken)",
     height: 20,
@@ -17735,7 +17735,7 @@ function ProgressBar$1({ value, floorPct }) {
       left: 0,
       top: 0,
       height: "100%",
-      width: `${pct2 * 100}%`,
+      width: `${pct * 100}%`,
       background: color,
       transition: "width 0.5s var(--ease-out)"
     } }),
@@ -17751,7 +17751,7 @@ function ProgressBar$1({ value, floorPct }) {
   ] });
 }
 function RevenueRow({ label, amount, total, color }) {
-  const pct2 = total > 0 ? Math.max(3, amount / total * 100) : 0;
+  const pct = total > 0 ? Math.max(3, amount / total * 100) : 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
       display: "flex",
@@ -17768,7 +17768,7 @@ function RevenueRow({ label, amount, total, color }) {
       overflow: "hidden"
     }, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
       height: "100%",
-      width: `${pct2}%`,
+      width: `${pct}%`,
       background: color,
       transition: "width 0.4s var(--ease-out)"
     } }) })
@@ -17861,8 +17861,8 @@ function HistoryScreen() {
       }
     });
     const total = wins + losses;
-    const pct2 = total > 0 ? (wins / total * 100).toFixed(1) : "0.0";
-    return { wins, losses, championships, pct: pct2, seasons: history.length };
+    const pct = total > 0 ? (wins / total * 100).toFixed(1) : "0.0";
+    return { wins, losses, championships, pct, seasons: history.length };
   }, [history]);
   const sorted = reactExports.useMemo(() => [...history].sort((a, b) => b.season - a.season), [history]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
@@ -17925,8 +17925,8 @@ function SeasonCard$1({ season }) {
   ].filter(Boolean).join(" · ") : "";
   const winColor2 = (() => {
     const total = (ut.wins || 0) + (ut.losses || 0);
-    const pct2 = total > 0 ? ut.wins / total : 0.5;
-    return pct2 >= 0.6 ? "var(--color-win)" : pct2 <= 0.4 ? "var(--color-loss)" : "var(--color-text)";
+    const pct = total > 0 ? ut.wins / total : 0.5;
+    return pct >= 0.6 ? "var(--color-win)" : pct <= 0.4 ? "var(--color-loss)" : "var(--color-text)";
   })();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { padding: "lg", className: "animate-slide-up", style: isChampion ? {
     borderColor: "var(--color-accent-border)",
@@ -18253,8 +18253,8 @@ function CoachAvatar({ name, archetype }) {
   ] });
 }
 function TraitBar({ trait }) {
-  const pct2 = Math.min(100, Math.max(0, trait.value));
-  const color = pct2 >= 80 ? "var(--color-rating-elite)" : pct2 >= 60 ? "var(--color-rating-good)" : pct2 >= 40 ? "var(--color-rating-avg)" : "var(--color-rating-below)";
+  const pct = Math.min(100, Math.max(0, trait.value));
+  const color = pct >= 80 ? "var(--color-rating-elite)" : pct >= 60 ? "var(--color-rating-good)" : pct >= 40 ? "var(--color-rating-avg)" : "var(--color-rating-below)";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
       display: "flex",
@@ -18280,22 +18280,22 @@ function TraitBar({ trait }) {
       overflow: "hidden"
     }, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
       height: "100%",
-      width: `${pct2}%`,
+      width: `${pct}%`,
       background: color,
       transition: "width 0.4s var(--ease-out)"
     } }) })
   ] });
 }
 function ProgressBar({ value }) {
-  const pct2 = Math.min(1, Math.max(0, value));
-  const color = pct2 >= 0.7 ? "var(--color-win)" : pct2 >= 0.4 ? "var(--color-warning)" : "var(--color-loss)";
+  const pct = Math.min(1, Math.max(0, value));
+  const color = pct >= 0.7 ? "var(--color-win)" : pct >= 0.4 ? "var(--color-warning)" : "var(--color-loss)";
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
     background: "var(--color-bg-sunken)",
     height: 6,
     overflow: "hidden"
   }, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
     height: "100%",
-    width: `${pct2 * 100}%`,
+    width: `${pct * 100}%`,
     background: color,
     transition: "width 0.4s var(--ease-out)"
   } }) });
@@ -18740,9 +18740,9 @@ function ScoutPlayerCard({ player: p, fc, isWatched, onWatch, userPosCounts, exp
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: 12, alignItems: "center", padding: "0 10px", borderLeft: "1px solid var(--color-border-subtle)", borderRight: "1px solid var(--color-border-subtle)" }, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "PPG", value: ppg }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "RPG", value: rpg }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "APG", value: apg }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$2, { label: "PPG", value: ppg }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$2, { label: "RPG", value: rpg }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$2, { label: "APG", value: apg }),
       fit && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "center", minWidth: 28 }, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 14, fontWeight: 700, color: gradeColor(fit.grade), lineHeight: 1.2 }, children: fit.grade }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 8, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: 1 }, children: "Fit" })
@@ -19071,10 +19071,10 @@ function WatchListTab({ gameState, engines }) {
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: 12, alignItems: "center", padding: "0 10px", borderLeft: "1px solid var(--color-border-subtle)", borderRight: "1px solid var(--color-border-subtle)" }, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "OVR", value: p.rating }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "Fit", value: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: gradeColor(fit.grade) }, children: fit.grade }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "Salary", value: fmtCurrency$2(p.salary || 0) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "Yrs", value: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { color: contractColor }, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$2, { label: "OVR", value: p.rating }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$2, { label: "Fit", value: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: gradeColor(fit.grade) }, children: fit.grade }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$2, { label: "Salary", value: fmtCurrency$2(p.salary || 0) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$2, { label: "Yrs", value: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { color: contractColor }, children: [
             p.contractYears,
             "yr"
           ] }) })
@@ -19237,7 +19237,7 @@ function NeedsTab({ gameState, engines }) {
     ] })
   ] });
 }
-function StatPill$1({ label, value }) {
+function StatPill$2({ label, value }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "center", minWidth: 32 }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-text)", lineHeight: 1.2 }, children: value ?? "—" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 8, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: 1 }, children: label })
@@ -21857,10 +21857,10 @@ function PlayerCard({ player: p, mode, isWatched, fc, onWatch, userPosCounts, ex
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: 14, alignItems: "center", padding: "0 12px", borderLeft: "1px solid var(--color-border-subtle)", borderRight: "1px solid var(--color-border-subtle)" }, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "PPG", value: ppg }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "RPG", value: rpg }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "APG", value: apg }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "TS%", value: ts })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "PPG", value: ppg }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "RPG", value: rpg }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "APG", value: apg }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill$1, { label: "TS%", value: ts })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(MiniHex$1, { components: p._hex, size: 44 }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }, children: [
@@ -21896,7 +21896,7 @@ function PlayerCard({ player: p, mode, isWatched, fc, onWatch, userPosCounts, ex
     }
   );
 }
-function StatPill({ label, value }) {
+function StatPill$1({ label, value }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "center", minWidth: 36 }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-text)", lineHeight: 1.2 }, children: value ?? "—" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 8, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: 1 }, children: label })
@@ -22816,8 +22816,8 @@ function FinancialTransitionModal({ isOpen, data, onContinue, onSpendingChange }
   const rc = getRatingColor || ((r2) => r2 >= 80 ? "var(--color-rating-elite)" : r2 >= 70 ? "var(--color-rating-good)" : r2 >= 60 ? "var(--color-rating-avg)" : "var(--color-rating-poor)");
   const f = team.finances;
   const r = summary.revenue;
-  const pct2 = spendingPct !== null ? spendingPct : Math.round(spendingRatio * 100);
-  const adjLimit = Math.round(summary.totalRevenue * (pct2 / 100));
+  const pct = spendingPct !== null ? spendingPct : Math.round(spendingRatio * 100);
+  const adjLimit = Math.round(summary.totalRevenue * (pct / 100));
   const adjCap = adjLimit - totalSalary;
   const accent = isRelegation ? "var(--color-loss)" : "var(--color-win)";
   const handleSlider = (val) => {
@@ -22854,7 +22854,7 @@ function FinancialTransitionModal({ isOpen, data, onContinue, onSpendingChange }
             {
               label: currentTier === 1 ? "Salary Cap" : "Spending Limit",
               value: fc(spendingPct !== null ? adjLimit : spendingLimit),
-              sub: currentTier !== 1 ? `${pct2}% of revenue` : "Fixed T1 cap"
+              sub: currentTier !== 1 ? `${pct}% of revenue` : "Fixed T1 cap"
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -23001,7 +23001,7 @@ function FinancialTransitionModal({ isOpen, data, onContinue, onSpendingChange }
                     type: "range",
                     min: "60",
                     max: "90",
-                    value: pct2,
+                    value: pct,
                     onChange: (e) => handleSlider(e.target.value),
                     style: { flex: 1, cursor: "pointer", accentColor: "var(--color-accent)" }
                   }
@@ -23010,7 +23010,7 @@ function FinancialTransitionModal({ isOpen, data, onContinue, onSpendingChange }
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "center", fontSize: "var(--text-sm)" }, children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { fontWeight: 700, fontFamily: "var(--font-mono)" }, children: [
-                  pct2,
+                  pct,
                   "%"
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "var(--color-text-tertiary)", margin: "0 6px" }, children: "→" }),
@@ -25608,7 +25608,7 @@ function ArenaSection({ arena, expansionCost, renovationCost, expansionSeats, fc
   ] });
 }
 function TicketPricingSection({ initialPct }) {
-  const [pct2, setPct] = reactExports.useState(initialPct);
+  const [pct, setPct] = reactExports.useState(initialPct);
   const handleChange = reactExports.useCallback((e) => {
     var _a2;
     const val = parseInt(e.target.value);
@@ -25624,7 +25624,7 @@ function TicketPricingSection({ initialPct }) {
           type: "range",
           min: "70",
           max: "150",
-          value: pct2,
+          value: pct,
           onChange: handleChange,
           style: { flex: 1, cursor: "pointer", accentColor: "var(--color-accent)" }
         }
@@ -25633,22 +25633,22 @@ function TicketPricingSection({ initialPct }) {
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "center", fontSize: "var(--text-sm)" }, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { fontWeight: 700, fontFamily: "var(--font-mono)" }, children: [
-        pct2,
+        pct,
         "%"
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "var(--color-text-tertiary)", marginLeft: 4 }, children: "of base price" }),
-      pct2 > 110 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { color: "var(--color-warning)", marginLeft: 8, fontSize: "var(--text-xs)" }, children: [
+      pct > 110 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { color: "var(--color-warning)", marginLeft: 8, fontSize: "var(--text-xs)" }, children: [
         "+",
-        pct2 - 100,
+        pct - 100,
         "% rev/ticket · ~",
-        Math.round((pct2 - 100) * 0.6),
+        Math.round((pct - 100) * 0.6),
         "% fewer fans"
       ] }),
-      pct2 < 90 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { color: "var(--color-info)", marginLeft: 8, fontSize: "var(--text-xs)" }, children: [
+      pct < 90 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: { color: "var(--color-info)", marginLeft: 8, fontSize: "var(--text-xs)" }, children: [
         "−",
-        100 - pct2,
+        100 - pct,
         "% rev/ticket · ~",
-        Math.round((100 - pct2) * 0.4),
+        Math.round((100 - pct) * 0.4),
         "% more fans"
       ] })
     ] })
@@ -28348,20 +28348,16 @@ const rankSuffix = (n) => {
   if (last === 3) return n + "rd";
   return n + "th";
 };
-const pct = (w, l) => {
-  const t = w + l;
-  return t > 0 ? (w / t * 100).toFixed(1) : "0.0";
-};
 const winColor = (w, l) => {
   const p = w / Math.max(1, w + l);
   return p >= 0.6 ? "var(--color-win)" : p <= 0.4 ? "var(--color-loss)" : "var(--color-text)";
 };
 const tierLabel = (t) => t === 1 ? "Tier 1 — NAPL" : t === 2 ? "Tier 2 — NARBL" : "Tier 3 — MBL";
-const tierTeamCount = (t) => t === 1 ? 30 : t === 2 ? 86 : 144;
+const getTotalTeams = (ut) => ut.totalTeams || (ut.tier === 1 ? 30 : ut.tier === 2 ? 86 : 144);
 function FranchiseHistoryModal({ isOpen, data, onClose }) {
   if (!isOpen || !data) return null;
   const { history = [] } = data;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(Modal, { isOpen, onClose, maxWidth: 680, zIndex: 1300, children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(Modal, { isOpen, onClose, maxWidth: 700, zIndex: 1300, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(ModalHeader, { onClose, children: "Franchise History" }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs(ModalBody, { style: { maxHeight: "80vh", overflowY: "auto" }, children: [
       history.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "center", padding: 40, color: "var(--color-text-tertiary)" }, children: [
@@ -28373,39 +28369,39 @@ function FranchiseHistoryModal({ isOpen, data, onClose }) {
   ] });
 }
 function HistoryContent({ history }) {
-  const { totalWins, totalLosses, championships } = reactExports.useMemo(() => {
-    let w = 0, l = 0, ch = 0;
+  const { totalWins, totalLosses, championships, playoffAppearances } = reactExports.useMemo(() => {
+    let w = 0, l = 0, ch = 0, pa = 0;
     history.forEach((s) => {
       if (s.userTeam) {
         w += s.userTeam.wins;
         l += s.userTeam.losses;
-      }
-      if (s.champions && s.userTeam) {
-        const tier = s.userTeam.tier;
-        const champ = tier === 1 ? s.champions.tier1 : tier === 2 ? s.champions.tier2 : s.champions.tier3;
-        if (champ && champ.id === s.userTeam.id) ch++;
+        const po = s.userTeam.playoff;
+        if (po && po.result !== "missed") pa++;
+        if (po && po.result === "champion") ch++;
+        else if (!po && s.champions && s.userTeam) {
+          const tier = s.userTeam.tier;
+          const champ = tier === 1 ? s.champions.tier1 : tier === 2 ? s.champions.tier2 : s.champions.tier3;
+          if (champ && champ.id === s.userTeam.id) ch++;
+        }
       }
     });
-    return { totalWins: w, totalLosses: l, championships: ch };
+    return { totalWins: w, totalLosses: l, championships: ch, playoffAppearances: pa };
   }, [history]);
-  const sorted = reactExports.useMemo(() => [...history].sort((a, b) => b.season - a.season), [history]);
+  const sorted = reactExports.useMemo(() => [...history].sort((a, b) => {
+    const aYear = parseInt((a.seasonLabel || a.season || "").split("-")[0]) || 0;
+    const bYear = parseInt((b.seasonLabel || b.season || "").split("-")[0]) || 0;
+    return bYear - aYear;
+  }), [history]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--gap)", marginBottom: 20 }, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(MetricBox, { value: history.length, label: "Seasons" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(MetricBox, { value: `${totalWins}–${totalLosses}`, label: "All-Time Record" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        MetricBox,
-        {
-          value: championships,
-          label: "Championships",
-          highlight: championships > 0
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(MetricBox, { value: `${pct(totalWins, totalLosses)}%`, label: "Win Pct" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(MetricBox, { value: playoffAppearances, label: "Playoff Apps" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(MetricBox, { value: championships, label: "Championships", highlight: championships > 0 })
     ] }),
     sorted.map((season) => {
       if (!season.userTeam) return null;
-      return /* @__PURE__ */ jsxRuntimeExports.jsx(SeasonCard, { season }, season.season);
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SeasonCard, { season }, season.season || season.seasonLabel);
     })
   ] });
 }
@@ -28429,10 +28425,122 @@ function MetricBox({ value, label, highlight }) {
     }, children: label })
   ] });
 }
+function PlayoffBadge({ playoff }) {
+  if (!playoff) return null;
+  const { result, label, seed, conf } = playoff;
+  const colors = {
+    champion: { bg: "var(--color-accent-bg)", border: "var(--color-accent)", text: "var(--color-accent)" },
+    eliminated: { bg: "rgba(102,126,234,0.08)", border: "rgba(102,126,234,0.3)", text: "#667eea" },
+    playoffs: { bg: "rgba(102,126,234,0.08)", border: "rgba(102,126,234,0.3)", text: "#667eea" },
+    missed: { bg: "var(--color-bg-sunken)", border: "var(--color-border-subtle)", text: "var(--color-text-tertiary)" }
+  };
+  const c = colors[result] || colors.missed;
+  const seedStr = seed ? `#${seed} ${conf || ""} · ` : "";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    padding: "4px 8px",
+    fontSize: 11,
+    fontWeight: 600,
+    background: c.bg,
+    border: `1px solid ${c.border}`,
+    color: c.text,
+    whiteSpace: "nowrap"
+  }, children: [
+    result === "champion" && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "🏆" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+      seedStr,
+      label
+    ] })
+  ] });
+}
+function MVPPanel({ topPlayer, seasonLabel }) {
+  if (!topPlayer) return null;
+  const hasPts = topPlayer.ppg > 0;
+  const blurb = (() => {
+    if (!hasPts) return null;
+    const { ppg, rpg, apg, spg, bpg, fgPct, position } = topPlayer;
+    const parts = [];
+    if (ppg >= 25) parts.push("elite scorer");
+    else if (ppg >= 20) parts.push("reliable scorer");
+    else if (ppg >= 15) parts.push("solid contributor");
+    if (apg >= 7) parts.push("playmaking threat");
+    else if (apg >= 5) parts.push("facilitator");
+    if (rpg >= 10) parts.push("dominant rebounder");
+    else if (rpg >= 7) parts.push("strong rebounder");
+    if (spg >= 1.5 || bpg >= 1.5) parts.push("defensive anchor");
+    if (fgPct >= 52) parts.push("efficient shooter");
+    return parts.length > 0 ? parts.slice(0, 2).join(", ") : null;
+  })();
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+    marginTop: 10,
+    padding: "10px 12px",
+    background: "var(--color-bg-card)",
+    border: "1px solid var(--color-border-subtle)",
+    borderLeft: "2px solid var(--color-accent)"
+  }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: hasPts ? 8 : 0 }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "var(--text-sm)", fontWeight: 700 }, children: topPlayer.name }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: {
+          fontSize: 10,
+          fontWeight: 600,
+          padding: "1px 5px",
+          background: "var(--color-bg-sunken)",
+          color: "var(--color-text-secondary)",
+          border: "1px solid var(--color-border-subtle)"
+        }, children: topPlayer.position }),
+        blurb && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: 11, color: "var(--color-text-tertiary)", fontStyle: "italic" }, children: blurb })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { style: {
+        fontSize: 11,
+        fontWeight: 700,
+        fontFamily: "var(--font-mono)",
+        color: "var(--color-text-secondary)"
+      }, children: [
+        topPlayer.rating,
+        " OVR"
+      ] })
+    ] }),
+    hasPts && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "PPG", value: topPlayer.ppg }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "RPG", value: topPlayer.rpg }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "APG", value: topPlayer.apg }),
+        topPlayer.spg > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "SPG", value: topPlayer.spg }),
+        topPlayer.bpg > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(StatPill, { label: "BPG", value: topPlayer.bpg })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: 11, color: "var(--color-text-tertiary)" }, children: [
+        "FG ",
+        topPlayer.fgPct,
+        "%",
+        topPlayer.threePct > 0 && ` · 3P ${topPlayer.threePct}%`,
+        topPlayer.ftPct > 0 && ` · FT ${topPlayer.ftPct}%`,
+        topPlayer.gamesPlayed > 0 && ` · ${topPlayer.gamesPlayed} GP`
+      ] })
+    ] })
+  ] });
+}
+function StatPill({ label, value }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "3px 8px",
+    background: "var(--color-bg-sunken)",
+    border: "1px solid var(--color-border-subtle)",
+    minWidth: 40
+  }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: 13, fontWeight: 700, fontFamily: "var(--font-mono)", lineHeight: 1.2 }, children: value }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: 9, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em" }, children: label })
+  ] });
+}
 function SeasonCard({ season }) {
+  var _a2, _b2;
   const ut = season.userTeam;
   const wCol = winColor(ut.wins, ut.losses);
-  const isChampion = season.champions && (() => {
+  const isChampion = ((_a2 = ut.playoff) == null ? void 0 : _a2.result) === "champion" || season.champions && (() => {
     const champ = ut.tier === 1 ? season.champions.tier1 : ut.tier === 2 ? season.champions.tier2 : season.champions.tier3;
     return champ && champ.id === ut.id;
   })();
@@ -28460,6 +28568,7 @@ function SeasonCard({ season }) {
     season.champions.tier2 ? `T2: ${season.champions.tier2.name}` : null,
     season.champions.tier3 ? `T3: ${season.champions.tier3.name}` : null
   ].filter(Boolean).join(" · ") : "";
+  const seasonLabel = season.seasonLabel || season.season;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
     padding: "14px 16px",
     marginBottom: 8,
@@ -28467,17 +28576,10 @@ function SeasonCard({ season }) {
     border: isChampion ? "1px solid var(--color-accent-border)" : "1px solid var(--color-border-subtle)",
     borderLeft: isChampion ? "3px solid var(--color-accent)" : "3px solid transparent"
   }, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "var(--text-md)", fontWeight: 700 }, children: season.seasonLabel }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "var(--text-md)", fontWeight: 700 }, children: seasonLabel }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }, children: tierLabel(ut.tier) }),
-        isChampion && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: {
-          fontSize: 10,
-          fontWeight: 700,
-          color: "var(--color-accent)",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em"
-        }, children: "Champion" }),
         promoRelStatus && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: {
           fontSize: 10,
           fontWeight: 600,
@@ -28488,46 +28590,41 @@ function SeasonCard({ season }) {
         fontSize: "var(--text-md)",
         fontWeight: 700,
         fontFamily: "var(--font-mono)",
-        color: wCol
+        color: wCol,
+        flexShrink: 0
       }, children: [
         ut.wins,
         "–",
         ut.losses
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", display: "flex", flexDirection: "column", gap: 2 }, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        "Finished ",
-        rankSuffix(ut.rank),
-        " of ",
-        tierTeamCount(ut.tier),
-        " · Coach: ",
-        ut.coachName
-      ] }),
-      ut.topPlayer && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        "Best: ",
-        ut.topPlayer.name,
-        " (",
-        ut.topPlayer.rating,
-        " OVR, ",
-        ut.topPlayer.position,
-        ")"
-      ] }),
-      userAwards.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { color: "var(--color-accent)", fontWeight: 500 }, children: userAwards.join(" · ") }),
-      (tierAwards == null ? void 0 : tierAwards.mvp) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { color: "var(--color-text-tertiary)" }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", marginBottom: 6 }, children: [
+      "Finished ",
+      rankSuffix(ut.rank),
+      " of ",
+      getTotalTeams(ut),
+      " · Coach: ",
+      ut.coachName
+    ] }),
+    ut.playoff && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { marginBottom: ut.topPlayer ? 0 : 4 }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(PlayoffBadge, { playoff: ut.playoff }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(MVPPanel, { topPlayer: ut.topPlayer, seasonLabel }),
+    userAwards.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
+      fontSize: "var(--text-xs)",
+      color: "var(--color-accent)",
+      fontWeight: 500,
+      marginTop: 8
+    }, children: userAwards.join(" · ") }),
+    ((tierAwards == null ? void 0 : tierAwards.mvp) || champLine) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 4, display: "flex", flexDirection: "column", gap: 1 }, children: [
+      (tierAwards == null ? void 0 : tierAwards.mvp) && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
         "League MVP: ",
         tierAwards.mvp.name,
         " (",
         tierAwards.mvp.team,
         ") — ",
-        tierAwards.mvp.ppg.toFixed(1),
-        " PPG, ",
-        tierAwards.mvp.rpg.toFixed(1),
-        " RPG, ",
-        tierAwards.mvp.apg.toFixed(1),
-        " APG"
+        (_b2 = tierAwards.mvp.ppg) == null ? void 0 : _b2.toFixed(1),
+        " PPG"
       ] }),
-      champLine && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { color: "var(--color-text-tertiary)", fontSize: 11 }, children: [
+      champLine && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
         "Champions: ",
         champLine
       ] })
@@ -29220,9 +29317,9 @@ function AppContent() {
           setFinancialTransitionData(null);
           (_a3 = window._financialTransitionContinueCallback) == null ? void 0 : _a3.call(window);
         },
-        onSpendingChange: (pct2) => {
+        onSpendingChange: (pct) => {
           var _a3;
-          (_a3 = window._financialTransitionSpendingCallback) == null ? void 0 : _a3.call(window, pct2);
+          (_a3 = window._financialTransitionSpendingCallback) == null ? void 0 : _a3.call(window, pct);
         }
       }
     ),
@@ -29871,8 +29968,8 @@ let CoachEngine$1 = (_a = class {
   static _generateCoachSalary(overall, tier) {
     const ranges = { 1: { min: 2e6, max: 12e6 }, 2: { min: 2e5, max: 12e5 }, 3: { min: 5e4, max: 3e5 } };
     const r = ranges[tier] || ranges[2];
-    const pct2 = (overall - 30) / 70;
-    const base = r.min + pct2 * (r.max - r.min);
+    const pct = (overall - 30) / 70;
+    const base = r.min + pct * (r.max - r.min);
     return Math.round(Math.max(r.min, base + base * 0.15 * (Math.random() - 0.5) * 2));
   }
   static _generateContractLength(overall, age) {
@@ -35292,6 +35389,93 @@ const _OffseasonController = class _OffseasonController {
         const userTier = gameState.currentTier;
         const tierStandings = userTier === 1 ? snapshot.standings.tier1 : userTier === 2 ? snapshot.standings.tier2 : snapshot.standings.tier3;
         const userStanding = tierStandings.find((t) => t.id === userTeamSnap.id);
+        let topPlayer = null;
+        if (userTeamSnap.roster && userTeamSnap.roster.length > 0) {
+          const best = [...userTeamSnap.roster].sort((a, b) => b.rating - a.rating)[0];
+          const ss = best.seasonStats;
+          const gp = ss && ss.gamesPlayed > 0 ? ss.gamesPlayed : 1;
+          topPlayer = {
+            name: best.name,
+            rating: best.rating,
+            position: best.position,
+            gamesPlayed: ss ? ss.gamesPlayed : 0,
+            ppg: ss ? +(ss.points / gp).toFixed(1) : 0,
+            rpg: ss ? +(ss.rebounds / gp).toFixed(1) : 0,
+            apg: ss ? +(ss.assists / gp).toFixed(1) : 0,
+            spg: ss ? +(ss.steals / gp).toFixed(1) : 0,
+            bpg: ss ? +(ss.blocks / gp).toFixed(1) : 0,
+            fgPct: ss && ss.fieldGoalsAttempted > 0 ? +(ss.fieldGoalsMade / ss.fieldGoalsAttempted * 100).toFixed(1) : 0,
+            threePct: ss && ss.threePointersAttempted > 0 ? +(ss.threePointersMade / ss.threePointersAttempted * 100).toFixed(1) : 0,
+            ftPct: ss && ss.freeThrowsAttempted > 0 ? +(ss.freeThrowsMade / ss.freeThrowsAttempted * 100).toFixed(1) : 0
+          };
+        }
+        const playoffResult = (() => {
+          const action = gameState.userPlayoffResult;
+          if (!action || action === "stay") return { result: "missed", label: "Missed Playoffs" };
+          if (userTier === 1) {
+            if (action !== "championship") return { result: "missed", label: "Missed Playoffs" };
+            const cpd = gameState.championshipPlayoffData;
+            let seed = null, conf = null;
+            if (cpd) {
+              const eastIdx = cpd.eastTeams ? cpd.eastTeams.findIndex((t) => t.id === userTeamSnap.id) : -1;
+              const westIdx = cpd.westTeams ? cpd.westTeams.findIndex((t) => t.id === userTeamSnap.id) : -1;
+              if (eastIdx >= 0) {
+                seed = eastIdx + 1;
+                conf = "East";
+              } else if (westIdx >= 0) {
+                seed = westIdx + 1;
+                conf = "West";
+              }
+            }
+            const roundNames = ["First Round", "Conf. Semifinals", "Conf. Finals", "Finals"];
+            let eliminatedRound = null;
+            let isChamp = false;
+            if (cpd && cpd.roundResults) {
+              for (let r = 0; r < cpd.roundResults.length; r++) {
+                const roundSeries = cpd.roundResults[r];
+                const userSeries = roundSeries.find(
+                  (s) => s.result && (s.result.loser && s.result.loser.id === userTeamSnap.id || s.result.winner && s.result.winner.id === userTeamSnap.id)
+                );
+                if (userSeries) {
+                  if (userSeries.result.loser && userSeries.result.loser.id === userTeamSnap.id) {
+                    eliminatedRound = roundNames[r] || "Round " + (r + 1);
+                    break;
+                  }
+                  if (r === 3 && userSeries.result.winner && userSeries.result.winner.id === userTeamSnap.id) {
+                    isChamp = true;
+                  }
+                }
+              }
+            }
+            if (isChamp) return { result: "champion", label: "Champion", seed, conf };
+            if (eliminatedRound) return { result: "eliminated", label: "Eliminated — " + eliminatedRound, seed, conf };
+            return { result: "playoffs", label: "Playoffs", seed, conf };
+          }
+          if (userTier === 2) {
+            if (action !== "t2-championship") return { result: "missed", label: "Missed Playoffs" };
+            const pr = postseason.t2;
+            if (!pr) return { result: "playoffs", label: "Playoffs" };
+            if (pr.champion && pr.champion.id === userTeamSnap.id) return { result: "champion", label: "T2 Champion" };
+            let reachedFinal = false, reachedSemis = false;
+            (pr.divisions || []).forEach((d) => {
+              if (!d) return;
+              if (d.finalResult && d.finalResult.loser && d.finalResult.loser.id === userTeamSnap.id) reachedFinal = true;
+              if (d.semi1Result && d.semi1Result.loser && d.semi1Result.loser.id === userTeamSnap.id) reachedSemis = true;
+              if (d.semi2Result && d.semi2Result.loser && d.semi2Result.loser.id === userTeamSnap.id) reachedSemis = true;
+            });
+            if (reachedFinal) return { result: "eliminated", label: "Eliminated — Division Final" };
+            if (reachedSemis) return { result: "eliminated", label: "Eliminated — Division Semis" };
+            return { result: "playoffs", label: "Playoffs" };
+          }
+          if (userTier === 3) {
+            if (action !== "t3-championship") return { result: "missed", label: "Missed Playoffs" };
+            const pr = postseason.t3;
+            if (!pr) return { result: "playoffs", label: "Playoffs" };
+            if (pr.champion && pr.champion.id === userTeamSnap.id) return { result: "champion", label: "T3 Champion" };
+            return { result: "eliminated", label: "Playoffs" };
+          }
+          return { result: "missed", label: "Missed Playoffs" };
+        })();
         snapshot.userTeam = {
           id: userTeamSnap.id,
           name: userTeamSnap.name,
@@ -35300,12 +35484,11 @@ const _OffseasonController = class _OffseasonController {
           wins: userTeamSnap.wins,
           losses: userTeamSnap.losses,
           rank: userStanding ? userStanding.rank : null,
+          totalTeams: tierStandings.length,
           coachName: userTeamSnap.coach ? userTeamSnap.coach.name : "None",
           rosterSize: userTeamSnap.roster ? userTeamSnap.roster.length : 0,
-          topPlayer: userTeamSnap.roster && userTeamSnap.roster.length > 0 ? (() => {
-            const best = [...userTeamSnap.roster].sort((a, b) => b.rating - a.rating)[0];
-            return { name: best.name, rating: best.rating, position: best.position };
-          })() : null
+          topPlayer,
+          playoff: playoffResult
         };
       }
       if (!gameState._fullSeasonHistory) gameState._fullSeasonHistory = [];
@@ -35411,8 +35594,8 @@ const _OffseasonController = class _OffseasonController {
         helpers.saveGameState();
         self.proceedToDraftOrDevelopment();
       };
-      window._financialTransitionSpendingCallback = (pct2) => {
-        const ratio = parseInt(pct2) / 100;
+      window._financialTransitionSpendingCallback = (pct) => {
+        const ratio = parseInt(pct) / 100;
         team.finances.spendingRatio = ratio;
       };
       window._reactShowFinancialTransition(briefingData);
@@ -39345,7 +39528,7 @@ class FinanceController {
     helpers.proceedToDraftOrDevelopment();
   }
 }
-function updateTicketPriceEffect(pct2) {
+function updateTicketPriceEffect(pct) {
   const el = document.getElementById("ticketPriceEffect");
   if (!el) return;
 }
