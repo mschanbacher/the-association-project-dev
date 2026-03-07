@@ -572,7 +572,13 @@ export class TradeController {
         document.getElementById('aiTradeProposalModal').classList.add('hidden');
         helpers.updateUI();
 
-        // Check if season is complete
+        // Resume whatever sim mode was running when the proposal interrupted
+        if (window._resumeAfterAiTrade) {
+            setTimeout(window._resumeAfterAiTrade, 50);
+            return;
+        }
+
+        // Fallback: check if season is complete
         const seasonComplete = gameState.schedule && gameState.schedule.every(g => g.played);
         if (seasonComplete) {
             console.log('Season complete after accepting trade, showing season end...');
@@ -595,6 +601,13 @@ export class TradeController {
         if (window._reactCloseAiTrade) window._reactCloseAiTrade();
         document.getElementById('aiTradeProposalModal').classList.add('hidden');
 
+        // Resume whatever sim mode was running when the proposal interrupted
+        if (window._resumeAfterAiTrade) {
+            setTimeout(window._resumeAfterAiTrade, 50);
+            return;
+        }
+
+        // Fallback: check if season is complete
         const seasonComplete = gameState.schedule && gameState.schedule.every(g => g.played);
         if (seasonComplete) {
             console.log('Season complete after rejecting trade, showing season end...');

@@ -36535,6 +36535,10 @@ ${aiTeam.name} says: "${result.reason}"`);
     if (window._reactCloseAiTrade) window._reactCloseAiTrade();
     document.getElementById("aiTradeProposalModal").classList.add("hidden");
     helpers.updateUI();
+    if (window._resumeAfterAiTrade) {
+      setTimeout(window._resumeAfterAiTrade, 50);
+      return;
+    }
     const seasonComplete = gameState.schedule && gameState.schedule.every((g) => g.played);
     if (seasonComplete) {
       console.log("Season complete after accepting trade, showing season end...");
@@ -36556,6 +36560,10 @@ ${aiTeam.name} says: "${result.reason}"`);
     gameState.pendingTradeProposal = null;
     if (window._reactCloseAiTrade) window._reactCloseAiTrade();
     document.getElementById("aiTradeProposalModal").classList.add("hidden");
+    if (window._resumeAfterAiTrade) {
+      setTimeout(window._resumeAfterAiTrade, 50);
+      return;
+    }
     const seasonComplete = gameState.schedule && gameState.schedule.every((g) => g.played);
     if (seasonComplete) {
       console.log("Season complete after rejecting trade, showing season end...");
@@ -46571,6 +46579,10 @@ class GMMode {
         this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
         this.deps.saveGameState();
         this.deps.updateUI();
+        window._resumeAfterAiTrade = () => {
+          delete window._resumeAfterAiTrade;
+          this._resumeSimWeek(this.gameState.currentDate, endDate);
+        };
         this.deps.showAiTradeProposal();
         return;
       }
@@ -46623,6 +46635,10 @@ class GMMode {
         this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
         this.deps.saveGameState();
         this.deps.updateUI();
+        window._resumeAfterAiTrade = () => {
+          delete window._resumeAfterAiTrade;
+          this._resumeSimWeek(this.gameState.currentDate, endDate);
+        };
         this.deps.showAiTradeProposal();
         return;
       }
@@ -46907,6 +46923,10 @@ class GMMode {
       if (this.gameState.pendingTradeProposal) {
         this.deps.saveGameState();
         this.deps.updateUI();
+        window._resumeAfterAiTrade = () => {
+          delete window._resumeAfterAiTrade;
+          this.finishSeasonBatch();
+        };
         this.deps.showAiTradeProposal();
         return;
       }

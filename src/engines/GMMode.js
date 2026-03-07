@@ -326,8 +326,12 @@ export class GMMode {
                 this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
                 this.deps.saveGameState();
                 this.deps.updateUI();
-                this.deps.showAiTradeProposal(); // Show the pending proposal modal
-                return; // Stop sim — user will resume after accepting/rejecting
+                window._resumeAfterAiTrade = () => {
+                    delete window._resumeAfterAiTrade;
+                    this._resumeSimWeek(this.gameState.currentDate, endDate);
+                };
+                this.deps.showAiTradeProposal();
+                return;
             }
 
             if (notable) {
@@ -387,6 +391,10 @@ export class GMMode {
             if (this.gameState.pendingTradeProposal) {
                 this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
                 this.deps.saveGameState(); this.deps.updateUI();
+                window._resumeAfterAiTrade = () => {
+                    delete window._resumeAfterAiTrade;
+                    this._resumeSimWeek(this.gameState.currentDate, endDate);
+                };
                 this.deps.showAiTradeProposal();
                 return;
             }
@@ -728,8 +736,11 @@ export class GMMode {
             if (this.gameState.pendingTradeProposal) {
                 this.deps.saveGameState();
                 this.deps.updateUI();
-                this.deps.showAiTradeProposal(); // Show the pending proposal modal
-                // User accepts/rejects, then must click Finish Season again to resume
+                window._resumeAfterAiTrade = () => {
+                    delete window._resumeAfterAiTrade;
+                    this.finishSeasonBatch();
+                };
+                this.deps.showAiTradeProposal();
                 return;
             }
 
