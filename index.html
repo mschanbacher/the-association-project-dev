@@ -28558,6 +28558,9 @@ function WatchGameModal({ isOpen, data, onClose }) {
       if (leadersRef.current) leadersRef.current.innerHTML = "";
     }
   }, [isOpen, data == null ? void 0 : data.homeName, data == null ? void 0 : data.awayName]);
+  const CHART_H = 130;
+  const CHART_W = 920;
+  const TOTAL_GAME_SECONDS = 2880;
   const handleSpeed = reactExports.useCallback((s) => {
     var _a2;
     setSpeed(s);
@@ -28568,11 +28571,40 @@ function WatchGameModal({ isOpen, data, onClose }) {
     setPaused((p) => !p);
     (_a2 = window.watchGameTogglePause) == null ? void 0 : _a2.call(window);
   }, []);
+  const handleChartMouseMove = reactExports.useCallback((e) => {
+    if (!winProbPointsRef.current.length || !chartWrapRef.current) return;
+    const rect = chartWrapRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const chartFrac = mouseX / rect.width;
+    const targetSeconds = chartFrac * TOTAL_GAME_SECONDS;
+    const pts = winProbPointsRef.current;
+    let closest = pts[0];
+    let minDist = Infinity;
+    for (const pt of pts) {
+      const d = Math.abs(pt.elapsedSeconds - targetSeconds);
+      if (d < minDist) {
+        minDist = d;
+        closest = pt;
+      }
+    }
+    const ptX = closest.elapsedSeconds / TOTAL_GAME_SECONDS * rect.width;
+    const ptY = (1 - closest.prob) * CHART_H * (rect.height / (CHART_H + 20));
+    const userScore = userIsHome ? closest.homeScore : closest.awayScore;
+    const oppScore = userIsHome ? closest.awayScore : closest.homeScore;
+    const userProbPct = Math.round(closest.prob * 100);
+    setTooltip({
+      left: Math.max(60, Math.min(ptX, rect.width - 80)),
+      top: ptY,
+      userProbPct,
+      userScore,
+      oppScore,
+      clockDisplay: closest.clockDisplay ?? ""
+    });
+  }, [userIsHome]);
+  const handleChartMouseLeave = reactExports.useCallback(() => setTooltip(null), []);
+  const userIsHome = (data == null ? void 0 : data.userIsHome) ?? false;
   if (!isOpen || !data) return null;
-  const { homeName, awayName, playoffContext, userIsHome } = data;
-  const CHART_H = 130;
-  const CHART_W = 920;
-  const TOTAL_GAME_SECONDS = 2880;
+  const { homeName, awayName, playoffContext } = data;
   const probToY = (prob) => (1 - prob) * CHART_H;
   const elapsedToX = (s) => s / TOTAL_GAME_SECONDS * CHART_W;
   const C_WIN = "#2D7A4F";
@@ -28666,39 +28698,6 @@ function WatchGameModal({ isOpen, data, onClose }) {
     if (p < 45) return "var(--color-loss)";
     return "var(--color-text-secondary)";
   };
-  const handleChartMouseMove = reactExports.useCallback((e) => {
-    if (!winProbPointsRef.current.length || !chartWrapRef.current) return;
-    const rect = chartWrapRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const chartFrac = mouseX / rect.width;
-    const targetSeconds = chartFrac * TOTAL_GAME_SECONDS;
-    const pts = winProbPointsRef.current;
-    let closest = pts[0];
-    let minDist = Infinity;
-    for (const pt of pts) {
-      const d = Math.abs(pt.elapsedSeconds - targetSeconds);
-      if (d < minDist) {
-        minDist = d;
-        closest = pt;
-      }
-    }
-    const ptX = closest.elapsedSeconds / TOTAL_GAME_SECONDS * rect.width;
-    const ptY = (1 - closest.prob) * CHART_H * (rect.height / (CHART_H + 20));
-    const userScore = userIsHome ? closest.homeScore : closest.awayScore;
-    const oppScore = userIsHome ? closest.awayScore : closest.homeScore;
-    const userProbPct = Math.round(closest.prob * 100);
-    setTooltip({
-      // Position tooltip above the line point, clamped to chart
-      left: Math.max(60, Math.min(ptX, rect.width - 80)),
-      top: ptY,
-      userProbPct,
-      userScore,
-      oppScore,
-      clockDisplay: closest.clockDisplay ?? "",
-      isUser: true
-    });
-  }, [userIsHome]);
-  const handleChartMouseLeave = reactExports.useCallback(() => setTooltip(null), []);
   const gridVerticals = [];
   for (let s = 360; s < TOTAL_GAME_SECONDS; s += 360) {
     gridVerticals.push(s);

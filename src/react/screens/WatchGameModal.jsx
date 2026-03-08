@@ -80,17 +80,55 @@ export function WatchGameModal({ isOpen, data, onClose }) {
     }
   }, [isOpen, data?.homeName, data?.awayName]);
 
-  const handleSpeed = useCallback((s) => { setSpeed(s); window.watchGameSetSpeed?.(s); }, []);
-  const handlePause = useCallback(() => { setPaused(p => !p); window.watchGameTogglePause?.(); }, []);
-
-  if (!isOpen || !data) return null;
-  const { homeName, awayName, playoffContext, userIsHome } = data;
-
-  // ── Chart geometry ──
+  // ── Chart geometry constants — defined before hooks that reference them ──
   const CHART_H = 130;
   const CHART_W = 920;
   const TOTAL_GAME_SECONDS = 2880;
 
+  const handleSpeed = useCallback((s) => { setSpeed(s); window.watchGameSetSpeed?.(s); }, []);
+  const handlePause = useCallback(() => { setPaused(p => !p); window.watchGameTogglePause?.(); }, []);
+
+  // ── Hover tooltip — must be before early return (Rules of Hooks) ──
+  const handleChartMouseMove = useCallback((e) => {
+    if (!winProbPointsRef.current.length || !chartWrapRef.current) return;
+    const rect = chartWrapRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const chartFrac = mouseX / rect.width;
+    const targetSeconds = chartFrac * TOTAL_GAME_SECONDS;
+
+    const pts = winProbPointsRef.current;
+    let closest = pts[0];
+    let minDist = Infinity;
+    for (const pt of pts) {
+      const d = Math.abs(pt.elapsedSeconds - targetSeconds);
+      if (d < minDist) { minDist = d; closest = pt; }
+    }
+
+    const ptX = (closest.elapsedSeconds / TOTAL_GAME_SECONDS) * rect.width;
+    const ptY = (1 - closest.prob) * CHART_H * (rect.height / (CHART_H + 20));
+    const userScore = userIsHome ? closest.homeScore : closest.awayScore;
+    const oppScore  = userIsHome ? closest.awayScore : closest.homeScore;
+    const userProbPct = Math.round(closest.prob * 100);
+
+    setTooltip({
+      left: Math.max(60, Math.min(ptX, rect.width - 80)),
+      top: ptY,
+      userProbPct,
+      userScore,
+      oppScore,
+      clockDisplay: closest.clockDisplay ?? '',
+    });
+  }, [userIsHome]);
+
+  const handleChartMouseLeave = useCallback(() => setTooltip(null), []);
+
+  // Extract userIsHome early — needed by handleChartMouseMove useCallback above
+  const userIsHome = data?.userIsHome ?? false;
+
+  if (!isOpen || !data) return null;
+  const { homeName, awayName, playoffContext } = data;
+
+  // ── Chart geometry helpers ──
   const probToY = (prob) => (1 - prob) * CHART_H;
   const elapsedToX = (s) => (s / TOTAL_GAME_SECONDS) * CHART_W;
 
@@ -188,44 +226,7 @@ export function WatchGameModal({ isOpen, data, onClose }) {
     return 'var(--color-text-secondary)';
   };
 
-  // ── Hover tooltip ──
-  const handleChartMouseMove = useCallback((e) => {
-    if (!winProbPointsRef.current.length || !chartWrapRef.current) return;
-    const rect = chartWrapRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const chartFrac = mouseX / rect.width;
-    const targetSeconds = chartFrac * TOTAL_GAME_SECONDS;
 
-    // Find nearest point
-    const pts = winProbPointsRef.current;
-    let closest = pts[0];
-    let minDist = Infinity;
-    for (const pt of pts) {
-      const d = Math.abs(pt.elapsedSeconds - targetSeconds);
-      if (d < minDist) { minDist = d; closest = pt; }
-    }
-
-    const ptX = (closest.elapsedSeconds / TOTAL_GAME_SECONDS) * rect.width;
-    const ptY = (1 - closest.prob) * CHART_H * (rect.height / (CHART_H + 20));
-
-    // User/opp score
-    const userScore = userIsHome ? closest.homeScore : closest.awayScore;
-    const oppScore  = userIsHome ? closest.awayScore : closest.homeScore;
-    const userProbPct = Math.round(closest.prob * 100);
-
-    setTooltip({
-      // Position tooltip above the line point, clamped to chart
-      left: Math.max(60, Math.min(ptX, rect.width - 80)),
-      top: ptY,
-      userProbPct,
-      userScore,
-      oppScore,
-      clockDisplay: closest.clockDisplay ?? '',
-      isUser: true,
-    });
-  }, [userIsHome]);
-
-  const handleChartMouseLeave = useCallback(() => setTooltip(null), []);
 
   // ── Grid lines ──
   // Verticals every 6 min (every 360s), horizontals at 25/50/75%
