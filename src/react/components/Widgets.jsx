@@ -264,7 +264,7 @@ function NextGameSimControls() {
       }}>
         <SimGroupBtn label="Day" onClick={wrap(() => window.simDay?.())} disabled={disabled} />
         <SimGroupBtn label="Week" onClick={wrap(() => window.simWeek?.())} disabled={disabled} border />
-        <SimGroupBtn label="Finish Season" onClick={wrap(() => window.finishSeason?.())} disabled={disabled} border />
+        <SimGroupBtn label="Season" onClick={wrap(() => window.finishSeason?.())} disabled={disabled} border />
       </div>
     </div>
   );
