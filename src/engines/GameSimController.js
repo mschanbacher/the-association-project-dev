@@ -1242,14 +1242,190 @@ export class GameSimController {
         this.simulateChampionshipRound(1);
     }
 
+    /**
+     * Initialize championship bracket data for the PlayoffHub without triggering
+     * any UI. Called by OffseasonController before showing the hub so that
+     * simAllChampionshipRounds / startPlayoffSeriesWatch have data to work with.
+     * Safe to call multiple times — skips if already initialized this round.
+     * @param {string} action - 'championship' | 't2-championship' | 't3-championship' | 'stay'
+     */
+    initBracketForHub(action) {
+        const { gameState, helpers } = this.ctx;
+
+        if (action === 'championship') {
+            // Skip if already initialized (e.g. save/resume)
+            if (gameState.championshipPlayoffData?.eastTeams?.length) return;
+
+            const tier1Sorted = helpers.sortTeamsByStandings(gameState.tier1Teams, gameState.tier1Schedule);
+            const eastTeams = tier1Sorted.filter(t =>
+                t.division === 'Atlantic' || t.division === 'Central' || t.division === 'Southeast'
+            ).slice(0, 8);
+            const westTeams = tier1Sorted.filter(t =>
+                t.division === 'Northwest' || t.division === 'Pacific' || t.division === 'Southwest'
+            ).slice(0, 8);
+            const userTeam = helpers.getUserTeam();
+            const userInvolved = [...eastTeams, ...westTeams].some(t => t.id === userTeam.id);
+
+            gameState.championshipPlayoffData = {
+                eastTeams, westTeams,
+                currentRound: 1, roundResults: [],
+                userInvolved,
+            };
+
+            if (userInvolved) {
+                // Pre-sim all non-user R1 series so bracket shows live scores
+                this._initChampionshipRound1NonUserSeries();
+            }
+
+        } else if (action === 't2-championship') {
+            if (gameState.t2PlayoffData?.userDivBracket) return;
+            const userTeam = helpers.getUserTeam();
+            const t2Bracket = gameState.postseasonResults?.t2;
+            if (!t2Bracket) return;
+            const userDivBracket = t2Bracket.divisionBrackets?.find(db =>
+                db.teams?.some(t => t.id === userTeam.id)
+            );
+            if (!userDivBracket) return;
+            gameState.t2PlayoffData = {
+                userDivBracket,
+                userDivision: userDivBracket.division,
+                stage: 'division-semis',
+                userTeamId: userTeam.id,
+                interactiveResults: { divSemi1: null, divSemi2: null, divFinal: null, nationalRounds: [] }
+            };
+
+        } else if (action === 't3-championship') {
+            if (gameState.t3PlayoffData?.userBracket) return;
+            // T3 bracket init is handled by runTier3MetroPlayoffs — just set a placeholder
+            // so the hub can render; user will trigger full init via "Game" button
+            if (!gameState.t3PlayoffData) {
+                gameState.t3PlayoffData = { stage: 'metro', userTeamId: helpers.getUserTeam()?.id };
+            }
+        }
+        // 'stay' = user missed playoffs, nothing to initialize
+    }
+
+    /**
+     * Pre-sim all non-user Round 1 series so the bracket shows partial results
+     * when the hub opens. User's own series stays at 0-0 ready to play.
+     * @private
+     */
+    _initChampionshipRound1NonUserSeries() {
+        const { gameState, helpers } = this.ctx;
+        const pd = gameState.championshipPlayoffData;
+        const userTeam = helpers.getUserTeam();
+
+        const r1East = [
+            { higher: pd.eastTeams[0], lower: pd.eastTeams[7], conf: 'East' },
+            { higher: pd.eastTeams[1], lower: pd.eastTeams[6], conf: 'East' },
+            { higher: pd.eastTeams[2], lower: pd.eastTeams[5], conf: 'East' },
+            { higher: pd.eastTeams[3], lower: pd.eastTeams[4], conf: 'East' },
+        ];
+        const r1West = [
+            { higher: pd.westTeams[0], lower: pd.westTeams[7], conf: 'West' },
+            { higher: pd.westTeams[1], lower: pd.westTeams[6], conf: 'West' },
+            { higher: pd.westTeams[2], lower: pd.westTeams[5], conf: 'West' },
+            { higher: pd.westTeams[3], lower: pd.westTeams[4], conf: 'West' },
+        ];
+        const allSeries = [...r1East, ...r1West];
+
+        // Pre-sim non-user series, leave user's slot as null placeholder
+        const roundResults = allSeries.map(m => {
+            const isUserSeries = m.higher.id === userTeam.id || m.lower.id === userTeam.id;
+            if (isUserSeries) return null; // user plays this interactively
+            const result = helpers.simulatePlayoffSeries(m.higher, m.lower, 5);
+            return { conf: m.conf, result };
+        });
+
+        // Store as pending round so simulateChampionshipRound can pick up from here
+        pd._pendingRound = 1;
+        pd._pendingRoundName = 'First Round';
+        pd._pendingBestOf = 5;
+        pd._pendingRoundResults = roundResults;
+
+        // Start the user's series watch state
+        const userMatchup = allSeries.find(m =>
+            m.higher.id === userTeam.id || m.lower.id === userTeam.id
+        );
+        if (userMatchup) {
+            this.startPlayoffSeriesWatch(
+                userMatchup.higher, userMatchup.lower, 5,
+                (result) => {
+                    pd._pendingRoundResults[allSeries.indexOf(userMatchup)] = {
+                        conf: userMatchup.conf, result
+                    };
+                    this._showChampionshipRoundAfterWatch();
+                }
+            );
+        }
+    }
+
     simAllChampionshipRounds() {
         const { gameState, helpers } = this.ctx;
         console.log('⏩ Simulating all championship rounds...');
-        for (let round = 1; round <= 4; round++) {
-            gameState.championshipPlayoffData.currentRound = round;
+
+        // Guard: ensure bracket is initialized before simming
+        if (!gameState.championshipPlayoffData) {
+            console.warn('⚠️ simAllChampionshipRounds: championshipPlayoffData not initialized, initializing now');
+            this.initBracketForHub('championship');
+            if (!gameState.championshipPlayoffData) {
+                console.error('❌ simAllChampionshipRounds: failed to initialize bracket data');
+                return;
+            }
+        }
+
+        const pd = gameState.championshipPlayoffData;
+
+        // If R1 was partially initialized by initBracketForHub (user's series in progress),
+        // sim the user's series too before running all rounds
+        if (pd._pendingRound === 1 && pd._pendingRoundResults) {
+            const pw = this._playoffWatch;
+            if (pw) {
+                // Auto-finish user's series
+                while (pw.higherWins < pw.gamesToWin && pw.lowerWins < pw.gamesToWin) {
+                    const isHigherHome = pw.homePattern[pw.gameNum];
+                    const homeTeam = isHigherHome ? pw.higherSeed : pw.lowerSeed;
+                    const awayTeam = isHigherHome ? pw.lowerSeed : pw.higherSeed;
+                    const gameResult = helpers.getSimulationController().simulatePlayoffGame(homeTeam, awayTeam);
+                    if (gameResult.winner.id === pw.higherSeed.id) pw.higherWins++;
+                    else pw.lowerWins++;
+                    pw.games.push({ gameNumber: pw.gameNum + 1, homeTeam, awayTeam, homeScore: gameResult.homeScore, awayScore: gameResult.awayScore, winner: gameResult.winner });
+                    pw.gameNum++;
+                }
+                const userSeriesIdx = pd._pendingRoundResults.findIndex(r => r === null);
+                if (userSeriesIdx >= 0) {
+                    const winner = pw.higherWins >= pw.gamesToWin ? pw.higherSeed : pw.lowerSeed;
+                    const loser = pw.higherWins >= pw.gamesToWin ? pw.lowerSeed : pw.higherSeed;
+                    const allSeries = [
+                        ...[0,1,2,3].map(i => ({ conf: 'East' })),
+                        ...[0,1,2,3].map(i => ({ conf: 'West' })),
+                    ];
+                    pd._pendingRoundResults[userSeriesIdx] = {
+                        conf: userSeriesIdx < 4 ? 'East' : 'West',
+                        result: { winner, loser, higherSeed: pw.higherSeed, lowerSeed: pw.lowerSeed, higherWins: pw.higherWins, lowerWins: pw.lowerWins, higherSeedWins: pw.higherWins, lowerSeedWins: pw.lowerWins, games: pw.games }
+                    };
+                }
+                this._playoffWatch = null;
+            }
+            // Commit R1 results
+            pd.roundResults.push(pd._pendingRoundResults.filter(Boolean));
+            pd.currentRound = 1;
+            pd._pendingRound = null;
+            pd._pendingRoundResults = null;
+        }
+
+        // Now sim remaining rounds (2, 3, 4) silently
+        const startRound = (pd.roundResults?.length || 0) + 1;
+        for (let round = startRound; round <= 4; round++) {
+            pd.currentRound = round;
             this.simulateChampionshipRound(round, true);
         }
-        const finalRound = gameState.championshipPlayoffData.roundResults[3];
+
+        const finalRound = pd.roundResults[3];
+        if (!finalRound?.[0]) {
+            console.error('❌ simAllChampionshipRounds: finals data missing');
+            return;
+        }
         const champion = finalRound[0].result.winner;
         helpers.applyChampionshipBonus(champion);
         if (window._reactShowChampionship) {

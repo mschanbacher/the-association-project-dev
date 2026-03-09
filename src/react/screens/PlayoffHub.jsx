@@ -877,13 +877,20 @@ export function PlayoffHub({ data, onClose }) {
 
   // Sim to championship (sim all remaining rounds)
   const handleSimToChampionship = useCallback(() => {
-    // Finish current series if in progress first
-    if (window.simRestOfPlayoffSeries && window._getGameSimController?.()?._playoffWatch) {
-      window.simRestOfPlayoffSeries();
+    // Ensure bracket data is initialized — required before any sim call.
+    // This covers the case where the hub opens before runTier1ChampionshipPlayoffs runs.
+    const gs = window._reactGameState;
+    if (gs && !gs.championshipPlayoffData?.eastTeams?.length) {
+      // Call initBracketForHub via the exposed window method
+      window.initBracketForHub?.(data?.action || 'championship');
+    }
+    // Finish current series if one is actively in progress
+    if (window._reactGameState?.championshipPlayoffData?._pendingRoundResults) {
+      window.simRestOfPlayoffSeries?.();
     }
     window.simAllChampionshipRounds?.();
     refresh?.();
-  }, [refresh]);
+  }, [refresh, data]);
 
   // T2/T3 bracket data from postseasonResults
   const t2Rounds = useMemo(() => {

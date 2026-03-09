@@ -209,8 +209,13 @@ export class OffseasonController {
         if (gameState._usePlayoffHub) {
             console.log('🏆 [PlayoffHub] Routing to new Playoff Hub screen...');
             if (window._reactShowPlayoffHub) {
+                // Initialize bracket data silently so hub controls work immediately
+                const gameSim = helpers.getGameSimController();
+                if (gameSim?.initBracketForHub) {
+                    gameSim.initBracketForHub(action);
+                }
                 window._reactShowPlayoffHub({
-                    action,                  // 'championship' | 't2-championship' | 't3-championship' | 'stay'
+                    action,
                     postseasonResults,
                     userTier: gameState.currentTier,
                     userTeamId: gameState.userTeamId,
@@ -218,7 +223,6 @@ export class OffseasonController {
                 });
             } else {
                 console.warn('⚠️ [PlayoffHub] _reactShowPlayoffHub not registered — falling through to legacy path');
-                // Safety fallback: if hub isn't mounted yet, use legacy path
                 this._legacyPlayoffFlow(action, postseasonResults);
             }
             return;
