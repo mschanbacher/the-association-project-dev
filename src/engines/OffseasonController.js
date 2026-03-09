@@ -447,6 +447,10 @@ export class OffseasonController {
         const tierBefore = userTeamBefore ? userTeamBefore.tier : gameState.currentTier;
 
         console.log('⬆️⬇️ Executing promotion/relegation from postseason results...');
+        if (!gameState.postseasonResults) {
+            console.warn('⚠️ continueAfterPostseason: postseasonResults is null — running simulateFullPostseason now');
+            gameState.postseasonResults = engines.PlayoffEngine.simulateFullPostseason(gameState);
+        }
         this.executePromotionRelegationFromResults(gameState.postseasonResults);
 
         const userTeam = helpers.getUserTeam();
@@ -474,6 +478,11 @@ export class OffseasonController {
 
     executePromotionRelegationFromResults(results) {
         const { gameState, engines } = this.ctx;
+
+        if (!results) {
+            console.error('❌ executePromotionRelegationFromResults: results is null, skipping promotion/relegation');
+            return;
+        }
 
         const result = engines.LeagueManager.executePromotionRelegation(
             {
