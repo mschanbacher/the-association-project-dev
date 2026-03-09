@@ -67,7 +67,7 @@ class GameState {
         // --- Feature flags (persistent so mid-offseason saves respect the flag they started with) ---
         // _usePlayoffHub: when true, postseason routes to the new Playoff Hub screen instead of
         // the legacy ChampionshipPlayoffModal chain. Flip to true once PlayoffHub is built & tested.
-        this._usePlayoffHub = false;
+        this._usePlayoffHub = true;
         this._pendingBreakingNews = null;       // Notable trade to show user
         
         // --- Persistent: playoff state (survives save/load during playoffs) ---
