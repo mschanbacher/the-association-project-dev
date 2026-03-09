@@ -1619,13 +1619,20 @@ export class GameSimController {
         if (window._reactCloseChampionship) window._reactCloseChampionship();
         // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
 
+        if (!playoffData) {
+            console.warn('⚠️ continueAfterChampionshipRound: no playoffData, routing to postseason continuation');
+            const offseasonCtrl = helpers.getOffseasonController?.();
+            if (offseasonCtrl) offseasonCtrl.continueAfterPostseason();
+            return;
+        }
+
         if (playoffData.currentRound < 4) {
             this.simulateChampionshipRound(playoffData.currentRound + 1);
         } else {
             console.log('🏆 Championship playoffs complete!');
             // Update T1 champion in postseasonResults from the interactive results
             const finalRound = playoffData.roundResults[3];
-            if (finalRound && finalRound[0]) {
+            if (finalRound && finalRound[0] && gameState.postseasonResults?.t1) {
                 gameState.postseasonResults.t1.champion = finalRound[0].result.winner;
             }
             // Route through the standard postseason continuation (handles history snapshot, promo/releg, tier changes)

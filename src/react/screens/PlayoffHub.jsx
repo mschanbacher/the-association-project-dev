@@ -474,7 +474,7 @@ function SimpleBracket({ label, rounds, userTeamId }) {
   if (!rounds || rounds.length === 0) {
     return (
       <div style={{ padding: 32, color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>
-        {label} bracket data not available.
+        {label} playoff results will appear here after the postseason simulation runs.
       </div>
     );
   }
@@ -841,7 +841,11 @@ export function PlayoffHub({ data, onClose }) {
   const { gameState, refresh } = useGame();
   const [activeTab, setActiveTab] = useState(data?.userTier || 1);
 
-  const { userTeamId, onComplete, postseasonResults } = data || {};
+  const { userTeamId, onComplete } = data || {};
+
+  // Read postseasonResults live from gameState — more reliable than stale props
+  // since the prop may be null if hub is opened before simulateFullPostseason runs
+  const postseasonResults = gameState?._raw?.postseasonResults || gameState?.postseasonResults || data?.postseasonResults;
 
   // Get live data from gameState
   const cpd = gameState?._raw?.championshipPlayoffData || gameState?.championshipPlayoffData;
