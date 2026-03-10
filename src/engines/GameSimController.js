@@ -739,9 +739,17 @@ export class GameSimController {
      * and returns to the series flow.
      */
     watchPlayoffGameClose() {
-        const { helpers } = this.ctx;
+        const { gameState, helpers, engines } = this.ctx;
         if (this._watchTimer) clearInterval(this._watchTimer);
         this._watchTimer = null;
+        
+        // Route to calendar-based handler if we have _watchPlayoffGame
+        if (this._watchPlayoffGame) {
+            this._closeCalendarPlayoffWatch();
+            return;
+        }
+        
+        // Legacy handler for old _playoffWatch system
         if (!this._watchGame || !this._playoffWatch) return;
 
         const result = this._watchGame.getResult();
@@ -797,6 +805,55 @@ export class GameSimController {
 
         // Return to series status
         this._showPlayoffSeriesStatus();
+    }
+
+    /**
+     * Close handler for calendar-based playoff watch games.
+     * Records the result in playoffSchedule and refreshes PlayoffHub.
+     */
+    _closeCalendarPlayoffWatch() {
+        const { gameState, helpers, engines } = this.ctx;
+        const game = this._watchPlayoffGame;
+        
+        if (!this._watchGame || !game) return;
+        
+        const result = this._watchGame.getResult();
+        
+        // Record result in the scheduled game
+        game.played = true;
+        game.result = {
+            homeScore: result.homeScore,
+            awayScore: result.awayScore,
+            winner: result.winner,
+            loser: result.loser,
+            overtime: result.overtime || false
+        };
+        
+        console.log(`✅ Playoff game complete: ${this._watchHomeTeam.name} ${result.homeScore} - ${result.awayScore} ${this._watchAwayTeam.name}`);
+        
+        // Accumulate player stats
+        const simCtrl = helpers.getSimulationController();
+        simCtrl.accumulatePlayerStats(this._watchHomeTeam, result.homePlayerStats);
+        simCtrl.accumulatePlayerStats(this._watchAwayTeam, result.awayPlayerStats);
+        
+        // Update brackets if series complete
+        this._updateBracketsAfterGames();
+        this._updateUserSeriesForNextRound();
+        
+        // Close watch game modal
+        if (window._reactCloseWatchGame) window._reactCloseWatchGame();
+        
+        // Clean up state
+        this._watchGame = null;
+        this._watchPlayoffGame = null;
+        this._isPlayoffWatch = false;
+        
+        // Save and refresh PlayoffHub
+        helpers.saveGameState();
+        if (window._reactPlayoffHubRefresh) window._reactPlayoffHubRefresh();
+        
+        // Check if playoffs complete
+        this._checkPlayoffsComplete();
     }
 
     /**
@@ -3039,6 +3096,7 @@ export class GameSimController {
         this._watchHomeName = homeTeam.name;
         this._watchAwayName = awayTeam.name;
         this._watchPlayoffGame = nextGame; // Track which playoff game this is
+        this._isPlayoffWatch = true; // Flag so watchGameClose routes correctly
         
         const userIsHome = homeTeam.id === gameState.userTeamId;
         this._watchUserIsHome = userIsHome;

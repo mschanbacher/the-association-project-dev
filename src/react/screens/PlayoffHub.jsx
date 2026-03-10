@@ -619,7 +619,11 @@ export function PlayoffHub({ data, onClose }) {
     }
     
     const firstGame = seriesGames[0];
-    const opponent = firstGame.homeTeamId === userTeamId ? firstGame.awayTeam : firstGame.homeTeam;
+    // Find opponent - user could be home or away team
+    const userIsHigherSeed = firstGame.higherSeedId === userTeamId;
+    const opponent = userIsHigherSeed 
+      ? (firstGame.awayTeam || firstGame.lowerSeed)
+      : (firstGame.homeTeam || firstGame.higherSeed);
     const bestOf = firstGame.bestOf || 7;
     const winsNeeded = Math.ceil(bestOf / 2);
     
