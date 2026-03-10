@@ -767,6 +767,510 @@ export class PlayoffEngine {
     }
     
     // ============================================
+    // PLAYOFF CALENDAR GENERATION
+    // ============================================
+    
+    /**
+     * Generate a complete playoff calendar with all potential games dated
+     * @param {Object} brackets - { t1: bracket, t2: bracket, t3: bracket }
+     * @param {number} seasonStartYear - e.g., 2025 for 2025-26 season
+     * @returns {Object} playoffSchedule - { games: [...], byDate: {...}, bySeries: {...} }
+     */
+    static generatePlayoffSchedule(brackets, seasonStartYear) {
+        const dates = PlayoffEngine.getPlayoffDates(seasonStartYear);
+        const games = [];
+        
+        // Generate T1 playoff games
+        if (brackets.t1) {
+            games.push(...PlayoffEngine._generateT1PlayoffGames(brackets.t1, dates));
+        }
+        
+        // Generate T2 playoff games
+        if (brackets.t2) {
+            games.push(...PlayoffEngine._generateT2PlayoffGames(brackets.t2, dates));
+        }
+        
+        // Generate T3 playoff games
+        if (brackets.t3) {
+            games.push(...PlayoffEngine._generateT3PlayoffGames(brackets.t3, dates));
+        }
+        
+        // Sort all games by date
+        games.sort((a, b) => a.date.localeCompare(b.date) || a.gameNumber - b.gameNumber);
+        
+        // Build lookup indexes
+        const byDate = {};
+        const bySeries = {};
+        
+        for (const game of games) {
+            // Index by date
+            if (!byDate[game.date]) byDate[game.date] = [];
+            byDate[game.date].push(game);
+            
+            // Index by series ID
+            if (!bySeries[game.seriesId]) bySeries[game.seriesId] = [];
+            bySeries[game.seriesId].push(game);
+        }
+        
+        return { games, byDate, bySeries };
+    }
+    
+    /**
+     * Generate dates for a single series (Bo3, Bo5, or Bo7)
+     * Games are scheduled every other day within the date range
+     * @param {string} seriesId - Unique identifier for the series
+     * @param {Object} higherSeed - Higher seeded team
+     * @param {Object} lowerSeed - Lower seeded team
+     * @param {number} bestOf - 3, 5, or 7
+     * @param {string} startDate - YYYY-MM-DD
+     * @param {string} endDate - YYYY-MM-DD
+     * @param {number} tier - 1, 2, or 3
+     * @param {string} round - 'Round1', 'Round2', 'ConfFinals', 'Finals', etc.
+     * @param {string} conference - 'East', 'West', 'National', division name, etc.
+     * @returns {Array} Array of game objects
+     */
+    static _generateSeriesGames(seriesId, higherSeed, lowerSeed, bestOf, startDate, endDate, tier, round, conference) {
+        const games = [];
+        const winsNeeded = Math.ceil(bestOf / 2);
+        
+        // Home court pattern: 2-2-1-1-1 for Bo7, 2-2-1 for Bo5, 2-1 for Bo3
+        // Higher seed gets home for games 1, 2, 5, 7 (Bo7) or 1, 2, 5 (Bo5) or 1, 3 (Bo3)
+        const homePattern = bestOf === 7 
+            ? [higherSeed, higherSeed, lowerSeed, lowerSeed, higherSeed, lowerSeed, higherSeed]
+            : bestOf === 5
+            ? [higherSeed, higherSeed, lowerSeed, lowerSeed, higherSeed]
+            : [higherSeed, lowerSeed, higherSeed]; // Bo3
+        
+        // Calculate days available and spacing
+        const daysAvailable = PlayoffEngine._daysBetween(startDate, endDate) + 1;
+        const daysPerGame = Math.max(2, Math.floor(daysAvailable / bestOf)); // At least every other day
+        
+        let currentDate = startDate;
+        
+        for (let gameNum = 1; gameNum <= bestOf; gameNum++) {
+            const homeTeam = homePattern[gameNum - 1];
+            const awayTeam = homeTeam.id === higherSeed.id ? lowerSeed : higherSeed;
+            const isNecessary = gameNum <= winsNeeded; // First games to clinch are always played
+            
+            games.push({
+                id: `${seriesId}-g${gameNum}`,
+                seriesId,
+                gameNumber: gameNum,
+                tier,
+                round,
+                conference,
+                bestOf,
+                homeTeamId: homeTeam.id,
+                awayTeamId: awayTeam.id,
+                homeTeam,
+                awayTeam,
+                higherSeedId: higherSeed.id,
+                lowerSeedId: lowerSeed.id,
+                date: currentDate,
+                played: false,
+                necessary: isNecessary, // Games 1-4 in Bo7 are always necessary
+                ifNecessary: !isNecessary, // Games 5-7 are "if necessary"
+                result: null // Will hold { homeScore, awayScore, winner, loser } after played
+            });
+            
+            // Advance date for next game (every other day typically)
+            currentDate = PlayoffEngine._addDays(currentDate, daysPerGame);
+            if (currentDate > endDate) currentDate = endDate; // Cap at end date
+        }
+        
+        return games;
+    }
+    
+    /**
+     * Generate all T1 playoff games (4 rounds, Bo7, conference-based)
+     */
+    static _generateT1PlayoffGames(bracket, dates) {
+        const games = [];
+        
+        // Round 1: 8 series (4 East, 4 West)
+        // Matchups: 1v8, 2v7, 3v6, 4v5 in each conference
+        const r1Matchups = [
+            { conf: 'East', seeds: [[0, 7], [1, 6], [2, 5], [3, 4]] },
+            { conf: 'West', seeds: [[0, 7], [1, 6], [2, 5], [3, 4]] }
+        ];
+        
+        for (const { conf, seeds } of r1Matchups) {
+            const confTeams = conf === 'East' ? bracket.east : bracket.west;
+            for (const [highIdx, lowIdx] of seeds) {
+                if (confTeams[highIdx] && confTeams[lowIdx]) {
+                    const seriesId = `t1-r1-${conf.toLowerCase()}-${highIdx + 1}v${lowIdx + 1}`;
+                    games.push(...PlayoffEngine._generateSeriesGames(
+                        seriesId,
+                        confTeams[highIdx],
+                        confTeams[lowIdx],
+                        7,
+                        dates.t1Round1Start,
+                        dates.t1Round1End,
+                        1,
+                        'Round1',
+                        conf
+                    ));
+                }
+            }
+        }
+        
+        // Round 2: 4 series (2 per conference) - matchups determined by Round 1 results
+        // We create placeholder series that will be populated as Round 1 completes
+        for (const conf of ['East', 'West']) {
+            for (let i = 0; i < 2; i++) {
+                const seriesId = `t1-r2-${conf.toLowerCase()}-${i + 1}`;
+                // Placeholder - teams will be set when R1 completes
+                games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                    seriesId, 7, dates.t1Round2Start, dates.t1Round2End, 1, 'Round2', conf
+                ));
+            }
+        }
+        
+        // Conference Finals: 2 series
+        for (const conf of ['East', 'West']) {
+            const seriesId = `t1-cf-${conf.toLowerCase()}`;
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                seriesId, 7, dates.t1ConfFinalsStart, dates.t1ConfFinalsEnd, 1, 'ConfFinals', conf
+            ));
+        }
+        
+        // Finals: 1 series
+        games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+            't1-finals', 7, dates.t1FinalsStart, dates.t1FinalsEnd, 1, 'Finals', 'National'
+        ));
+        
+        return games;
+    }
+    
+    /**
+     * Generate placeholder games for a series where teams aren't known yet
+     */
+    static _generatePlaceholderSeriesGames(seriesId, bestOf, startDate, endDate, tier, round, conference) {
+        const games = [];
+        const daysAvailable = PlayoffEngine._daysBetween(startDate, endDate) + 1;
+        const daysPerGame = Math.max(2, Math.floor(daysAvailable / bestOf));
+        
+        let currentDate = startDate;
+        
+        for (let gameNum = 1; gameNum <= bestOf; gameNum++) {
+            const winsNeeded = Math.ceil(bestOf / 2);
+            
+            games.push({
+                id: `${seriesId}-g${gameNum}`,
+                seriesId,
+                gameNumber: gameNum,
+                tier,
+                round,
+                conference,
+                bestOf,
+                homeTeamId: null, // TBD
+                awayTeamId: null, // TBD
+                homeTeam: null,
+                awayTeam: null,
+                higherSeedId: null,
+                lowerSeedId: null,
+                date: currentDate,
+                played: false,
+                necessary: gameNum <= winsNeeded,
+                ifNecessary: gameNum > winsNeeded,
+                result: null,
+                placeholder: true // Flag to indicate teams not yet determined
+            });
+            
+            currentDate = PlayoffEngine._addDays(currentDate, daysPerGame);
+            if (currentDate > endDate) currentDate = endDate;
+        }
+        
+        return games;
+    }
+    
+    /**
+     * Generate all T2 playoff games (division stage + national tournament)
+     */
+    static _generateT2PlayoffGames(bracket, dates) {
+        const games = [];
+        
+        // Stage 1: Division Playoffs (11 divisions × 3 games each for semis + final)
+        // Each division: Semi 1 (Bo3), Semi 2 (Bo3), Final (Bo3)
+        if (bracket.divisionBrackets) {
+            for (const divBracket of bracket.divisionBrackets) {
+                const divName = divBracket.division;
+                const divId = divName.toLowerCase().replace(/\s+/g, '-');
+                
+                // Division Semi 1: #1 vs #4
+                if (divBracket.seed1 && divBracket.seed4) {
+                    games.push(...PlayoffEngine._generateSeriesGames(
+                        `t2-div-${divId}-s1`, divBracket.seed1, divBracket.seed4, 3,
+                        dates.t2Round1Start, PlayoffEngine._addDays(dates.t2Round1Start, 4),
+                        2, 'DivSemi', divName
+                    ));
+                }
+                
+                // Division Semi 2: #2 vs #3
+                if (divBracket.seed2 && divBracket.seed3) {
+                    games.push(...PlayoffEngine._generateSeriesGames(
+                        `t2-div-${divId}-s2`, divBracket.seed2, divBracket.seed3, 3,
+                        dates.t2Round1Start, PlayoffEngine._addDays(dates.t2Round1Start, 4),
+                        2, 'DivSemi', divName
+                    ));
+                }
+                
+                // Division Final (placeholder - winners of semis)
+                games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                    `t2-div-${divId}-final`, 3,
+                    PlayoffEngine._addDays(dates.t2Round1Start, 6), dates.t2Round1End,
+                    2, 'DivFinal', divName
+                ));
+            }
+        }
+        
+        // Stage 2: National Tournament (16 teams, 4 rounds of Bo5)
+        // Round 1: 8 series
+        for (let i = 0; i < 8; i++) {
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                `t2-nat-r1-${i + 1}`, 5, dates.t2Round2Start, dates.t2Round2End, 2, 'NatRound1', 'National'
+            ));
+        }
+        
+        // Quarterfinals: 4 series
+        for (let i = 0; i < 4; i++) {
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                `t2-nat-qf-${i + 1}`, 5, dates.t2ConfFinalsStart, dates.t2ConfFinalsEnd, 2, 'NatQuarter', 'National'
+            ));
+        }
+        
+        // Semifinals: 2 series
+        for (let i = 0; i < 2; i++) {
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                `t2-nat-sf-${i + 1}`, 5, dates.t2FinalsStart, PlayoffEngine._addDays(dates.t2FinalsStart, 6), 2, 'NatSemi', 'National'
+            ));
+        }
+        
+        // 3rd Place Game: Bo3
+        games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+            't2-3rd-place', 3, dates.t2ThirdPlaceStart, dates.t2ThirdPlaceEnd, 2, 'ThirdPlace', 'National'
+        ));
+        
+        // Finals: Bo5
+        games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+            't2-finals', 5, PlayoffEngine._addDays(dates.t2FinalsStart, 5), dates.t2FinalsEnd, 2, 'Finals', 'National'
+        ));
+        
+        return games;
+    }
+    
+    /**
+     * Generate all T3 playoff games (multi-stage tournament)
+     */
+    static _generateT3PlayoffGames(bracket, dates) {
+        const games = [];
+        
+        // Stage 1: Metro Finals (24 series, Bo3) - #1 vs #2 in each metro
+        if (bracket.metroMatchups) {
+            for (const matchup of bracket.metroMatchups) {
+                const divId = matchup.division.toLowerCase().replace(/\s+/g, '-');
+                games.push(...PlayoffEngine._generateSeriesGames(
+                    `t3-metro-${divId}`, matchup.seed1, matchup.seed2, 3,
+                    dates.t3MetroFinalsStart, dates.t3MetroFinalsEnd, 3, 'MetroFinal', matchup.division
+                ));
+            }
+        }
+        
+        // Stage 2: Regional Round (8 series, Bo3) - play-in for teams 9-24
+        for (let i = 0; i < 8; i++) {
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                `t3-regional-${i + 1}`, 3, dates.t3RegionalStart, dates.t3RegionalEnd, 3, 'Regional', 'National'
+            ));
+        }
+        
+        // Stage 3: Sweet 16 (8 series, Bo5)
+        for (let i = 0; i < 8; i++) {
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                `t3-sweet16-${i + 1}`, 5, dates.t3Sweet16Start, dates.t3Sweet16End, 3, 'Sweet16', 'National'
+            ));
+        }
+        
+        // Stage 4: Quarterfinals (4 series, Bo5)
+        for (let i = 0; i < 4; i++) {
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                `t3-qf-${i + 1}`, 5, dates.t3QuartersStart, dates.t3QuartersEnd, 3, 'Quarter', 'National'
+            ));
+        }
+        
+        // Stage 5: Semifinals (2 series, Bo5)
+        for (let i = 0; i < 2; i++) {
+            games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+                `t3-sf-${i + 1}`, 5, dates.t3SemisStart, dates.t3SemisEnd, 3, 'Semi', 'National'
+            ));
+        }
+        
+        // 3rd Place Game: Bo3
+        games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+            't3-3rd-place', 3, dates.t3ThirdPlaceStart, dates.t3ThirdPlaceEnd, 3, 'ThirdPlace', 'National'
+        ));
+        
+        // Finals: Bo5
+        games.push(...PlayoffEngine._generatePlaceholderSeriesGames(
+            't3-finals', 5, dates.t3FinalsStart, dates.t3FinalsEnd, 3, 'Finals', 'National'
+        ));
+        
+        return games;
+    }
+    
+    /**
+     * Update a series with the winning team from a previous round
+     * Called when a series completes to populate the next round's matchups
+     */
+    static populateNextRoundSeries(playoffSchedule, completedSeriesId, winner, loser) {
+        // Find games that depend on this series result
+        // The seriesId naming convention helps us find the next round
+        // e.g., t1-r1-east-1v8 winner goes to t1-r2-east-1
+        
+        const games = playoffSchedule.games;
+        
+        // Determine which next-round series this feeds into based on bracket logic
+        // This is bracket-specific and will need custom logic per tier/round
+        // For now, we'll implement a generic version that can be extended
+        
+        const [tier, round, ...rest] = completedSeriesId.split('-');
+        
+        // Find placeholder games in the next round that need this winner
+        for (const game of games) {
+            if (game.placeholder && game.tier === parseInt(tier.replace('t', '')) && !game.homeTeamId) {
+                // Logic to match winner to correct next-round series goes here
+                // This will be implemented more fully when we wire up the sim flow
+            }
+        }
+    }
+    
+    /**
+     * Get the current state of a series (wins for each team, games played, etc.)
+     */
+    static getSeriesState(playoffSchedule, seriesId) {
+        const seriesGames = playoffSchedule.bySeries[seriesId] || [];
+        const playedGames = seriesGames.filter(g => g.played);
+        
+        if (playedGames.length === 0) {
+            return {
+                seriesId,
+                gamesPlayed: 0,
+                higherSeedWins: 0,
+                lowerSeedWins: 0,
+                leader: null,
+                complete: false,
+                winner: null,
+                loser: null
+            };
+        }
+        
+        const firstGame = seriesGames[0];
+        const higherSeedId = firstGame.higherSeedId;
+        const lowerSeedId = firstGame.lowerSeedId;
+        const bestOf = firstGame.bestOf;
+        const winsNeeded = Math.ceil(bestOf / 2);
+        
+        let higherSeedWins = 0;
+        let lowerSeedWins = 0;
+        
+        for (const game of playedGames) {
+            if (game.result?.winner?.id === higherSeedId) {
+                higherSeedWins++;
+            } else if (game.result?.winner?.id === lowerSeedId) {
+                lowerSeedWins++;
+            }
+        }
+        
+        const complete = higherSeedWins >= winsNeeded || lowerSeedWins >= winsNeeded;
+        const winner = complete ? (higherSeedWins >= winsNeeded ? firstGame.homeTeam : firstGame.awayTeam) : null;
+        const loser = complete ? (higherSeedWins >= winsNeeded ? firstGame.awayTeam : firstGame.homeTeam) : null;
+        
+        return {
+            seriesId,
+            gamesPlayed: playedGames.length,
+            higherSeedWins,
+            lowerSeedWins,
+            bestOf,
+            winsNeeded,
+            leader: higherSeedWins > lowerSeedWins ? 'higher' : lowerSeedWins > higherSeedWins ? 'lower' : 'tied',
+            complete,
+            winner,
+            loser
+        };
+    }
+    
+    /**
+     * Check if a game is still necessary (series not yet decided)
+     */
+    static isGameNecessary(playoffSchedule, gameId) {
+        const game = playoffSchedule.games.find(g => g.id === gameId);
+        if (!game) return false;
+        if (game.played) return true; // Already played
+        
+        const seriesState = PlayoffEngine.getSeriesState(playoffSchedule, game.seriesId);
+        if (seriesState.complete) return false; // Series already decided
+        
+        // For "if necessary" games, check if we've reached that point
+        const winsNeeded = seriesState.winsNeeded;
+        const gamesPlayed = seriesState.gamesPlayed;
+        const maxPossibleGames = gamesPlayed + (winsNeeded - seriesState.higherSeedWins) + (winsNeeded - seriesState.lowerSeedWins) - 1;
+        
+        return game.gameNumber <= maxPossibleGames + 1;
+    }
+    
+    /**
+     * Get all games scheduled for a specific date that are still necessary
+     */
+    static getPlayoffGamesOnDate(playoffSchedule, date) {
+        const gamesOnDate = playoffSchedule.byDate[date] || [];
+        return gamesOnDate.filter(game => {
+            if (game.played) return false;
+            if (game.placeholder && !game.homeTeamId) return false; // Teams not determined yet
+            return PlayoffEngine.isGameNecessary(playoffSchedule, game.id);
+        });
+    }
+    
+    /**
+     * Get the next date with unplayed playoff games
+     */
+    static getNextPlayoffGameDate(playoffSchedule, afterDate = null) {
+        const dates = Object.keys(playoffSchedule.byDate).sort();
+        
+        for (const date of dates) {
+            if (afterDate && date <= afterDate) continue;
+            
+            const games = PlayoffEngine.getPlayoffGamesOnDate(playoffSchedule, date);
+            if (games.length > 0) return date;
+        }
+        
+        return null;
+    }
+    
+    // ============================================
+    // HELPER METHODS
+    // ============================================
+    
+    /**
+     * Add days to a date string
+     */
+    static _addDays(dateStr, days) {
+        const d = new Date(dateStr + 'T12:00:00');
+        d.setDate(d.getDate() + days);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    /**
+     * Get days between two date strings
+     */
+    static _daysBetween(dateStr1, dateStr2) {
+        const d1 = new Date(dateStr1 + 'T12:00:00');
+        const d2 = new Date(dateStr2 + 'T12:00:00');
+        return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+    }
+    
+    // ============================================
     // HTML GENERATION FOR RESULTS
     // ============================================
     

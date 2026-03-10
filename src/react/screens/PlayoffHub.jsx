@@ -114,7 +114,12 @@ function PlayoffSidebar({
   seriesProb, roundName, bestOf, games, nextGameNum, nextGameLocation,
   userTeam_abbr, opp_abbr, otherSeriesList,
   onSimGame, onWatch, onSimSeries, onSimToChampionship,
+  // New props for eliminated users
+  userInPlayoffs, userEliminated, onSimDay, onSimRound,
 }) {
+  const showActiveControls = isUserInSeries && !seriesOver;
+  const showEliminatedControls = !userInPlayoffs || userEliminated;
+  
   return (
     <div style={{
       width: 210, minWidth: 210, flexShrink: 0,
@@ -125,8 +130,8 @@ function PlayoffSidebar({
     }}>
       {/* Your Series */}
       <SbSection>
-        <Label>{isUserInSeries ? 'Your Series' : 'Playoffs'}</Label>
-        {isUserInSeries ? (
+        <Label>{isUserInSeries || seriesOver ? 'Your Series' : 'Playoffs'}</Label>
+        {(isUserInSeries || seriesOver) ? (
           <>
             <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.3 }}>{userTeam_abbr} vs {opp_abbr}</div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-secondary)', marginTop: 2 }}>
@@ -175,7 +180,7 @@ function PlayoffSidebar({
         </SbSection>
       )}
 
-      {seriesOver && isUserInSeries && (
+      {seriesOver && (isUserInSeries || userEliminated) && (
         <SbSection>
           <div style={{ textAlign: 'center', padding: '6px 0', fontSize: 12, fontWeight: 700, color: userWins > oppWins ? 'var(--color-win)' : 'var(--color-loss)' }}>
             {userWins > oppWins ? 'Series Won' : 'Series Lost'} · {userWins}–{oppWins}
@@ -183,19 +188,48 @@ function PlayoffSidebar({
         </SbSection>
       )}
 
-      {/* Controls */}
-      <SbSection>
-        {isUserInSeries && !seriesOver && (
+      {/* Controls - Active User in Series */}
+      {showActiveControls && (
+        <SbSection>
           <div style={{ display: 'flex', gap: 5, marginBottom: 6 }}>
             <Btn variant="primary" onClick={onSimGame}>Game {nextGameNum} ›</Btn>
             <Btn variant="watch" onClick={onWatch}>Watch</Btn>
             <Btn variant="ghost" onClick={onSimSeries}>Series</Btn>
           </div>
-        )}
-        <Btn variant="sim" onClick={onSimToChampionship} style={{ width: '100%', flex: 'none', padding: '7px 0' }}>
-          Sim to Championship ›
-        </Btn>
-      </SbSection>
+          <Btn variant="sim" onClick={onSimToChampionship} style={{ width: '100%', flex: 'none', padding: '7px 0' }}>
+            Sim to Championship ›
+          </Btn>
+        </SbSection>
+      )}
+
+      {/* Controls - Eliminated User or Not in Playoffs */}
+      {showEliminatedControls && (
+        <SbSection>
+          <div style={{ display: 'flex', gap: 5, marginBottom: 6 }}>
+            <Btn variant="ghost" onClick={onSimDay}>Sim Day</Btn>
+            <Btn variant="ghost" onClick={onSimRound}>Sim Round</Btn>
+          </div>
+          <Btn variant="sim" onClick={onSimToChampionship} style={{ width: '100%', flex: 'none', padding: '7px 0' }}>
+            Sim to Championship ›
+          </Btn>
+        </SbSection>
+      )}
+
+      {/* Controls - User won series, waiting for next round */}
+      {seriesOver && userWins > oppWins && !showEliminatedControls && (
+        <SbSection>
+          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 8, textAlign: 'center' }}>
+            Waiting for next round...
+          </div>
+          <div style={{ display: 'flex', gap: 5, marginBottom: 6 }}>
+            <Btn variant="ghost" onClick={onSimDay}>Sim Day</Btn>
+            <Btn variant="ghost" onClick={onSimRound}>Sim Round</Btn>
+          </div>
+          <Btn variant="sim" onClick={onSimToChampionship} style={{ width: '100%', flex: 'none', padding: '7px 0' }}>
+            Sim to Championship ›
+          </Btn>
+        </SbSection>
+      )}
 
       {/* Game Log */}
       {isUserInSeries && (
@@ -537,16 +571,17 @@ function calcSeriesProb(userTeam, opponent, userWins, oppWins) {
 export function PlayoffHub({ data, onClose }) {
   const { gameState, refresh } = useGame();
   const [activeTab, setActiveTab] = useState(data?.userTier || 1);
-  const { userTeamId, userTier } = data || {};
+  const { userTeamId, userTier, userInPlayoffs, userSeriesId, playoffData, playoffSchedule, currentDate } = data || {};
 
-  // Diagnostic logging
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('🏀 [DIAG-HUB] PlayoffHub RENDER');
-  console.log('🏀 [DIAG-HUB] data:', data);
-  console.log('🏀 [DIAG-HUB] data?.action:', data?.action);
-  console.log('🏀 [DIAG-HUB] userTeamId:', userTeamId);
-  console.log('🏀 [DIAG-HUB] userTier:', userTier);
-  console.log('🏀 [DIAG-HUB] gameState exists:', !!gameState);
+  console.log('🏀 PlayoffHub RENDER');
+  console.log('🏀 userTeamId:', userTeamId);
+  console.log('🏀 userTier:', userTier);
+  console.log('🏀 userInPlayoffs:', userInPlayoffs);
+  console.log('🏀 userSeriesId:', userSeriesId);
+  console.log('🏀 currentDate:', currentDate);
+  console.log('🏀 playoffData:', playoffData ? 'EXISTS' : 'NULL');
+  console.log('🏀 playoffSchedule:', playoffSchedule ? `${playoffSchedule.games?.length} games` : 'NULL');
   console.log('═══════════════════════════════════════════════════════════');
 
   // Register refresh hook for GameSimController
@@ -557,11 +592,10 @@ export function PlayoffHub({ data, onClose }) {
 
   useEffect(() => { if (userTier) setActiveTab(userTier); }, [userTier]);
 
-  // Live data
-  const cpd = gameState?._raw?.championshipPlayoffData || gameState?.championshipPlayoffData;
-  const postseasonResults = gameState?._raw?.postseasonResults || gameState?.postseasonResults || data?.postseasonResults;
-  const t2Data = postseasonResults?.t2 || null;
-  const t3Data = postseasonResults?.t3 || null;
+  // Get live data from gameState (may have been updated by sim)
+  const livePlayoffData = gameState?._raw?.playoffData || gameState?.playoffData || playoffData;
+  const livePlayoffSchedule = gameState?._raw?.playoffSchedule || gameState?.playoffSchedule || playoffSchedule;
+  const liveCurrentDate = gameState?._raw?.currentDate || gameState?.currentDate || currentDate;
 
   // User's team object
   const userTeam = useMemo(() => {
@@ -573,71 +607,190 @@ export function PlayoffHub({ data, onClose }) {
     return all.find(t => t.id === userTeamId) || null;
   }, [gameState, userTeamId]);
 
-  // Current series state from cpd
-  const higher = cpd?._pendingHigher || null;
-  const lower = cpd?._pendingLower || null;
-  const opponent = higher?.id === userTeamId ? lower : higher;
-  const userWins = cpd?._pendingUserWins ?? 0;
-  const oppWins = cpd?._pendingOppWins ?? 0;
-  const bestOf = cpd?._pendingBestOf ?? 7;
-  const winsNeeded = Math.ceil(bestOf / 2);
-  const seriesOver = userWins >= winsNeeded || oppWins >= winsNeeded;
-  const isUserInSeries = !!(cpd?._pendingRoundResults && (higher?.id === userTeamId || lower?.id === userTeamId));
-  const nextGameNum = (cpd?._pendingGameNum ?? 0) + 1;
-  const roundName = cpd?._pendingRoundName || (cpd?.currentRound ? `Round ${cpd.currentRound}` : 'Playoffs');
+  // Get user's current series state
+  const userSeriesState = useMemo(() => {
+    if (!userInPlayoffs || !userSeriesId || !livePlayoffSchedule) {
+      return { inSeries: false, wins: 0, oppWins: 0, opponent: null, bestOf: 7, games: [], complete: false };
+    }
+    
+    const seriesGames = livePlayoffSchedule.bySeries?.[userSeriesId] || [];
+    if (seriesGames.length === 0) {
+      return { inSeries: false, wins: 0, oppWins: 0, opponent: null, bestOf: 7, games: [], complete: false };
+    }
+    
+    const firstGame = seriesGames[0];
+    const opponent = firstGame.homeTeamId === userTeamId ? firstGame.awayTeam : firstGame.homeTeam;
+    const bestOf = firstGame.bestOf || 7;
+    const winsNeeded = Math.ceil(bestOf / 2);
+    
+    let userWins = 0;
+    let oppWins = 0;
+    const playedGames = [];
+    
+    for (const game of seriesGames) {
+      if (game.played && game.result) {
+        const userIsHome = game.homeTeamId === userTeamId;
+        const userScore = userIsHome ? game.result.homeScore : game.result.awayScore;
+        const oppScore = userIsHome ? game.result.awayScore : game.result.homeScore;
+        const userWon = game.result.winner?.id === userTeamId;
+        
+        if (userWon) userWins++;
+        else oppWins++;
+        
+        playedGames.push({
+          gameNumber: game.gameNumber,
+          userScore,
+          oppScore,
+          userWon,
+          location: userIsHome ? 'vs' : '@',
+          date: game.date
+        });
+      }
+    }
+    
+    const complete = userWins >= winsNeeded || oppWins >= winsNeeded;
+    const nextGame = seriesGames.find(g => !g.played && !complete);
+    const nextGameNum = nextGame?.gameNumber || (playedGames.length + 1);
+    const nextGameIsHome = nextGame?.homeTeamId === userTeamId;
+    
+    return {
+      inSeries: true,
+      userWins,
+      oppWins,
+      opponent,
+      bestOf,
+      winsNeeded,
+      games: playedGames,
+      complete,
+      winner: complete ? (userWins >= winsNeeded ? userTeam : opponent) : null,
+      nextGameNum,
+      nextGameIsHome,
+      round: firstGame.round,
+      conference: firstGame.conference
+    };
+  }, [userInPlayoffs, userSeriesId, livePlayoffSchedule, userTeamId, userTeam]);
 
-  // Next game location
-  const nextGameLocation = useMemo(() => {
-    const hp = cpd?._pendingHomePattern;
-    const gi = cpd?._pendingGameNum ?? 0;
-    if (!hp) return 'home';
-    return (higher?.id === userTeamId ? hp[gi] : !hp[gi]) ? 'home' : 'away';
-  }, [cpd, userTeamId, higher]);
-
-  // Game log
-  const games = useMemo(() => (cpd?._pendingGamesPlayed || []).map(g => {
-    const homeIsUser = g.homeTeam?.id === userTeamId;
-    return { winner: g.winner?.id === userTeamId, location: homeIsUser ? 'vs' : '@', userScore: homeIsUser ? (g.homeScore ?? 0) : (g.awayScore ?? 0), oppScore: homeIsUser ? (g.awayScore ?? 0) : (g.homeScore ?? 0) };
-  }), [cpd, userTeamId]);
-
-  // Other series
+  // Other series in user's tier (for display)
   const otherSeriesList = useMemo(() => {
-    if (!cpd?.roundResults) return [];
-    return (cpd.roundResults[(cpd.currentRound || 1) - 1] || [])
-      .filter(s => s?.result && s.result.higherSeed?.id !== userTeamId && s.result.lowerSeed?.id !== userTeamId)
-      .map(s => ({ name: `${abbr(s.result.higherSeed)} vs ${abbr(s.result.lowerSeed)}`, higherWins: s.result?.higherSeedWins ?? s.result?.higherWins ?? 0, lowerWins: s.result?.lowerSeedWins ?? s.result?.lowerWins ?? 0, winner: s.result?.winner || null }));
-  }, [cpd, userTeamId]);
+    if (!livePlayoffSchedule?.bySeries || !userTier) return [];
+    
+    const result = [];
+    const seenSeries = new Set();
+    
+    for (const [seriesId, games] of Object.entries(livePlayoffSchedule.bySeries)) {
+      if (seenSeries.has(seriesId)) continue;
+      if (!games.length || games[0].tier !== userTier) continue;
+      if (seriesId === userSeriesId) continue;
+      
+      seenSeries.add(seriesId);
+      
+      const firstGame = games[0];
+      const higher = firstGame.homeTeam || firstGame.higherSeed;
+      const lower = firstGame.awayTeam || firstGame.lowerSeed;
+      
+      if (!higher || !lower) continue;
+      
+      let higherWins = 0, lowerWins = 0;
+      for (const g of games) {
+        if (g.played && g.result?.winner) {
+          if (g.result.winner.id === higher.id) higherWins++;
+          else lowerWins++;
+        }
+      }
+      
+      const bestOf = firstGame.bestOf || 7;
+      const winsNeeded = Math.ceil(bestOf / 2);
+      const complete = higherWins >= winsNeeded || lowerWins >= winsNeeded;
+      
+      result.push({
+        name: `${abbr(higher)} vs ${abbr(lower)}`,
+        higherWins,
+        lowerWins,
+        winner: complete ? (higherWins >= winsNeeded ? higher : lower) : null,
+        round: firstGame.round
+      });
+    }
+    
+    return result;
+  }, [livePlayoffSchedule, userTier, userSeriesId]);
 
-  const seriesProb = useMemo(() => calcSeriesProb(userTeam, opponent, userWins, oppWins), [userTeam, opponent, userWins, oppWins]);
+  // Series win probability
+  const seriesProb = useMemo(() => {
+    return calcSeriesProb(userTeam, userSeriesState.opponent, userSeriesState.userWins, userSeriesState.oppWins);
+  }, [userTeam, userSeriesState]);
 
-  // Handlers
-  const handleSimGame = useCallback(() => { window.simOnePlayoffGame?.() || window.simRestOfPlayoffSeries?.(); setTimeout(() => refresh?.(), 100); }, [refresh]);
-  const handleWatch = useCallback(() => { window.watchPlayoffGame?.(); }, []);
-  const handleSimSeries = useCallback(() => { window.simRestOfPlayoffSeries?.(); setTimeout(() => refresh?.(), 100); }, [refresh]);
-  const handleSimToChampionship = useCallback(() => {
-    const gs = window._reactGameState;
-    if (gs && !gs.championshipPlayoffData?.eastTeams?.length) window.initBracketForHub?.(data?.action || 'championship');
-    if (window._reactGameState?.championshipPlayoffData?._pendingRoundResults) window.simRestOfPlayoffSeries?.();
-    window.simAllChampionshipRounds?.();
+  // Handlers - these will call methods we'll implement in Phase 3
+  const handleSimGame = useCallback(() => {
+    console.log('🎮 Sim Game clicked');
+    window.simPlayoffDay?.() || window.simOnePlayoffGame?.();
     setTimeout(() => refresh?.(), 100);
-  }, [refresh, data]);
+  }, [refresh]);
+  
+  const handleWatch = useCallback(() => {
+    console.log('👁️ Watch clicked');
+    window.watchPlayoffGame?.();
+  }, []);
+  
+  const handleSimSeries = useCallback(() => {
+    console.log('🎮 Sim Series clicked');
+    window.simUserPlayoffSeries?.() || window.simRestOfPlayoffSeries?.();
+    setTimeout(() => refresh?.(), 100);
+  }, [refresh]);
+  
+  const handleSimDay = useCallback(() => {
+    console.log('🎮 Sim Day clicked (eliminated user)');
+    window.simPlayoffDay?.();
+    setTimeout(() => refresh?.(), 100);
+  }, [refresh]);
+  
+  const handleSimRound = useCallback(() => {
+    console.log('🎮 Sim Round clicked (eliminated user)');
+    window.simPlayoffRound?.();
+    setTimeout(() => refresh?.(), 100);
+  }, [refresh]);
+  
+  const handleSimToChampionship = useCallback(() => {
+    console.log('🎮 Sim to Championship clicked');
+    window.simToChampionship?.() || window.simAllChampionshipRounds?.();
+    setTimeout(() => refresh?.(), 100);
+  }, [refresh]);
 
   if (!data) return null;
 
   const tierCtx = { 1: 'T1 · 30 teams · Conference format', 2: 'T2 · 86 teams · Single bracket', 3: 'T3 · 144 teams · Single bracket' };
 
+  // Build bracket data from livePlayoffData
+  const t1Bracket = livePlayoffData?.t1 || null;
+  const t2Bracket = livePlayoffData?.t2 || null;
+  const t3Bracket = livePlayoffData?.t3 || null;
+
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
       <PlayoffSidebar
-        userTeam={userTeam} opponent={opponent}
-        userWins={userWins} oppWins={oppWins}
-        isUserInSeries={isUserInSeries} seriesOver={seriesOver}
-        seriesProb={seriesProb} roundName={roundName} bestOf={bestOf}
-        games={games} nextGameNum={nextGameNum} nextGameLocation={nextGameLocation}
-        userTeam_abbr={abbr(userTeam)} opp_abbr={abbr(opponent)}
+        userTeam={userTeam}
+        opponent={userSeriesState.opponent}
+        userWins={userSeriesState.userWins}
+        oppWins={userSeriesState.oppWins}
+        isUserInSeries={userSeriesState.inSeries && !userSeriesState.complete}
+        seriesOver={userSeriesState.complete}
+        seriesProb={seriesProb}
+        roundName={userSeriesState.round || 'Round 1'}
+        bestOf={userSeriesState.bestOf}
+        games={userSeriesState.games}
+        nextGameNum={userSeriesState.nextGameNum}
+        nextGameLocation={userSeriesState.nextGameIsHome ? 'home' : 'away'}
+        userTeam_abbr={abbr(userTeam)}
+        opp_abbr={abbr(userSeriesState.opponent)}
         otherSeriesList={otherSeriesList}
-        onSimGame={handleSimGame} onWatch={handleWatch}
-        onSimSeries={handleSimSeries} onSimToChampionship={handleSimToChampionship}
+        onSimGame={handleSimGame}
+        onWatch={handleWatch}
+        onSimSeries={handleSimSeries}
+        onSimToChampionship={handleSimToChampionship}
+        // For eliminated users
+        userInPlayoffs={userInPlayoffs}
+        userEliminated={userSeriesState.complete && userSeriesState.winner?.id !== userTeamId}
+        onSimDay={handleSimDay}
+        onSimRound={handleSimRound}
       />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Top bar */}
@@ -649,7 +802,9 @@ export function PlayoffHub({ data, onClose }) {
             {[1, 2, 3].map(t => <TierTab key={t} tier={t} active={activeTab === t} onClick={() => setActiveTab(t)} />)}
             <div style={{ width: 1, background: 'var(--color-border)' }} />
           </div>
-          <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)' }}>{tierCtx[activeTab]}</div>
+          <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)' }}>
+            {liveCurrentDate || '—'}
+          </div>
         </div>
         {/* Status bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 18px', background: 'var(--color-bg-sunken)', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
@@ -657,16 +812,173 @@ export function PlayoffHub({ data, onClose }) {
             <div style={{ width: 4, height: 4, borderRadius: '50%', background: TIER[activeTab].color, flexShrink: 0 }} />
             T{activeTab} Playoffs
           </div>
-          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>Postseason in progress</div>
-          <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary)' }}>Season {gameState?.season || '—'}</div>
+          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+            {livePlayoffData?.completed ? 'Playoffs Complete' : 'Postseason in progress'}
+          </div>
+          <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-tertiary) ' }}>{tierCtx[activeTab]}</div>
         </div>
         {/* Bracket */}
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px' }}>
-          {activeTab === 1 && <T1Bracket cpd={cpd} postseasonT1={postseasonResults?.t1} userTeamId={userTeamId} />}
-          {activeTab === 2 && <SingleBracket tier={2} data={t2Data} userTeamId={userTeamId} />}
-          {activeTab === 3 && <SingleBracket tier={3} data={t3Data} userTeamId={userTeamId} />}
+          {activeTab === 1 && <T1BracketNew bracket={t1Bracket} schedule={livePlayoffSchedule} userTeamId={userTeamId} />}
+          {activeTab === 2 && <T2BracketNew bracket={t2Bracket} schedule={livePlayoffSchedule} userTeamId={userTeamId} />}
+          {activeTab === 3 && <T3BracketNew bracket={t3Bracket} schedule={livePlayoffSchedule} userTeamId={userTeamId} />}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── T1 Bracket (new data structure) ─────────────────────────────────────────
+function T1BracketNew({ bracket, schedule, userTeamId }) {
+  if (!bracket) {
+    return <div style={{ padding: 32, color: 'var(--color-text-tertiary)', fontSize: 12 }}>Loading bracket...</div>;
+  }
+
+  const eastTeams = bracket.east || [];
+  const westTeams = bracket.west || [];
+
+  // Helper to get series record from schedule
+  const getSeriesRecord = (seriesId) => {
+    if (!schedule?.bySeries?.[seriesId]) return { w1: 0, w2: 0, complete: false };
+    const games = schedule.bySeries[seriesId];
+    let w1 = 0, w2 = 0;
+    const firstGame = games[0];
+    for (const g of games) {
+      if (g.played && g.result?.winner) {
+        if (g.result.winner.id === firstGame.higherSeedId) w1++;
+        else w2++;
+      }
+    }
+    const bestOf = firstGame?.bestOf || 7;
+    const winsNeeded = Math.ceil(bestOf / 2);
+    return { w1, w2, complete: w1 >= winsNeeded || w2 >= winsNeeded };
+  };
+
+  // Round 1 matchups: 1v8, 4v5, 2v7, 3v6 in each conference
+  const r1Matchups = [
+    { conf: 'East', pairs: [[0, 7], [3, 4], [1, 6], [2, 5]] },
+    { conf: 'West', pairs: [[0, 7], [3, 4], [1, 6], [2, 5]] }
+  ];
+
+  const allR1Cards = [];
+  for (const { conf, pairs } of r1Matchups) {
+    const teams = conf === 'East' ? eastTeams : westTeams;
+    for (const [hi, lo] of pairs) {
+      const higher = teams[hi];
+      const lower = teams[lo];
+      const seriesId = `t1-r1-${conf.toLowerCase()}-${hi + 1}v${lo + 1}`;
+      const rec = getSeriesRecord(seriesId);
+      
+      allR1Cards.push(
+        <Slot key={seriesId} h={58}>
+          <MatchupCard
+            s1={hi + 1} n1={abbr(higher)} fn1={higher?.name} w1={rec.w1}
+            s2={lo + 1} n2={abbr(lower)} fn2={lower?.name} w2={rec.w2}
+            isUser={higher?.id === userTeamId || lower?.id === userTeamId}
+            isLive={!rec.complete && (rec.w1 > 0 || rec.w2 > 0)}
+            isDone={rec.complete}
+            gameLabel={rec.complete ? `✓ ${rec.w1}–${rec.w2}` : rec.w1 + rec.w2 > 0 ? `${rec.w1}–${rec.w2}` : 'G1'}
+          />
+        </Slot>
+      );
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 'max-content' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <ColHeader>Round 1</ColHeader>
+        {allR1Cards}
+      </div>
+      <ConnCol slots={8} slotH={58} />
+      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <ColHeader>Conf. Semis</ColHeader>
+        {Array.from({ length: 4 }).map((_, i) => <Slot key={i} h={116}><FutureCard label="Round 2" /></Slot>)}
+      </div>
+      <ConnCol slots={4} slotH={116} />
+      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <ColHeader>Conf. Finals</ColHeader>
+        {Array.from({ length: 2 }).map((_, i) => <Slot key={i} h={232}><FutureCard label="Conf. Finals" /></Slot>)}
+      </div>
+      <ConnCol slots={2} slotH={232} />
+      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <ColHeader tier={1}>Finals</ColHeader>
+        <Slot h={464}><FutureCard label="Finals" /></Slot>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', width: 20, flexShrink: 0, paddingTop: 28, alignItems: 'center' }}>
+        <div style={{ height: 464, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'rgba(212,168,67,0.5)', fontSize: 14, fontFamily: 'var(--font-mono)' }}>›</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <ColHeader tier={1}>Champion</ColHeader>
+        <Slot h={464}><ChampCard tier={1} /></Slot>
+      </div>
+    </div>
+  );
+}
+
+// ─── T2 Bracket (new data structure) ─────────────────────────────────────────
+function T2BracketNew({ bracket, schedule, userTeamId }) {
+  if (!bracket) {
+    return <div style={{ padding: 32, color: 'var(--color-text-tertiary)', fontSize: 12 }}>Loading bracket...</div>;
+  }
+
+  // T2 has division playoffs first, then national tournament
+  // For now, show a simplified view
+  return (
+    <div style={{ padding: 32 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Tier 2 Playoffs</div>
+      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+        Stage 1: Division Playoffs (11 divisions)<br/>
+        Stage 2: National Tournament (16 teams)
+      </div>
+      {bracket.divisionBrackets && (
+        <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {bracket.divisionBrackets.slice(0, 6).map((div, i) => (
+            <div key={i} style={{ padding: 10, background: 'var(--color-bg-raised)', border: '1px solid var(--color-border)' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 6 }}>{div.division}</div>
+              <div style={{ fontSize: 9, color: 'var(--color-text-secondary)' }}>
+                #1 {abbr(div.seed1)} vs #4 {abbr(div.seed4)}<br/>
+                #2 {abbr(div.seed2)} vs #3 {abbr(div.seed3)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── T3 Bracket (new data structure) ─────────────────────────────────────────
+function T3BracketNew({ bracket, schedule, userTeamId }) {
+  if (!bracket) {
+    return <div style={{ padding: 32, color: 'var(--color-text-tertiary)', fontSize: 12 }}>Loading bracket...</div>;
+  }
+
+  return (
+    <div style={{ padding: 32 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Tier 3 Playoffs</div>
+      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+        Stage 1: Metro Finals (24 matchups)<br/>
+        Stage 2: Regional Round<br/>
+        Stage 3: Sweet 16<br/>
+        Stage 4: Quarterfinals<br/>
+        Stage 5: Semifinals<br/>
+        Stage 6: Championship
+      </div>
+      {bracket.metroMatchups && (
+        <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {bracket.metroMatchups.slice(0, 8).map((m, i) => (
+            <div key={i} style={{ padding: 8, background: 'var(--color-bg-raised)', border: '1px solid var(--color-border)', fontSize: 9 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{m.division}</div>
+              <div style={{ color: 'var(--color-text-secondary)' }}>
+                {abbr(m.seed1)} vs {abbr(m.seed2)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

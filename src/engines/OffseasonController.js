@@ -179,19 +179,10 @@ export class OffseasonController {
         const P = OffseasonController.PHASES;
 
         console.log('═══════════════════════════════════════════════════════════');
-        console.log('🎬 [DIAG] advanceToNextSeason ENTRY');
-        console.log('🎬 [DIAG] action:', action);
-        console.log('🎬 [DIAG] gameState._usePlayoffHub BEFORE:', gameState._usePlayoffHub);
-        console.log('🎬 [DIAG] window._reactShowPlayoffHub exists:', !!window._reactShowPlayoffHub);
+        console.log('🎬 advanceToNextSeason called with action:', action);
         console.log('═══════════════════════════════════════════════════════════');
 
-        // PlayoffHub is the only postseason path — force true so stale saves
-        // with usePlayoffHub:false can never fall through to the legacy modal chain.
-        gameState._usePlayoffHub = true;
-        console.log('🎬 [DIAG] gameState._usePlayoffHub AFTER force:', gameState._usePlayoffHub);
-        
         this.setPhase(P.POSTSEASON);
-        console.log('🎬 [DIAG] Phase set to POSTSEASON');
 
         eventBus.emit(GameEvents.SEASON_ENDED, {
             season: gameState.season,
@@ -199,54 +190,139 @@ export class OffseasonController {
             userPlayoffResult: action
         });
 
+        // Close any open modals
         document.getElementById('seasonEndModal')?.classList.add('hidden');
         document.getElementById('playoffModal')?.classList.add('hidden');
-        if (window._reactClosePlayoff) window._reactClosePlayoff();
+        if (window._reactCloseSeasonEnd) window._reactCloseSeasonEnd();
 
         gameState.userPlayoffResult = action;
 
-        // Always run full postseason simulation for promo/releg determination
-        console.log('🏆 [DIAG] Running full postseason via PlayoffEngine...');
-        const postseasonResults = engines.PlayoffEngine.simulateFullPostseason(gameState);
-        gameState.postseasonResults = postseasonResults;
-        console.log('🏆 [DIAG] postseasonResults generated:', !!postseasonResults);
-
-        // ── FEATURE FLAG: Playoff Hub ──────────────────────────────────────────
-        console.log('🏆 [DIAG] Checking PlayoffHub routing...');
-        console.log('🏆 [DIAG] gameState._usePlayoffHub:', gameState._usePlayoffHub);
-        console.log('🏆 [DIAG] window._reactShowPlayoffHub:', typeof window._reactShowPlayoffHub);
+        // ═══════════════════════════════════════════════════════════════════
+        // INITIALIZE PLAYOFFS — Generate brackets and schedule, NO simulation
+        // ═══════════════════════════════════════════════════════════════════
         
-        if (gameState._usePlayoffHub) {
-            console.log('🏆 [DIAG] ✅ _usePlayoffHub is TRUE — attempting PlayoffHub route');
-            if (window._reactShowPlayoffHub) {
-                console.log('🏆 [DIAG] ✅ _reactShowPlayoffHub EXISTS — calling it now');
-                // Initialize bracket data silently so hub controls work immediately
-                const gameSim = helpers.getGameSimController();
-                if (gameSim?.initBracketForHub) {
-                    console.log('🏆 [DIAG] Calling initBracketForHub with action:', action);
-                    gameSim.initBracketForHub(action);
-                }
-                const hubData = {
-                    action,
-                    postseasonResults,
-                    userTier: gameState.currentTier,
-                    userTeamId: gameState.userTeamId,
-                    onComplete: () => this.continueAfterPostseason(),
-                };
-                console.log('🏆 [DIAG] PlayoffHub data:', JSON.stringify({ action: hubData.action, userTier: hubData.userTier, userTeamId: hubData.userTeamId, hasPostseason: !!hubData.postseasonResults }));
-                window._reactShowPlayoffHub(hubData);
-                console.log('🏆 [DIAG] ✅ _reactShowPlayoffHub CALLED — PlayoffHub should now be visible');
-                return;
-            } else {
-                console.warn('⚠️ [DIAG] ❌ _reactShowPlayoffHub NOT REGISTERED — falling through to legacy path');
-                this._legacyPlayoffFlow(action, postseasonResults);
+        console.log('🏀 Initializing playoff brackets...');
+        
+        // Generate brackets for all tiers (this just seeds teams, no games played)
+        const t1Bracket = engines.PlayoffEngine.generateT1Bracket(gameState.tier1Teams);
+        const t2Bracket = engines.PlayoffEngine.generateT2Bracket(gameState.tier2Teams);
+        const t3Bracket = engines.PlayoffEngine.generateT3Bracket(gameState.tier3Teams);
+        
+        // Store brackets in gameState
+        gameState.playoffData = {
+            t1: t1Bracket,
+            t2: t2Bracket,
+            t3: t3Bracket,
+            initialized: true,
+            completed: false
+        };
+        
+        console.log('📅 Generating playoff calendar...');
+        
+        // Generate playoff schedule with all potential games dated
+        const seasonStartYear = gameState.seasonStartYear || gameState.currentSeason;
+        const playoffSchedule = engines.PlayoffEngine.generatePlayoffSchedule(
+            { t1: t1Bracket, t2: t2Bracket, t3: t3Bracket },
+            seasonStartYear
+        );
+        
+        // Store schedule in gameState
+        gameState.playoffSchedule = playoffSchedule;
+        
+        console.log(`✅ Playoff calendar generated: ${playoffSchedule.games.length} potential games`);
+        console.log(`   T1 games: ${playoffSchedule.games.filter(g => g.tier === 1).length}`);
+        console.log(`   T2 games: ${playoffSchedule.games.filter(g => g.tier === 2).length}`);
+        console.log(`   T3 games: ${playoffSchedule.games.filter(g => g.tier === 3).length}`);
+        
+        // Set current date to playoffs start
+        const playoffDates = engines.PlayoffEngine.getPlayoffDates(seasonStartYear);
+        gameState.currentDate = playoffDates.t1Round1Start;
+        
+        // Determine user's playoff status
+        const userTeam = helpers.getUserTeam();
+        const userTier = gameState.currentTier;
+        let userInPlayoffs = false;
+        let userSeriesId = null;
+        
+        if (userTier === 1) {
+            // Check if user's team is in T1 bracket (top 8 in their conference)
+            const inEast = t1Bracket.east?.some(t => t.id === userTeam.id);
+            const inWest = t1Bracket.west?.some(t => t.id === userTeam.id);
+            userInPlayoffs = inEast || inWest;
+            if (userInPlayoffs) {
+                // Find user's first round series
+                const conf = inEast ? 'east' : 'west';
+                const confTeams = inEast ? t1Bracket.east : t1Bracket.west;
+                const userSeed = confTeams.findIndex(t => t.id === userTeam.id);
+                // Matchups are 0v7, 1v6, 2v5, 3v4
+                const matchupIdx = userSeed < 4 ? userSeed : 7 - userSeed;
+                userSeriesId = `t1-r1-${conf}-${Math.min(userSeed, 7 - userSeed) + 1}v${Math.max(userSeed, 7 - userSeed) + 1}`;
             }
-            return;
+        } else if (userTier === 2) {
+            // Check if user's team is in T2 division playoffs (top 4 in division)
+            const userDiv = userTeam.division;
+            const divBracket = t2Bracket.divisionBrackets?.find(db => db.division === userDiv);
+            if (divBracket) {
+                userInPlayoffs = [divBracket.seed1, divBracket.seed2, divBracket.seed3, divBracket.seed4]
+                    .filter(Boolean)
+                    .some(t => t.id === userTeam.id);
+                if (userInPlayoffs) {
+                    const divId = userDiv.toLowerCase().replace(/\s+/g, '-');
+                    // Determine which semi the user is in
+                    if (divBracket.seed1?.id === userTeam.id || divBracket.seed4?.id === userTeam.id) {
+                        userSeriesId = `t2-div-${divId}-s1`;
+                    } else {
+                        userSeriesId = `t2-div-${divId}-s2`;
+                    }
+                }
+            }
+        } else if (userTier === 3) {
+            // Check if user's team is in T3 metro playoffs (top 2 in metro)
+            const userDiv = userTeam.division;
+            const metroMatchup = t3Bracket.metroMatchups?.find(m => m.division === userDiv);
+            if (metroMatchup) {
+                userInPlayoffs = metroMatchup.seed1?.id === userTeam.id || metroMatchup.seed2?.id === userTeam.id;
+                if (userInPlayoffs) {
+                    const divId = userDiv.toLowerCase().replace(/\s+/g, '-');
+                    userSeriesId = `t3-metro-${divId}`;
+                }
+            }
         }
-
-        // ── LEGACY PATH (flag is false) ────────────────────────────────────────
-        console.log('🏆 [DIAG] ❌ _usePlayoffHub is FALSE — using legacy path');
-        this._legacyPlayoffFlow(action, postseasonResults);
+        
+        gameState.userInPlayoffs = userInPlayoffs;
+        gameState.userSeriesId = userSeriesId;
+        
+        console.log(`👤 User playoff status: ${userInPlayoffs ? 'IN PLAYOFFS' : 'ELIMINATED'}`);
+        if (userSeriesId) console.log(`   User's first series: ${userSeriesId}`);
+        
+        // Save state before showing hub
+        helpers.saveGameState();
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // SHOW PLAYOFF HUB — User controls simulation from here
+        // ═══════════════════════════════════════════════════════════════════
+        
+        if (window._reactShowPlayoffHub) {
+            console.log('🏆 Showing PlayoffHub...');
+            window._reactShowPlayoffHub({
+                action,
+                userTier,
+                userTeamId: gameState.userTeamId,
+                userInPlayoffs,
+                userSeriesId,
+                playoffData: gameState.playoffData,
+                playoffSchedule: gameState.playoffSchedule,
+                currentDate: gameState.currentDate,
+                onComplete: () => this.continueAfterPostseason(),
+            });
+        } else {
+            console.error('❌ PlayoffHub not available - window._reactShowPlayoffHub not registered');
+            // Fallback: run old simulation path
+            console.warn('⚠️ Falling back to legacy playoff simulation...');
+            const postseasonResults = engines.PlayoffEngine.simulateFullPostseason(gameState);
+            gameState.postseasonResults = postseasonResults;
+            this._legacyPlayoffFlow(action, postseasonResults);
+        }
     }
 
     /**

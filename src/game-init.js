@@ -1890,6 +1890,11 @@
         window.simAllT2Rounds = (...args) => getGameSimController().simAllT2Rounds(...args);
         window.simAllT3Rounds = (...args) => getGameSimController().simAllT3Rounds(...args);
         window.simRestOfPlayoffSeries = (...args) => getGameSimController().simRestOfPlayoffSeries(...args);
+        // New calendar-based playoff sim methods
+        window.simPlayoffDay = (...args) => getGameSimController().simPlayoffDay(...args);
+        window.simUserPlayoffSeries = (...args) => getGameSimController().simUserPlayoffSeries(...args);
+        window.simPlayoffRound = (...args) => getGameSimController().simPlayoffRound(...args);
+        window.simToChampionship = (...args) => getGameSimController().simToChampionship(...args);
         window.skipChampionshipPlayoffs = (...args) => getGameSimController().skipChampionshipPlayoffs(...args);
         window.skipT2Playoffs = (...args) => getGameSimController().skipT2Playoffs(...args);
         window.skipT3Playoffs = (...args) => getGameSimController().skipT3Playoffs(...args);
