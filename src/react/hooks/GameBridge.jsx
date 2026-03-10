@@ -57,6 +57,7 @@ function snapshotGameState() {
     // Schedule / Standings
     schedule: gs.schedule || [],
     playoffData: gs.playoffData,
+    playoffSchedule: gs.playoffSchedule,
 
     // Season progress
     gamesPlayed: userTeam ? (userTeam.wins + userTeam.losses) : 0,
