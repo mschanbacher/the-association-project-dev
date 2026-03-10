@@ -718,7 +718,7 @@ export function PlayoffHub({ data, onClose }) {
     }
     
     return result;
-  }, [livePlayoffSchedule, userTier, userSeriesId]);
+  }, [livePlayoffSchedule, userTier, liveUserSeriesId]);
 
   // Series win probability
   const seriesProb = useMemo(() => {
