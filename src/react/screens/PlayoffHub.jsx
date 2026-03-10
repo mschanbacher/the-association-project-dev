@@ -588,6 +588,13 @@ export function PlayoffHub({ data, onClose }) {
   const liveUserInPlayoffs = gameState?._raw?.userInPlayoffs ?? gameState?.userInPlayoffs ?? propsUserInPlayoffs;
   const liveUserSeriesId = gameState?._raw?.userSeriesId || gameState?.userSeriesId || propsUserSeriesId;
 
+  // Force re-render when games are played by tracking total played count
+  // This is needed because the schedule object is mutated in place
+  const totalPlayedGames = useMemo(() => {
+    if (!livePlayoffSchedule?.games) return 0;
+    return livePlayoffSchedule.games.filter(g => g.played).length;
+  }, [livePlayoffSchedule, gameState]); // gameState changes on refresh
+
   // Debug: count played games in user's series
   const debugUserSeriesGames = livePlayoffSchedule?.bySeries?.[liveUserSeriesId] || [];
   const debugPlayedCount = debugUserSeriesGames.filter(g => g.played).length;
@@ -602,6 +609,7 @@ export function PlayoffHub({ data, onClose }) {
   console.log('🏀 playoffData:', livePlayoffData ? 'EXISTS' : 'NULL');
   console.log('🏀 playoffSchedule:', livePlayoffSchedule ? `${livePlayoffSchedule.games?.length} games` : 'NULL');
   console.log('🏀 DEBUG userSeries played games:', debugPlayedCount, '/', debugUserSeriesGames.length);
+  console.log('🏀 DEBUG totalPlayedGames:', totalPlayedGames);
   console.log('🏀 DEBUG gameState source:', gameState?._raw?.playoffSchedule ? '_raw' : gameState?.playoffSchedule ? 'snapshot' : 'props');
   console.log('═══════════════════════════════════════════════════════════');
 
@@ -680,7 +688,7 @@ export function PlayoffHub({ data, onClose }) {
       round: firstGame.round,
       conference: firstGame.conference
     };
-  }, [liveUserInPlayoffs, liveUserSeriesId, livePlayoffSchedule, userTeamId, userTeam]);
+  }, [liveUserInPlayoffs, liveUserSeriesId, livePlayoffSchedule, userTeamId, userTeam, totalPlayedGames]);
 
   // Other series in user's tier (for display)
   const otherSeriesList = useMemo(() => {
@@ -724,7 +732,7 @@ export function PlayoffHub({ data, onClose }) {
     }
     
     return result;
-  }, [livePlayoffSchedule, userTier, liveUserSeriesId]);
+  }, [livePlayoffSchedule, userTier, liveUserSeriesId, totalPlayedGames]);
 
   // Series win probability
   const seriesProb = useMemo(() => {
