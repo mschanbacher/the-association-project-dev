@@ -539,6 +539,16 @@ export function PlayoffHub({ data, onClose }) {
   const [activeTab, setActiveTab] = useState(data?.userTier || 1);
   const { userTeamId, userTier } = data || {};
 
+  // Diagnostic logging
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('🏀 [DIAG-HUB] PlayoffHub RENDER');
+  console.log('🏀 [DIAG-HUB] data:', data);
+  console.log('🏀 [DIAG-HUB] data?.action:', data?.action);
+  console.log('🏀 [DIAG-HUB] userTeamId:', userTeamId);
+  console.log('🏀 [DIAG-HUB] userTier:', userTier);
+  console.log('🏀 [DIAG-HUB] gameState exists:', !!gameState);
+  console.log('═══════════════════════════════════════════════════════════');
+
   // Register refresh hook for GameSimController
   useEffect(() => {
     window._reactPlayoffHubRefresh = () => refresh?.();

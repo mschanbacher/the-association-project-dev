@@ -178,11 +178,20 @@ export class OffseasonController {
         const { gameState, eventBus, GameEvents, engines, helpers } = this.ctx;
         const P = OffseasonController.PHASES;
 
-        console.log('🎬 advanceToNextSeason called with action:', action);
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('🎬 [DIAG] advanceToNextSeason ENTRY');
+        console.log('🎬 [DIAG] action:', action);
+        console.log('🎬 [DIAG] gameState._usePlayoffHub BEFORE:', gameState._usePlayoffHub);
+        console.log('🎬 [DIAG] window._reactShowPlayoffHub exists:', !!window._reactShowPlayoffHub);
+        console.log('═══════════════════════════════════════════════════════════');
+
         // PlayoffHub is the only postseason path — force true so stale saves
         // with usePlayoffHub:false can never fall through to the legacy modal chain.
         gameState._usePlayoffHub = true;
+        console.log('🎬 [DIAG] gameState._usePlayoffHub AFTER force:', gameState._usePlayoffHub);
+        
         this.setPhase(P.POSTSEASON);
+        console.log('🎬 [DIAG] Phase set to POSTSEASON');
 
         eventBus.emit(GameEvents.SEASON_ENDED, {
             season: gameState.season,
@@ -190,48 +199,53 @@ export class OffseasonController {
             userPlayoffResult: action
         });
 
-        document.getElementById('seasonEndModal').classList.add('hidden');
-        document.getElementById('playoffModal').classList.add('hidden');
+        document.getElementById('seasonEndModal')?.classList.add('hidden');
+        document.getElementById('playoffModal')?.classList.add('hidden');
         if (window._reactClosePlayoff) window._reactClosePlayoff();
 
         gameState.userPlayoffResult = action;
 
         // Always run full postseason simulation for promo/releg determination
-        console.log('🏆 Running full postseason via PlayoffEngine...');
+        console.log('🏆 [DIAG] Running full postseason via PlayoffEngine...');
         const postseasonResults = engines.PlayoffEngine.simulateFullPostseason(gameState);
         gameState.postseasonResults = postseasonResults;
+        console.log('🏆 [DIAG] postseasonResults generated:', !!postseasonResults);
 
         // ── FEATURE FLAG: Playoff Hub ──────────────────────────────────────────
-        // When _usePlayoffHub is true, route ALL postseason flows (interactive
-        // T1/T2/T3 brackets AND the static results summary) through the new
-        // PlayoffHub screen. The hub calls continueAfterPostseason() when done.
-        //
-        // When false (default), fall through to the legacy modal chain below.
-        // Flip gameState._usePlayoffHub = true once PlayoffHub is built & tested.
-        // ──────────────────────────────────────────────────────────────────────
+        console.log('🏆 [DIAG] Checking PlayoffHub routing...');
+        console.log('🏆 [DIAG] gameState._usePlayoffHub:', gameState._usePlayoffHub);
+        console.log('🏆 [DIAG] window._reactShowPlayoffHub:', typeof window._reactShowPlayoffHub);
+        
         if (gameState._usePlayoffHub) {
-            console.log('🏆 [PlayoffHub] Routing to new Playoff Hub screen...');
+            console.log('🏆 [DIAG] ✅ _usePlayoffHub is TRUE — attempting PlayoffHub route');
             if (window._reactShowPlayoffHub) {
+                console.log('🏆 [DIAG] ✅ _reactShowPlayoffHub EXISTS — calling it now');
                 // Initialize bracket data silently so hub controls work immediately
                 const gameSim = helpers.getGameSimController();
                 if (gameSim?.initBracketForHub) {
+                    console.log('🏆 [DIAG] Calling initBracketForHub with action:', action);
                     gameSim.initBracketForHub(action);
                 }
-                window._reactShowPlayoffHub({
+                const hubData = {
                     action,
                     postseasonResults,
                     userTier: gameState.currentTier,
                     userTeamId: gameState.userTeamId,
                     onComplete: () => this.continueAfterPostseason(),
-                });
+                };
+                console.log('🏆 [DIAG] PlayoffHub data:', JSON.stringify({ action: hubData.action, userTier: hubData.userTier, userTeamId: hubData.userTeamId, hasPostseason: !!hubData.postseasonResults }));
+                window._reactShowPlayoffHub(hubData);
+                console.log('🏆 [DIAG] ✅ _reactShowPlayoffHub CALLED — PlayoffHub should now be visible');
+                return;
             } else {
-                console.warn('⚠️ [PlayoffHub] _reactShowPlayoffHub not registered — falling through to legacy path');
+                console.warn('⚠️ [DIAG] ❌ _reactShowPlayoffHub NOT REGISTERED — falling through to legacy path');
                 this._legacyPlayoffFlow(action, postseasonResults);
             }
             return;
         }
 
         // ── LEGACY PATH (flag is false) ────────────────────────────────────────
+        console.log('🏆 [DIAG] ❌ _usePlayoffHub is FALSE — using legacy path');
         this._legacyPlayoffFlow(action, postseasonResults);
     }
 

@@ -152,7 +152,17 @@ function AppContent() {
     window._reactShowBreakingNews = (data, resolve) => { setBreakingNewsData({ ...data, _resolve: resolve }); };
 
     // Playoff Hub
-    window._reactShowPlayoffHub = (data) => setPlayoffHubData({ ...data });
+    window._reactShowPlayoffHub = (data) => {
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('🎯 [DIAG-REACT] _reactShowPlayoffHub CALLED');
+      console.log('🎯 [DIAG-REACT] data received:', data);
+      console.log('🎯 [DIAG-REACT] data.action:', data?.action);
+      console.log('🎯 [DIAG-REACT] data.userTier:', data?.userTier);
+      console.log('🎯 [DIAG-REACT] data.userTeamId:', data?.userTeamId);
+      console.log('🎯 [DIAG-REACT] Setting playoffHubData state...');
+      console.log('═══════════════════════════════════════════════════════════');
+      setPlayoffHubData({ ...data });
+    };
     window._reactClosePlayoffHub = () => setPlayoffHubData(null);
     // Bridge to access GameSimController from React components
     window._getGameSimController = () => {
@@ -267,6 +277,9 @@ function AppContent() {
     scouting:   <ScoutingScreen />,
   };
 
+  // Diagnostic logging for PlayoffHub render decision
+  console.log('🔄 [DIAG-RENDER] App render - playoffHubData:', playoffHubData ? 'SET' : 'NULL');
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', minHeight: '100vh',
@@ -277,13 +290,16 @@ function AppContent() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Playoff Hub replaces sidebar + main during postseason */}
         {playoffHubData ? (
-          <PlayoffHub
-            data={playoffHubData}
-            onClose={() => {
-              setPlayoffHubData(null);
-              playoffHubData?.onComplete?.();
-            }}
-          />
+          <>
+            {console.log('🎯 [DIAG-RENDER] RENDERING PlayoffHub component')}
+            <PlayoffHub
+              data={playoffHubData}
+              onClose={() => {
+                setPlayoffHubData(null);
+                playoffHubData?.onComplete?.();
+              }}
+            />
+          </>
         ) : (
           <>
             <Sidebar activeScreen={activeScreen} onNavigate={setActiveScreen} />

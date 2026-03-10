@@ -1088,7 +1088,11 @@ export class GameSimController {
         if (window._reactShowSeasonEnd) {
             const self = this;
             window._seasonEndAdvanceCallback = (action) => {
-                // [LEGACY DOM] document.getElementById('seasonEndModal').classList.add('hidden');
+                console.log('═══════════════════════════════════════════════════════════');
+                console.log('🎯 [DIAG] _seasonEndAdvanceCallback CALLED');
+                console.log('🎯 [DIAG] action:', action);
+                console.log('🎯 [DIAG] Calling advanceToNextSeason...');
+                console.log('═══════════════════════════════════════════════════════════');
                 helpers.getOffseasonController().advanceToNextSeason(action);
             };
             window._seasonEndManageRosterCallback = () => {
@@ -1102,6 +1106,7 @@ export class GameSimController {
                     window._notifyReact();
                 }
             };
+            console.log('🎯 [DIAG] Showing SeasonEndModal with payload:', { nextAction, status, rank, tier: gameState.currentTier });
             window._reactShowSeasonEnd(seasonEndPayload);
             return;
         }
