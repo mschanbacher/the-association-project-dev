@@ -3261,28 +3261,65 @@ export class GameSimController {
             id.startsWith('t2-div-') && id.endsWith('-final')
         );
         
+        console.log(`📊 T2 Division Finals check: ${divFinalSeries.length} series`);
+        
         // Check if all are complete
         const divWinners = [];
+        const divRunnersUp = [];
         for (const seriesId of divFinalSeries) {
             const state = engines.PlayoffEngine.getSeriesState(schedule, seriesId);
-            if (!state.complete) return; // Not all complete yet
+            if (!state.complete) {
+                console.log(`   ${seriesId}: incomplete`);
+                return; // Not all complete yet
+            }
             if (state.winner) divWinners.push(state.winner);
+            if (state.loser) divRunnersUp.push(state.loser);
+        }
+        
+        console.log(`📊 T2 Division Finals complete: ${divWinners.length} winners`);
+        
+        // Check if national tournament is already seeded
+        const natR1Series = Object.keys(schedule.bySeries).filter(id => 
+            id.startsWith('t2-nat-r1-')
+        ).sort();
+        
+        if (natR1Series.length > 0) {
+            const firstNatGame = schedule.bySeries[natR1Series[0]]?.[0];
+            if (firstNatGame?.homeTeamId) {
+                console.log('📊 T2 National already seeded');
+                return; // Already seeded
+            }
         }
         
         // All division finals complete - seed national tournament round 1
-        if (divWinners.length >= 8) {
-            // Sort by regular season record for seeding
-            divWinners.sort((a, b) => (b.wins - a.wins) || (b.pointDiff - a.pointDiff));
+        // With 11 divisions, we have 11 winners. Take top 8 by regular season record
+        // (or we could include some runners-up for a 16-team field)
+        
+        // For now: top 11 division winners, sorted by record, fill 8 series (16 spots)
+        // Add top 5 runners-up to make 16 teams
+        const allQualifiers = [...divWinners];
+        
+        // Sort by regular season record
+        allQualifiers.sort((a, b) => (b.wins - a.wins) || (b.pointDiff - a.pointDiff));
+        
+        // If we have fewer than 16 teams, add runners-up
+        if (allQualifiers.length < 16 && divRunnersUp.length > 0) {
+            divRunnersUp.sort((a, b) => (b.wins - a.wins) || (b.pointDiff - a.pointDiff));
+            const needed = 16 - allQualifiers.length;
+            allQualifiers.push(...divRunnersUp.slice(0, needed));
+            allQualifiers.sort((a, b) => (b.wins - a.wins) || (b.pointDiff - a.pointDiff));
+        }
+        
+        console.log(`📊 T2 National qualifiers: ${allQualifiers.length} teams`);
+        
+        // Seed 1v16, 2v15, 3v14, etc.
+        for (let i = 0; i < Math.min(8, natR1Series.length); i++) {
+            const highSeedIdx = i;
+            const lowSeedIdx = allQualifiers.length - 1 - i;
             
-            // Seed 1v16, 2v15, ... (but we only have 11 divisions so 11 teams)
-            // For now, just populate the first 8 slots
-            const natR1Series = Object.keys(schedule.bySeries).filter(id => 
-                id.startsWith('t2-nat-r1-')
-            ).sort();
-            
-            for (let i = 0; i < Math.min(8, natR1Series.length); i++) {
-                const highSeed = divWinners[i];
-                const lowSeed = divWinners[divWinners.length - 1 - i];
+            if (highSeedIdx < allQualifiers.length && lowSeedIdx >= 0 && lowSeedIdx < allQualifiers.length && highSeedIdx !== lowSeedIdx) {
+                const highSeed = allQualifiers[highSeedIdx];
+                const lowSeed = allQualifiers[lowSeedIdx];
                 if (highSeed && lowSeed) {
                     this._populateSeriesWithTeams(natR1Series[i], highSeed, lowSeed);
                 }
@@ -3498,24 +3535,123 @@ export class GameSimController {
         const games = schedule.bySeries[seriesId];
         
         if (!games || !games.length) return;
+        if (!team) return;
         
-        // Determine if this team should be higher or lower seed
-        // For now, fill the first empty slot
+        // Determine seeding position based on fromSeriesId
+        // In T1: 1v8 winner is higher seed than 4v5 winner in R2
+        // In T2: s1 winner (1v4) is higher seed than s2 winner (2v3) in final
+        const isHigherSeed = this._isHigherSeedAdvancement(fromSeriesId, seriesId);
+        
         for (const game of games) {
-            if (!game.homeTeamId || !game.awayTeamId) {
-                // This is a placeholder game - fill in the team
-                if (!game.higherSeedId) {
-                    game.higherSeedId = team.id;
-                    game.homeTeam = team;
-                    game.homeTeamId = team.id;
-                } else if (!game.lowerSeedId) {
-                    game.lowerSeedId = team.id;
-                    game.awayTeam = team;
-                    game.awayTeamId = team.id;
-                }
-                game.placeholder = !(game.homeTeamId && game.awayTeamId);
+            // Check if this team is already in the series
+            if (game.higherSeedId === team.id || game.lowerSeedId === team.id) {
+                return; // Already populated
+            }
+            
+            if (isHigherSeed && !game.higherSeedId) {
+                game.higherSeedId = team.id;
+                // Don't set home/away yet - wait until both teams are known
+            } else if (!isHigherSeed && !game.lowerSeedId) {
+                game.lowerSeedId = team.id;
+            } else if (!game.higherSeedId) {
+                // Fallback: fill whichever slot is empty
+                game.higherSeedId = team.id;
+            } else if (!game.lowerSeedId) {
+                game.lowerSeedId = team.id;
+            }
+            
+            // If both teams are now set, finalize the home/away pattern
+            if (game.higherSeedId && game.lowerSeedId) {
+                this._finalizeSeriesMatchup(seriesId);
+                return;
             }
         }
+    }
+    
+    /**
+     * Determine if a team advancing from a series should be the higher seed in the next round.
+     */
+    _isHigherSeedAdvancement(fromSeriesId, toSeriesId) {
+        if (!fromSeriesId) return true; // Default to higher
+        
+        const parts = fromSeriesId.split('-');
+        const tier = parts[0];
+        
+        if (tier === 't1') {
+            // T1 R1: 1v8 and 2v7 winners are higher seeds in R2
+            if (parts[1] === 'r1') {
+                const matchup = parts[3];
+                const seedNum = parseInt(matchup.split('v')[0]);
+                return seedNum <= 2; // 1-seed or 2-seed winner is higher
+            }
+            // T1 R2: Series 1 winner is higher seed in CF
+            if (parts[1] === 'r2') {
+                return parts[3] === '1';
+            }
+            // T1 CF: East winner is higher seed in Finals (by convention)
+            if (parts[1] === 'cf') {
+                return parts[2] === 'east';
+            }
+        }
+        
+        if (tier === 't2') {
+            // T2 Division: s1 (1v4) winner is higher seed than s2 (2v3) winner
+            if (parts[1] === 'div' && parts[3] === 's1') {
+                return true;
+            }
+            if (parts[1] === 'div' && parts[3] === 's2') {
+                return false;
+            }
+        }
+        
+        return true; // Default
+    }
+    
+    /**
+     * Finalize a series matchup once both teams are known.
+     */
+    _finalizeSeriesMatchup(seriesId) {
+        const { gameState } = this.ctx;
+        const schedule = gameState.playoffSchedule;
+        const games = schedule.bySeries[seriesId];
+        
+        if (!games || !games.length) return;
+        
+        const firstGame = games[0];
+        if (!firstGame.higherSeedId || !firstGame.lowerSeedId) return;
+        
+        // Find team objects
+        const allTeams = [
+            ...(gameState.tier1Teams || []),
+            ...(gameState.tier2Teams || []),
+            ...(gameState.tier3Teams || [])
+        ];
+        const higherSeed = allTeams.find(t => t.id === firstGame.higherSeedId);
+        const lowerSeed = allTeams.find(t => t.id === firstGame.lowerSeedId);
+        
+        if (!higherSeed || !lowerSeed) return;
+        
+        // Set home court pattern based on bestOf
+        const bestOf = firstGame.bestOf || 7;
+        const homePattern = bestOf === 7
+            ? [higherSeed, higherSeed, lowerSeed, lowerSeed, higherSeed, lowerSeed, higherSeed]
+            : bestOf === 5
+            ? [higherSeed, higherSeed, lowerSeed, lowerSeed, higherSeed]
+            : [higherSeed, lowerSeed, higherSeed];
+        
+        for (let i = 0; i < games.length; i++) {
+            const game = games[i];
+            const home = homePattern[i] || higherSeed;
+            const away = home.id === higherSeed.id ? lowerSeed : higherSeed;
+            
+            game.homeTeamId = home.id;
+            game.awayTeamId = away.id;
+            game.homeTeam = home;
+            game.awayTeam = away;
+            game.placeholder = false;
+        }
+        
+        console.log(`📋 Finalized ${seriesId}: ${higherSeed.name} vs ${lowerSeed.name}`);
     }
 
     // ─── Helper: Get current playoff round ───────────────────────────────────────

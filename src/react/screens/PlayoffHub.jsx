@@ -571,18 +571,7 @@ function calcSeriesProb(userTeam, opponent, userWins, oppWins) {
 export function PlayoffHub({ data, onClose }) {
   const { gameState, refresh } = useGame();
   const [activeTab, setActiveTab] = useState(data?.userTier || 1);
-  const { userTeamId, userTier, userInPlayoffs, userSeriesId, playoffData, playoffSchedule, currentDate } = data || {};
-
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('🏀 PlayoffHub RENDER');
-  console.log('🏀 userTeamId:', userTeamId);
-  console.log('🏀 userTier:', userTier);
-  console.log('🏀 userInPlayoffs:', userInPlayoffs);
-  console.log('🏀 userSeriesId:', userSeriesId);
-  console.log('🏀 currentDate:', currentDate);
-  console.log('🏀 playoffData:', playoffData ? 'EXISTS' : 'NULL');
-  console.log('🏀 playoffSchedule:', playoffSchedule ? `${playoffSchedule.games?.length} games` : 'NULL');
-  console.log('═══════════════════════════════════════════════════════════');
+  const { userTeamId, userTier, userInPlayoffs: propsUserInPlayoffs, userSeriesId: propsUserSeriesId, playoffData, playoffSchedule, currentDate } = data || {};
 
   // Register refresh hook for GameSimController
   useEffect(() => {
@@ -596,6 +585,19 @@ export function PlayoffHub({ data, onClose }) {
   const livePlayoffData = gameState?._raw?.playoffData || gameState?.playoffData || playoffData;
   const livePlayoffSchedule = gameState?._raw?.playoffSchedule || gameState?.playoffSchedule || playoffSchedule;
   const liveCurrentDate = gameState?._raw?.currentDate || gameState?.currentDate || currentDate;
+  const liveUserInPlayoffs = gameState?._raw?.userInPlayoffs ?? gameState?.userInPlayoffs ?? propsUserInPlayoffs;
+  const liveUserSeriesId = gameState?._raw?.userSeriesId || gameState?.userSeriesId || propsUserSeriesId;
+
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('🏀 PlayoffHub RENDER');
+  console.log('🏀 userTeamId:', userTeamId);
+  console.log('🏀 userTier:', userTier);
+  console.log('🏀 userInPlayoffs:', liveUserInPlayoffs);
+  console.log('🏀 userSeriesId:', liveUserSeriesId);
+  console.log('🏀 currentDate:', liveCurrentDate);
+  console.log('🏀 playoffData:', livePlayoffData ? 'EXISTS' : 'NULL');
+  console.log('🏀 playoffSchedule:', livePlayoffSchedule ? `${livePlayoffSchedule.games?.length} games` : 'NULL');
+  console.log('═══════════════════════════════════════════════════════════');
 
   // User's team object
   const userTeam = useMemo(() => {
@@ -609,11 +611,11 @@ export function PlayoffHub({ data, onClose }) {
 
   // Get user's current series state
   const userSeriesState = useMemo(() => {
-    if (!userInPlayoffs || !userSeriesId || !livePlayoffSchedule) {
+    if (!liveUserInPlayoffs || !liveUserSeriesId || !livePlayoffSchedule) {
       return { inSeries: false, wins: 0, oppWins: 0, opponent: null, bestOf: 7, games: [], complete: false };
     }
     
-    const seriesGames = livePlayoffSchedule.bySeries?.[userSeriesId] || [];
+    const seriesGames = livePlayoffSchedule.bySeries?.[liveUserSeriesId] || [];
     if (seriesGames.length === 0) {
       return { inSeries: false, wins: 0, oppWins: 0, opponent: null, bestOf: 7, games: [], complete: false };
     }
@@ -672,7 +674,7 @@ export function PlayoffHub({ data, onClose }) {
       round: firstGame.round,
       conference: firstGame.conference
     };
-  }, [userInPlayoffs, userSeriesId, livePlayoffSchedule, userTeamId, userTeam]);
+  }, [liveUserInPlayoffs, liveUserSeriesId, livePlayoffSchedule, userTeamId, userTeam]);
 
   // Other series in user's tier (for display)
   const otherSeriesList = useMemo(() => {
@@ -684,7 +686,7 @@ export function PlayoffHub({ data, onClose }) {
     for (const [seriesId, games] of Object.entries(livePlayoffSchedule.bySeries)) {
       if (seenSeries.has(seriesId)) continue;
       if (!games.length || games[0].tier !== userTier) continue;
-      if (seriesId === userSeriesId) continue;
+      if (seriesId === liveUserSeriesId) continue;
       
       seenSeries.add(seriesId);
       
@@ -796,7 +798,7 @@ export function PlayoffHub({ data, onClose }) {
         onSimSeries={handleSimSeries}
         onSimToChampionship={handleSimToChampionship}
         // For eliminated users
-        userInPlayoffs={userInPlayoffs}
+        userInPlayoffs={liveUserInPlayoffs}
         userEliminated={userSeriesState.complete && userSeriesState.winner?.id !== userTeamId}
         onSimDay={handleSimDay}
         onSimRound={handleSimRound}
