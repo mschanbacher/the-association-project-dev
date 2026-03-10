@@ -1954,7 +1954,6 @@
         window.toggleStandingsView = (view) => getDashboardController().toggleView(view);
         window.viewTierStandings = (tier) => getDashboardController().viewTier(tier);
 
-        // ─── Engine/class exports for cross-module access ───
-        window.SimBenchmark = SimBenchmark;
+        // Note: SimBenchmark is defined separately outside _initGame
 
     }; // end window._initGame
