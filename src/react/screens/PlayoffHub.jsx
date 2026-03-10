@@ -974,9 +974,11 @@ export function PlayoffHub({ data, onClose }) {
     window._playoffEndContinueCallback = () => {
       // Close PlayoffHub and trigger offseason
       if (window._reactClosePlayoffHub) window._reactClosePlayoffHub();
-      const offseasonCtrl = window._getGameSimController?.()?.ctx?.helpers?.getOffseasonController?.();
-      if (offseasonCtrl) {
-        offseasonCtrl.continueAfterPostseason();
+      // Use the global window function set up in game-init.js
+      if (window.continueAfterPostseason) {
+        window.continueAfterPostseason();
+      } else {
+        console.error('❌ window.continueAfterPostseason not found');
       }
     };
     
