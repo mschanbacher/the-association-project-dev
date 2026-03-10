@@ -1279,28 +1279,205 @@ function T2BracketNew({ bracket, schedule, userTeamId }) {
     return <div style={{ padding: 32, color: 'var(--color-text-tertiary)', fontSize: 12 }}>Loading bracket...</div>;
   }
 
-  // T2 has division playoffs first, then national tournament
-  // For now, show a simplified view
-  return (
-    <div style={{ padding: 32 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Tier 2 Playoffs</div>
-      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-        Stage 1: Division Playoffs (11 divisions)<br/>
-        Stage 2: National Tournament (16 teams)
-      </div>
-      {bracket.divisionBrackets && (
-        <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          {bracket.divisionBrackets.slice(0, 6).map((div, i) => (
-            <div key={i} style={{ padding: 10, background: 'var(--color-bg-raised)', border: '1px solid var(--color-border)' }}>
-              <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 6 }}>{div.division}</div>
-              <div style={{ fontSize: 9, color: 'var(--color-text-secondary)' }}>
-                #1 {abbr(div.seed1)} vs #4 {abbr(div.seed4)}<br/>
-                #2 {abbr(div.seed2)} vs #3 {abbr(div.seed3)}
-              </div>
-            </div>
-          ))}
+  // Helper to get series record from schedule
+  const getSeriesRecord = (seriesId) => {
+    if (!schedule?.bySeries?.[seriesId]) return { w1: 0, w2: 0, complete: false, winner: null, higherSeed: null, lowerSeed: null };
+    const games = schedule.bySeries[seriesId];
+    let w1 = 0, w2 = 0;
+    const firstGame = games[0];
+    const higherSeed = firstGame?.homeTeam || firstGame?.higherSeed;
+    const lowerSeed = firstGame?.awayTeam || firstGame?.lowerSeed;
+    for (const g of games) {
+      if (g.played && g.result?.winner) {
+        if (g.result.winner.id === firstGame.higherSeedId) w1++;
+        else w2++;
+      }
+    }
+    const bestOf = firstGame?.bestOf || 3;
+    const winsNeeded = Math.ceil(bestOf / 2);
+    const complete = w1 >= winsNeeded || w2 >= winsNeeded;
+    const winner = complete ? (w1 >= winsNeeded ? higherSeed : lowerSeed) : null;
+    return { w1, w2, complete, winner, higherSeed, lowerSeed };
+  };
+
+  // Build division cards with series results
+  const divisionCards = (bracket.divisionBrackets || []).map(div => {
+    const divId = div.division.toLowerCase().replace(/\s+/g, '-');
+    const s1Rec = getSeriesRecord(`t2-div-${divId}-s1`);
+    const s2Rec = getSeriesRecord(`t2-div-${divId}-s2`);
+    const finalRec = getSeriesRecord(`t2-div-${divId}-final`);
+    
+    return {
+      division: div.division,
+      divId,
+      seed1: div.seed1, seed2: div.seed2, seed3: div.seed3, seed4: div.seed4,
+      s1: s1Rec,
+      s2: s2Rec,
+      final: finalRec,
+    };
+  });
+
+  // Build national tournament cards
+  const natR1Cards = [];
+  for (let i = 1; i <= 8; i++) {
+    const rec = getSeriesRecord(`t2-nat-r1-${i}`);
+    natR1Cards.push({ seriesId: `t2-nat-r1-${i}`, idx: i, ...rec });
+  }
+  
+  const natQFCards = [];
+  for (let i = 1; i <= 4; i++) {
+    const rec = getSeriesRecord(`t2-nat-qf-${i}`);
+    natQFCards.push({ seriesId: `t2-nat-qf-${i}`, idx: i, ...rec });
+  }
+  
+  const natSFCards = [];
+  for (let i = 1; i <= 2; i++) {
+    const rec = getSeriesRecord(`t2-nat-sf-${i}`);
+    natSFCards.push({ seriesId: `t2-nat-sf-${i}`, idx: i, ...rec });
+  }
+  
+  const finalsRec = getSeriesRecord('t2-finals');
+  const thirdPlaceRec = getSeriesRecord('t2-3rd-place');
+
+  // Mini series card component
+  const SeriesCard = ({ higher, lower, w1, w2, complete, isUser }) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px',
+      background: isUser ? 'var(--color-tier2-bg)' : 'var(--color-bg-raised)',
+      border: `1px solid ${isUser ? 'rgba(138,138,138,0.3)' : 'var(--color-border)'}`,
+      fontSize: 10,
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: complete && w1 > w2 ? 600 : 400, color: complete && w1 < w2 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>
+          {abbr(higher)}
         </div>
-      )}
+        <div style={{ fontWeight: complete && w2 > w1 ? 600 : 400, color: complete && w2 < w1 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>
+          {abbr(lower)}
+        </div>
+      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textAlign: 'right' }}>
+        <div>{w1}</div>
+        <div>{w2}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '16px 24px', overflowX: 'auto' }}>
+      {/* Division Playoffs Section */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 12 }}>
+          DIVISION PLAYOFFS
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          {divisionCards.map((div, i) => {
+            const userInDiv = [div.seed1?.id, div.seed2?.id, div.seed3?.id, div.seed4?.id].includes(userTeamId);
+            return (
+              <div key={i} style={{
+                padding: 10,
+                background: userInDiv ? 'var(--color-tier2-bg)' : 'var(--color-bg-raised)',
+                border: `1px solid ${userInDiv ? 'rgba(138,138,138,0.3)' : 'var(--color-border)'}`,
+              }}>
+                <div style={{ fontSize: 9, fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', color: 'var(--color-text-secondary)', marginBottom: 8 }}>
+                  {div.division.toUpperCase()}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {/* Semi 1: 1 vs 4 */}
+                  <SeriesCard
+                    higher={div.seed1} lower={div.seed4}
+                    w1={div.s1.w1} w2={div.s1.w2} complete={div.s1.complete}
+                    isUser={div.seed1?.id === userTeamId || div.seed4?.id === userTeamId}
+                  />
+                  {/* Semi 2: 2 vs 3 */}
+                  <SeriesCard
+                    higher={div.seed2} lower={div.seed3}
+                    w1={div.s2.w1} w2={div.s2.w2} complete={div.s2.complete}
+                    isUser={div.seed2?.id === userTeamId || div.seed3?.id === userTeamId}
+                  />
+                  {/* Final */}
+                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 4, marginTop: 2 }}>
+                    {div.final.higherSeed || div.final.lowerSeed ? (
+                      <SeriesCard
+                        higher={div.final.higherSeed || div.s1.winner} 
+                        lower={div.final.lowerSeed || div.s2.winner}
+                        w1={div.final.w1} w2={div.final.w2} complete={div.final.complete}
+                        isUser={div.final.higherSeed?.id === userTeamId || div.final.lowerSeed?.id === userTeamId}
+                      />
+                    ) : (
+                      <div style={{ fontSize: 9, color: 'var(--color-text-tertiary)', textAlign: 'center', padding: 4 }}>
+                        Final: TBD
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* National Tournament Section */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 12 }}>
+          NATIONAL TOURNAMENT
+        </div>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          {/* Round 1 */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Round 1</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {natR1Cards.map((card, i) => (
+                <SeriesCard key={i}
+                  higher={card.higherSeed} lower={card.lowerSeed}
+                  w1={card.w1} w2={card.w2} complete={card.complete}
+                  isUser={card.higherSeed?.id === userTeamId || card.lowerSeed?.id === userTeamId}
+                />
+              ))}
+            </div>
+          </div>
+          {/* Quarterfinals */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Quarters</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {natQFCards.map((card, i) => (
+                <SeriesCard key={i}
+                  higher={card.higherSeed} lower={card.lowerSeed}
+                  w1={card.w1} w2={card.w2} complete={card.complete}
+                  isUser={card.higherSeed?.id === userTeamId || card.lowerSeed?.id === userTeamId}
+                />
+              ))}
+            </div>
+          </div>
+          {/* Semifinals */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Semis</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {natSFCards.map((card, i) => (
+                <SeriesCard key={i}
+                  higher={card.higherSeed} lower={card.lowerSeed}
+                  w1={card.w1} w2={card.w2} complete={card.complete}
+                  isUser={card.higherSeed?.id === userTeamId || card.lowerSeed?.id === userTeamId}
+                />
+              ))}
+            </div>
+          </div>
+          {/* Finals */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Finals</div>
+            <SeriesCard
+              higher={finalsRec.higherSeed} lower={finalsRec.lowerSeed}
+              w1={finalsRec.w1} w2={finalsRec.w2} complete={finalsRec.complete}
+              isUser={finalsRec.higherSeed?.id === userTeamId || finalsRec.lowerSeed?.id === userTeamId}
+            />
+            {finalsRec.complete && finalsRec.winner && (
+              <div style={{ marginTop: 8, padding: 6, background: 'var(--color-tier2-bg)', border: '1px solid rgba(138,138,138,0.3)', textAlign: 'center' }}>
+                <div style={{ fontSize: 8, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--color-tier2)', marginBottom: 2 }}>T2 CHAMPION</div>
+                <div style={{ fontSize: 11, fontWeight: 700 }}>{finalsRec.winner.name}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

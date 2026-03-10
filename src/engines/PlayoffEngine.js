@@ -1173,6 +1173,18 @@ export class PlayoffEngine {
         const higherSeedId = firstGame.higherSeedId;
         const lowerSeedId = firstGame.lowerSeedId;
         
+        // Get team objects - they could be homeTeam or awayTeam depending on game
+        // Find them from any game in the series that has them set
+        let higherSeedTeam = null;
+        let lowerSeedTeam = null;
+        for (const g of seriesGames) {
+            if (!higherSeedTeam && g.homeTeam?.id === higherSeedId) higherSeedTeam = g.homeTeam;
+            if (!higherSeedTeam && g.awayTeam?.id === higherSeedId) higherSeedTeam = g.awayTeam;
+            if (!lowerSeedTeam && g.homeTeam?.id === lowerSeedId) lowerSeedTeam = g.homeTeam;
+            if (!lowerSeedTeam && g.awayTeam?.id === lowerSeedId) lowerSeedTeam = g.awayTeam;
+            if (higherSeedTeam && lowerSeedTeam) break;
+        }
+        
         let higherSeedWins = 0;
         let lowerSeedWins = 0;
         
@@ -1185,8 +1197,8 @@ export class PlayoffEngine {
         }
         
         const complete = higherSeedWins >= winsNeeded || lowerSeedWins >= winsNeeded;
-        const winner = complete ? (higherSeedWins >= winsNeeded ? firstGame.homeTeam : firstGame.awayTeam) : null;
-        const loser = complete ? (higherSeedWins >= winsNeeded ? firstGame.awayTeam : firstGame.homeTeam) : null;
+        const winner = complete ? (higherSeedWins >= winsNeeded ? higherSeedTeam : lowerSeedTeam) : null;
+        const loser = complete ? (higherSeedWins >= winsNeeded ? lowerSeedTeam : higherSeedTeam) : null;
         
         return {
             seriesId,
