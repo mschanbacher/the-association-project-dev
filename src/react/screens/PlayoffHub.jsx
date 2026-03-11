@@ -283,8 +283,8 @@ function PlayoffSidebar({
             {games.map((g, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 4px', fontSize: 10 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--color-text-tertiary)', minWidth: 13 }}>G{i + 1}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 500, padding: '1px 4px', background: g.winner ? 'var(--color-win-bg)' : 'var(--color-loss-bg)', color: g.winner ? 'var(--color-win)' : 'var(--color-loss)' }}>
-                  {g.winner ? 'W' : 'L'}
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 500, padding: '1px 4px', background: g.userWon ? 'var(--color-win-bg)' : 'var(--color-loss-bg)', color: g.userWon ? 'var(--color-win)' : 'var(--color-loss)' }}>
+                  {g.userWon ? 'W' : 'L'}
                 </span>
                 <span style={{ flex: 1, color: 'var(--color-text-secondary)' }}>{g.location} {opp_abbr}</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-secondary)' }}>{g.userScore}–{g.oppScore}</span>
