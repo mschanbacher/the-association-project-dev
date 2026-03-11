@@ -345,37 +345,6 @@ function PlayoffSidebar({
   );
 }
 
-// ─── Matchup card ─────────────────────────────────────────────────────────────
-function MatchupCard({ s1, n1, fn1, w1, s2, n2, fn2, w2, isUser, isLive, isDone, gameLabel, team1, team2 }) {
-  const w1Leading = w1 > w2, w2Leading = w2 > w1;
-  const winner1 = isDone && w1Leading, winner2 = isDone && w2Leading;
-  // Create pseudo-team objects for TeamName if full team objects not provided
-  const t1 = team1 || (fn1 ? { name: fn1, abbreviation: n1 } : null);
-  const t2 = team2 || (fn2 ? { name: fn2, abbreviation: n2 } : null);
-  return (
-    <div style={{ width: 130, border: isUser ? '1px solid var(--color-accent-border)' : '1px solid var(--color-border)', borderLeft: isUser ? '3px solid var(--color-accent)' : undefined, background: 'var(--color-bg-raised)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'visible', position: 'relative', opacity: isDone ? 0.85 : 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '4px 6px', gap: 4, borderBottom: '1px solid var(--color-border-subtle)' }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--color-text-tertiary)', minWidth: 11 }}>{s1}</span>
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10 }}>
-          <TeamName team={t1} style={{ fontWeight: isUser ? 700 : winner1 ? 700 : 500, cursor: 'default', color: isUser ? 'var(--color-accent)' : winner2 ? 'var(--color-text-tertiary)' : 'var(--color-text)', textDecoration: winner2 ? 'line-through' : 'none' }} />
-        </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, minWidth: 10, textAlign: 'right', color: w1Leading && !isDone ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}>{w1}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '4px 6px', gap: 4 }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--color-text-tertiary)', minWidth: 11 }}>{s2}</span>
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10 }}>
-          <TeamName team={t2} style={{ fontWeight: winner2 ? 700 : 500, cursor: 'default', color: winner1 ? 'var(--color-text-tertiary)' : 'var(--color-text)', textDecoration: winner1 ? 'line-through' : 'none' }} />
-        </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, minWidth: 10, textAlign: 'right', color: w2Leading && !isDone ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}>{w2}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderTop: '1px solid var(--color-border-subtle)', fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.03em', background: isLive ? 'var(--color-win-bg)' : 'var(--color-bg-sunken)', color: isLive ? 'var(--color-win)' : 'var(--color-text-tertiary)' }}>
-        {isLive && <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--color-win)', flexShrink: 0 }} />}
-        {gameLabel}
-      </div>
-    </div>
-  );
-}
-
 // Future slot
 function FutureCard({ label = 'TBD' }) {
   const row = (
@@ -439,152 +408,6 @@ function ConnCol({ slots, slotH, gold, silver, bronze }) {
 }
 
 const Slot = ({ h, children }) => <div style={{ height: h, display: 'flex', alignItems: 'center' }}>{children}</div>;
-
-// ─── T1 Bracket ──────────────────────────────────────────────────────────────
-function T1Bracket({ cpd, postseasonT1, userTeamId }) {
-  const eastTeams = cpd?.eastTeams || [];
-  const westTeams = cpd?.westTeams || [];
-  const roundResults = cpd?.roundResults || [];
-  const r1 = roundResults[0] || [];
-
-  const getSeriesRec = (results, conf, idx) => {
-    const matching = (results || []).filter(r => r && (!conf || r.conf === conf));
-    const s = matching[idx];
-    if (!s) return null;
-    return { w1: s.result?.higherSeedWins ?? s.result?.higherWins ?? 0, w2: s.result?.lowerSeedWins ?? s.result?.lowerWins ?? 0, winner: s.result?.winner || null, done: !!(s.result?.winner) };
-  };
-
-  const isUser = (t) => t?.id === userTeamId;
-
-  const buildCard = (higher, lower, rec, roundLabel) => {
-    if (!higher && !lower) return <FutureCard key="f" label={roundLabel} />;
-    const w1 = rec?.w1 ?? 0, w2 = rec?.w2 ?? 0;
-    const live = !!(cpd?.currentRound) && !rec?.done;
-    return (
-      <MatchupCard
-        s1={higher?.seed ?? '?'} n1={abbr(higher)} fn1={higher?.name} w1={w1}
-        s2={lower?.seed ?? '?'} n2={abbr(lower)} fn2={lower?.name} w2={w2}
-        isUser={isUser(higher) || isUser(lower)}
-        isLive={live && !rec?.done} isDone={rec?.done}
-        gameLabel={rec?.done ? `✓ ${w1}–${w2}` : live ? `G${w1 + w2 + 1} Tonight` : roundLabel}
-      />
-    );
-  };
-
-  const r1E = eastTeams.length >= 8 ? [
-    { higher: eastTeams[0], lower: eastTeams[7], rec: getSeriesRec(r1, 'East', 0) },
-    { higher: eastTeams[3], lower: eastTeams[4], rec: getSeriesRec(r1, 'East', 1) },
-    { higher: eastTeams[1], lower: eastTeams[6], rec: getSeriesRec(r1, 'East', 2) },
-    { higher: eastTeams[2], lower: eastTeams[5], rec: getSeriesRec(r1, 'East', 3) },
-  ] : Array.from({ length: 4 }).map(() => ({ higher: null, lower: null, rec: null }));
-
-  const r1W = westTeams.length >= 8 ? [
-    { higher: westTeams[0], lower: westTeams[7], rec: getSeriesRec(r1, 'West', 0) },
-    { higher: westTeams[3], lower: westTeams[4], rec: getSeriesRec(r1, 'West', 1) },
-    { higher: westTeams[1], lower: westTeams[6], rec: getSeriesRec(r1, 'West', 2) },
-    { higher: westTeams[2], lower: westTeams[5], rec: getSeriesRec(r1, 'West', 3) },
-  ] : Array.from({ length: 4 }).map(() => ({ higher: null, lower: null, rec: null }));
-
-  const allR1 = [...r1E, ...r1W];
-
-  if (!eastTeams.length && !westTeams.length && !postseasonT1) {
-    return <div style={{ padding: 32, color: 'var(--color-text-tertiary)', fontSize: 12 }}>Bracket data loading…</div>;
-  }
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 'max-content' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader>Round 1</ColHeader>
-        {allR1.map((m, i) => <Slot key={i} h={58}>{buildCard(m.higher, m.lower, m.rec, 'R1')}</Slot>)}
-      </div>
-      <ConnCol slots={8} slotH={58} />
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader>Conf. Quarters</ColHeader>
-        {Array.from({ length: 4 }).map((_, i) => <Slot key={i} h={116}><FutureCard label="Round 2" /></Slot>)}
-      </div>
-      <ConnCol slots={4} slotH={116} />
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader>Conf. Semis</ColHeader>
-        {Array.from({ length: 2 }).map((_, i) => <Slot key={i} h={232}><FutureCard label="Conf. Semis" /></Slot>)}
-      </div>
-      <ConnCol slots={2} slotH={232} />
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader>Conf. Finals</ColHeader>
-        {Array.from({ length: 2 }).map((_, i) => <Slot key={i} h={464}><FutureCard label="Conf. Finals" /></Slot>)}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', width: 20, flexShrink: 0, paddingTop: 28, alignItems: 'center' }}>
-        <div style={{ height: 928, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: 'rgba(212,168,67,0.5)', fontSize: 14, fontFamily: 'var(--font-mono)' }}>›</span>
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader tier={1}>Championship</ColHeader>
-        <Slot h={928}><ChampCard tier={1} /></Slot>
-      </div>
-    </div>
-  );
-}
-
-// ─── T2 / T3 Single Bracket ───────────────────────────────────────────────────
-function SingleBracket({ tier, data, userTeamId }) {
-  const rounds = data?.rounds || [];
-  const r1 = rounds[0] || [];
-  const cc = tier === 2 ? { silver: true } : { bronze: true };
-
-  const r1Cards = r1.length > 0
-    ? r1.map((s, i) => {
-        const higher = s.result?.higherSeed || s.higher;
-        const lower = s.result?.lowerSeed || s.lower;
-        const w1 = s.result?.higherSeedWins ?? s.result?.higherWins ?? 0;
-        const w2 = s.result?.lowerSeedWins ?? s.result?.lowerWins ?? 0;
-        const done = !!(s.result?.winner);
-        return (
-          <Slot key={i} h={58}>
-            <MatchupCard
-              s1={higher?.seed ?? '?'} n1={abbr(higher)} fn1={higher?.name} w1={w1}
-              s2={lower?.seed ?? '?'} n2={abbr(lower)} fn2={lower?.name} w2={w2}
-              isUser={higher?.id === userTeamId || lower?.id === userTeamId}
-              isLive={!done} isDone={done}
-              gameLabel={done ? `✓ ${w1}–${w2}` : `G${w1 + w2 + 1} Tonight`}
-            />
-          </Slot>
-        );
-      })
-    : Array.from({ length: 8 }).map((_, i) => <Slot key={i} h={58}><FutureCard label="R1" /></Slot>);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 'max-content' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader tier={tier}>Round 1</ColHeader>
-        {r1Cards}
-      </div>
-      <ConnCol slots={8} slotH={58} {...cc} />
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader tier={tier}>Quarterfinals</ColHeader>
-        {Array.from({ length: 4 }).map((_, i) => <Slot key={i} h={116}><FutureCard label="QF" /></Slot>)}
-      </div>
-      <ConnCol slots={4} slotH={116} {...cc} />
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader tier={tier}>Semifinals</ColHeader>
-        {Array.from({ length: 2 }).map((_, i) => <Slot key={i} h={232}><FutureCard label="SF" /></Slot>)}
-      </div>
-      <ConnCol slots={2} slotH={232} {...cc} />
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader tier={tier}>Final</ColHeader>
-        <Slot h={464}><FutureCard label="Final" /></Slot>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', width: 20, flexShrink: 0, paddingTop: 28, alignItems: 'center' }}>
-        <div style={{ height: 464, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: TIER[tier].border, fontSize: 14, fontFamily: 'var(--font-mono)' }}>›</span>
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <ColHeader tier={tier}>Champion</ColHeader>
-        <Slot h={464}><ChampCard tier={tier} /></Slot>
-      </div>
-    </div>
-  );
-}
 
 // ─── Tier tab ─────────────────────────────────────────────────────────────────
 function TierTab({ tier, active, onClick }) {
@@ -1099,8 +922,15 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
     const games = schedule.bySeries[seriesId];
     let w1 = 0, w2 = 0;
     const firstGame = games[0];
-    const higherSeed = firstGame?.homeTeam || firstGame?.higherSeed;
-    const lowerSeed = firstGame?.awayTeam || firstGame?.lowerSeed;
+    // Find team objects from any game in series
+    let higherSeed = null, lowerSeed = null;
+    for (const g of games) {
+      if (!higherSeed && g.homeTeam?.id === firstGame.higherSeedId) higherSeed = g.homeTeam;
+      if (!higherSeed && g.awayTeam?.id === firstGame.higherSeedId) higherSeed = g.awayTeam;
+      if (!lowerSeed && g.homeTeam?.id === firstGame.lowerSeedId) lowerSeed = g.homeTeam;
+      if (!lowerSeed && g.awayTeam?.id === firstGame.lowerSeedId) lowerSeed = g.awayTeam;
+      if (higherSeed && lowerSeed) break;
+    }
     for (const g of games) {
       if (g.played && g.result?.winner) {
         if (g.result.winner.id === firstGame.higherSeedId) w1++;
@@ -1114,6 +944,45 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
     return { w1, w2, complete, winner, higherSeed, lowerSeed };
   };
 
+  // T1 Series card component with tooltips
+  const T1SeriesCard = ({ higher, lower, s1, s2, w1, w2, complete, isUser, isFinals }) => {
+    const width = isFinals ? 130 : 110;
+    if (!higher && !lower) {
+      return (
+        <div style={{
+          width, padding: isFinals ? '8px 10px' : '5px 8px',
+          background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border)',
+          fontSize: isFinals ? 12 : 10, color: 'var(--color-text-tertiary)', textAlign: 'center',
+        }}>
+          TBD
+        </div>
+      );
+    }
+    return (
+      <div style={{
+        width, padding: isFinals ? '6px 10px' : '5px 8px',
+        background: isUser ? 'var(--color-tier1-bg)' : 'var(--color-bg-raised)',
+        border: `1px solid ${isUser ? 'rgba(212,168,67,0.3)' : 'var(--color-border)'}`,
+        overflow: 'visible',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: isFinals ? 12 : 10, marginBottom: 2, overflow: 'visible' }}>
+          {s1 !== undefined && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--color-text-tertiary)', minWidth: 10 }}>{s1}</span>}
+          <span style={{ flex: 1, overflow: 'visible' }}>
+            <TeamName team={higher} style={{ fontWeight: complete && w1 > w2 ? 700 : 400, color: complete && w1 < w2 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }} />
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: isFinals ? 11 : 9 }}>{w1}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: isFinals ? 12 : 10, overflow: 'visible' }}>
+          {s2 !== undefined && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--color-text-tertiary)', minWidth: 10 }}>{s2}</span>}
+          <span style={{ flex: 1, overflow: 'visible' }}>
+            <TeamName team={lower} style={{ fontWeight: complete && w2 > w1 ? 700 : 400, color: complete && w2 < w1 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }} />
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: isFinals ? 11 : 9 }}>{w2}</span>
+        </div>
+      </div>
+    );
+  };
+
   // Round 1 matchups: 1v8, 4v5, 2v7, 3v6 in each conference
   const r1Matchups = [
     { conf: 'East', pairs: [[0, 7], [3, 4], [1, 6], [2, 5]] },
@@ -1122,7 +991,7 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
 
   // Build Round 1 cards and track winners for Round 2
   const allR1Cards = [];
-  const r1Winners = { east: [], west: [] }; // Will hold [1v8 winner, 4v5 winner, 2v7 winner, 3v6 winner]
+  const r1Winners = { east: [], west: [] };
   
   for (const { conf, pairs } of r1Matchups) {
     const teams = conf === 'East' ? eastTeams : westTeams;
@@ -1138,23 +1007,21 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
       
       allR1Cards.push(
         <Slot key={seriesId} h={65}>
-          <MatchupCard
-            s1={hi + 1} n1={abbr(higher)} fn1={higher?.name} w1={rec.w1}
-            s2={lo + 1} n2={abbr(lower)} fn2={lower?.name} w2={rec.w2}
+          <T1SeriesCard
+            higher={higher} lower={lower}
+            s1={hi + 1} s2={lo + 1}
+            w1={rec.w1} w2={rec.w2} complete={rec.complete}
             isUser={higher?.id === userTeamId || lower?.id === userTeamId}
-            isLive={!rec.complete && (rec.w1 > 0 || rec.w2 > 0)}
-            isDone={rec.complete}
-            gameLabel={rec.complete ? `✓ ${rec.w1}–${rec.w2}` : rec.w1 + rec.w2 > 0 ? `${rec.w1}–${rec.w2}` : 'G1'}
           />
         </Slot>
       );
     }
   }
 
-  // Round 2 (Conf Semis) matchups: 1v8 winner vs 4v5 winner, 2v7 winner vs 3v6 winner
+  // Round 2 (Conf Semis) matchups
   const r2SeriesIds = [
-    { conf: 'east', id: 't1-r2-east-1' }, // 1v8 winner vs 4v5 winner
-    { conf: 'east', id: 't1-r2-east-2' }, // 2v7 winner vs 3v6 winner
+    { conf: 'east', id: 't1-r2-east-1' },
+    { conf: 'east', id: 't1-r2-east-2' },
     { conf: 'west', id: 't1-r2-west-1' },
     { conf: 'west', id: 't1-r2-west-2' }
   ];
@@ -1165,31 +1032,20 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
   for (let i = 0; i < r2SeriesIds.length; i++) {
     const { conf, id } = r2SeriesIds[i];
     const rec = getSeriesRecord(id);
-    const idx = i % 2; // 0 or 1 within conference
+    const idx = i % 2;
     
-    // Get teams from R1 winners or from the series itself
-    let higher = rec.higherSeed || r1Winners[conf][idx * 2]; // 1v8 or 2v7 winner
-    let lower = rec.lowerSeed || r1Winners[conf][idx * 2 + 1]; // 4v5 or 3v6 winner
+    let higher = rec.higherSeed || r1Winners[conf][idx * 2];
+    let lower = rec.lowerSeed || r1Winners[conf][idx * 2 + 1];
     
     r2Winners[conf].push(rec.winner);
     
-    const hasBothTeams = higher && lower;
-    const hasAnyGames = rec.w1 > 0 || rec.w2 > 0;
-    
     r2Cards.push(
       <Slot key={id} h={130}>
-        {hasBothTeams ? (
-          <MatchupCard
-            n1={abbr(higher)} fn1={higher?.name} w1={rec.w1}
-            n2={abbr(lower)} fn2={lower?.name} w2={rec.w2}
-            isUser={higher?.id === userTeamId || lower?.id === userTeamId}
-            isLive={!rec.complete && hasAnyGames}
-            isDone={rec.complete}
-            gameLabel={rec.complete ? `✓ ${rec.w1}–${rec.w2}` : hasAnyGames ? `${rec.w1}–${rec.w2}` : 'TBD'}
-          />
-        ) : (
-          <FutureCard label="TBD" />
-        )}
+        <T1SeriesCard
+          higher={higher} lower={lower}
+          w1={rec.w1} w2={rec.w2} complete={rec.complete}
+          isUser={higher?.id === userTeamId || lower?.id === userTeamId}
+        />
       </Slot>
     );
   }
@@ -1206,29 +1062,18 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
   for (const { conf, id } of cfSeriesIds) {
     const rec = getSeriesRecord(id);
     
-    // Get teams from R2 winners or from the series itself
     let higher = rec.higherSeed || r2Winners[conf][0];
     let lower = rec.lowerSeed || r2Winners[conf][1];
     
     cfWinners[conf] = rec.winner;
     
-    const hasBothTeams = higher && lower;
-    const hasAnyGames = rec.w1 > 0 || rec.w2 > 0;
-    
     cfCards.push(
       <Slot key={id} h={260}>
-        {hasBothTeams ? (
-          <MatchupCard
-            n1={abbr(higher)} fn1={higher?.name} w1={rec.w1}
-            n2={abbr(lower)} fn2={lower?.name} w2={rec.w2}
-            isUser={higher?.id === userTeamId || lower?.id === userTeamId}
-            isLive={!rec.complete && hasAnyGames}
-            isDone={rec.complete}
-            gameLabel={rec.complete ? `✓ ${rec.w1}–${rec.w2}` : hasAnyGames ? `${rec.w1}–${rec.w2}` : 'TBD'}
-          />
-        ) : (
-          <FutureCard label="TBD" />
-        )}
+        <T1SeriesCard
+          higher={higher} lower={lower}
+          w1={rec.w1} w2={rec.w2} complete={rec.complete}
+          isUser={higher?.id === userTeamId || lower?.id === userTeamId}
+        />
       </Slot>
     );
   }
@@ -1237,8 +1082,6 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
   const finalsRec = getSeriesRecord('t1-finals');
   const finalsHigher = finalsRec.higherSeed || cfWinners.east;
   const finalsLower = finalsRec.lowerSeed || cfWinners.west;
-  const finalsHasBothTeams = finalsHigher && finalsLower;
-  const finalsHasAnyGames = finalsRec.w1 > 0 || finalsRec.w2 > 0;
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 'max-content' }}>
@@ -1260,18 +1103,12 @@ function T1BracketNew({ bracket, schedule, userTeamId }) {
       <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <ColHeader tier={1}>Finals</ColHeader>
         <Slot h={520}>
-          {finalsHasBothTeams ? (
-            <MatchupCard
-              n1={abbr(finalsHigher)} fn1={finalsHigher?.name} w1={finalsRec.w1}
-              n2={abbr(finalsLower)} fn2={finalsLower?.name} w2={finalsRec.w2}
-              isUser={finalsHigher?.id === userTeamId || finalsLower?.id === userTeamId}
-              isLive={!finalsRec.complete && finalsHasAnyGames}
-              isDone={finalsRec.complete}
-              gameLabel={finalsRec.complete ? `✓ ${finalsRec.w1}–${finalsRec.w2}` : finalsHasAnyGames ? `${finalsRec.w1}–${finalsRec.w2}` : 'TBD'}
-            />
-          ) : (
-            <FutureCard label="Finals" />
-          )}
+          <T1SeriesCard
+            higher={finalsHigher} lower={finalsLower}
+            w1={finalsRec.w1} w2={finalsRec.w2} complete={finalsRec.complete}
+            isUser={finalsHigher?.id === userTeamId || finalsLower?.id === userTeamId}
+            isFinals
+          />
         </Slot>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', width: 20, flexShrink: 0, paddingTop: 28, alignItems: 'center' }}>
