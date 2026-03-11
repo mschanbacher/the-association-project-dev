@@ -314,17 +314,24 @@ function PlayoffSidebar({
       <SbSection>
         <Label>Season Stats</Label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '3px 8px' }}>
-          {[
-            ['OVR', userTeam?.rating ?? '—'],
-            ['PPG', userTeam?.ppg != null ? userTeam.ppg.toFixed(1) : '—'],
-            ['OPP PPG', userTeam?.oppPpg != null ? userTeam.oppPpg.toFixed(1) : '—'],
-            ['NET RTG', userTeam?.netRating != null ? (userTeam.netRating >= 0 ? '+' : '') + userTeam.netRating.toFixed(1) : '—'],
-          ].map(([lbl, val]) => (
-            <React.Fragment key={lbl}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', alignSelf: 'center' }}>{lbl}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 500, textAlign: 'right', color: lbl === 'NET RTG' && userTeam?.netRating != null ? (userTeam.netRating >= 0 ? 'var(--color-win)' : 'var(--color-loss)') : 'var(--color-text)' }}>{val}</span>
-            </React.Fragment>
-          ))}
+          {(() => {
+            const gamesPlayed = (userTeam?.wins || 0) + (userTeam?.losses || 0);
+            const winPct = gamesPlayed > 0 ? ((userTeam?.wins || 0) / gamesPlayed * 100).toFixed(0) : '—';
+            const ovrRating = userTeam?.rating != null ? Math.round(userTeam.rating) : '—';
+            
+            const stats = [
+              ['OVR', ovrRating],
+              ['RECORD', gamesPlayed > 0 ? `${userTeam?.wins || 0}-${userTeam?.losses || 0}` : '—'],
+              ['WIN %', gamesPlayed > 0 ? `${winPct}%` : '—'],
+            ];
+            
+            return stats.map(([lbl, val]) => (
+              <React.Fragment key={lbl}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', alignSelf: 'center' }}>{lbl}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 500, textAlign: 'right', color: 'var(--color-text)' }}>{val}</span>
+              </React.Fragment>
+            ));
+          })()}
         </div>
       </SbSection>
 
