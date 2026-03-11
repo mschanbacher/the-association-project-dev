@@ -829,6 +829,26 @@ export class GameSimController {
             overtime: result.overtime || false
         };
         
+        // Store box score for this game
+        const mapStats = (stats) => (stats || [])
+            .filter(p => p.minutesPlayed > 0)
+            .sort((a, b) => b.minutesPlayed - a.minutesPlayed)
+            .map(p => ({
+                name: p.playerName || p.name || 'Unknown', pos: p.position || '',
+                min: p.minutesPlayed || 0, pts: p.points || 0,
+                reb: p.rebounds || 0, ast: p.assists || 0,
+                stl: p.steals || 0, blk: p.blocks || 0, to: p.turnovers || 0,
+                pf: p.fouls || 0, starter: p.gamesStarted > 0,
+                fgm: p.fieldGoalsMade || 0, fga: p.fieldGoalsAttempted || 0,
+                tpm: p.threePointersMade || 0, tpa: p.threePointersAttempted || 0,
+                ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0, pm: p.plusMinus || 0
+            }));
+        game.boxScore = {
+            home: { city: this._watchHomeTeam.city || '', name: this._watchHomeTeam.name, score: result.homeScore, players: mapStats(result.homePlayerStats) },
+            away: { city: this._watchAwayTeam.city || '', name: this._watchAwayTeam.name, score: result.awayScore, players: mapStats(result.awayPlayerStats) },
+            quarterScores: result.quarterScores || null
+        };
+        
         console.log(`✅ Playoff game complete: ${this._watchHomeTeam.name} ${result.homeScore} - ${result.awayScore} ${this._watchAwayTeam.name}`);
         
         // Accumulate player stats
@@ -3212,6 +3232,30 @@ export class GameSimController {
             loser: result.loser,
             overtime: result.overtime || false
         };
+        
+        // Store box score if this is a user's series game
+        const userTeamId = gameState.userTeamId;
+        const isUserGame = game.homeTeamId === userTeamId || game.awayTeamId === userTeamId;
+        if (isUserGame && result.homePlayerStats && result.awayPlayerStats) {
+            const mapStats = (stats) => (stats || [])
+                .filter(p => p.minutesPlayed > 0)
+                .sort((a, b) => b.minutesPlayed - a.minutesPlayed)
+                .map(p => ({
+                    name: p.playerName || p.name || 'Unknown', pos: p.position || '',
+                    min: p.minutesPlayed || 0, pts: p.points || 0,
+                    reb: p.rebounds || 0, ast: p.assists || 0,
+                    stl: p.steals || 0, blk: p.blocks || 0, to: p.turnovers || 0,
+                    pf: p.fouls || 0, starter: p.gamesStarted > 0,
+                    fgm: p.fieldGoalsMade || 0, fga: p.fieldGoalsAttempted || 0,
+                    tpm: p.threePointersMade || 0, tpa: p.threePointersAttempted || 0,
+                    ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0, pm: p.plusMinus || 0
+                }));
+            game.boxScore = {
+                home: { city: homeTeam.city || '', name: homeTeam.name, score: result.homeScore, players: mapStats(result.homePlayerStats) },
+                away: { city: awayTeam.city || '', name: awayTeam.name, score: result.awayScore, players: mapStats(result.awayPlayerStats) },
+                quarterScores: result.quarterScores || null
+            };
+        }
         
         console.log(`  ${game.round} G${game.gameNumber}: ${homeTeam.name} ${result.homeScore} - ${result.awayScore} ${awayTeam.name}`);
     }
