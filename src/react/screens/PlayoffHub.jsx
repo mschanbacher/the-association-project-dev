@@ -1421,7 +1421,7 @@ function T2BracketNew({ bracket, schedule, userTeamId }) {
       <div style={{ fontSize: 8, fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', color: 'var(--color-text-secondary)', marginBottom: 6 }}>
         {div.division.toUpperCase()}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {/* Semis column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <DivSeriesCard
@@ -1435,12 +1435,6 @@ function T2BracketNew({ bracket, schedule, userTeamId }) {
             isUser={div.seed2?.id === userTeamId || div.seed3?.id === userTeamId}
           />
         </div>
-        
-        {/* Connector lines */}
-        <svg width="14" height="46" style={{ flexShrink: 0 }}>
-          <path d="M 0 11 H 7 V 23 H 14" stroke="var(--color-border)" strokeWidth="1" fill="none" />
-          <path d="M 0 35 H 7 V 23 H 14" stroke="var(--color-border)" strokeWidth="1" fill="none" />
-        </svg>
         
         {/* Final */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1664,8 +1658,15 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
     const games = schedule.bySeries[seriesId];
     let w1 = 0, w2 = 0;
     const firstGame = games[0];
-    const higherSeed = firstGame?.homeTeam?.id === firstGame?.higherSeedId ? firstGame?.homeTeam : firstGame?.awayTeam;
-    const lowerSeed = firstGame?.homeTeam?.id === firstGame?.lowerSeedId ? firstGame?.homeTeam : firstGame?.awayTeam;
+    // Find team objects from any game in series
+    let higherSeed = null, lowerSeed = null;
+    for (const g of games) {
+      if (!higherSeed && g.homeTeam?.id === firstGame.higherSeedId) higherSeed = g.homeTeam;
+      if (!higherSeed && g.awayTeam?.id === firstGame.higherSeedId) higherSeed = g.awayTeam;
+      if (!lowerSeed && g.homeTeam?.id === firstGame.lowerSeedId) lowerSeed = g.homeTeam;
+      if (!lowerSeed && g.awayTeam?.id === firstGame.lowerSeedId) lowerSeed = g.awayTeam;
+      if (higherSeed && lowerSeed) break;
+    }
     for (const g of games) {
       if (g.played && g.result?.winner) {
         if (g.result.winner.id === firstGame.higherSeedId) w1++;
@@ -1679,14 +1680,15 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
     return { w1, w2, complete, winner, higherSeed, lowerSeed };
   };
 
-  // Mini series card component
-  const SeriesCard = ({ higher, lower, w1, w2, complete, isUser }) => {
+  // National tournament series card
+  const NatSeriesCard = ({ higher, lower, w1, w2, complete, isUser, isFinals }) => {
+    const width = isFinals ? 90 : 76;
     if (!higher && !lower) {
       return (
         <div style={{
-          padding: '4px 6px', background: 'var(--color-bg-sunken)',
-          border: '1px solid var(--color-border)', fontSize: 9, color: 'var(--color-text-tertiary)',
-          textAlign: 'center', minWidth: 70,
+          width, padding: isFinals ? '6px 8px' : '4px 6px',
+          background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border)',
+          fontSize: isFinals ? 11 : 10, color: 'var(--color-text-tertiary)', textAlign: 'center',
         }}>
           TBD
         </div>
@@ -1694,24 +1696,41 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
     }
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 4, padding: '3px 5px',
+        width, padding: isFinals ? '6px 8px' : '4px 6px',
         background: isUser ? 'var(--color-tier3-bg)' : 'var(--color-bg-raised)',
         border: `1px solid ${isUser ? 'rgba(179,115,64,0.3)' : 'var(--color-border)'}`,
-        fontSize: 9, minWidth: 70,
       }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: complete && w1 > w2 ? 600 : 400, color: complete && w1 < w2 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>
-            {abbr(higher)}
-          </div>
-          <div style={{ fontWeight: complete && w2 > w1 ? 600 : 400, color: complete && w2 < w1 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>
-            {abbr(lower)}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isFinals ? 11 : 10 }}>
+          <span style={{ fontWeight: complete && w1 > w2 ? 700 : 400, color: complete && w1 < w2 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{abbr(higher)}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: isFinals ? 10 : 9 }}>{w1}</span>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, textAlign: 'right' }}>
-          <div>{w1}</div>
-          <div>{w2}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isFinals ? 11 : 10, marginTop: 1 }}>
+          <span style={{ fontWeight: complete && w2 > w1 ? 700 : 400, color: complete && w2 < w1 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{abbr(lower)}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: isFinals ? 10 : 9 }}>{w2}</span>
         </div>
       </div>
+    );
+  };
+
+  // Bracket connector SVG
+  const BracketConnector = ({ count, gap }) => {
+    const itemHeight = 28;
+    const totalHeight = count * itemHeight + (count - 1) * gap;
+    
+    return (
+      <svg width="16" height={totalHeight} style={{ flexShrink: 0 }}>
+        {Array.from({ length: count / 2 }).map((_, i) => {
+          const topY = i * 2 * (itemHeight + gap) + itemHeight / 2 + gap * i;
+          const bottomY = topY + itemHeight + gap;
+          const outY = (topY + bottomY) / 2;
+          return (
+            <g key={i}>
+              <path d={`M 0 ${topY} H 8 V ${outY} H 16`} stroke="var(--color-border)" strokeWidth="1" fill="none" />
+              <path d={`M 0 ${bottomY} H 8 V ${outY} H 16`} stroke="var(--color-border)" strokeWidth="1" fill="none" />
+            </g>
+          );
+        })}
+      </svg>
     );
   };
 
@@ -1760,11 +1779,15 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
   const thirdPlaceRec = getSeriesRecord('t3-3rd-place');
 
   return (
-    <div style={{ padding: '16px 24px', overflowX: 'auto' }}>
+    <div style={{ padding: '16px 20px', overflowX: 'auto' }}>
       {/* Metro Finals Section */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>
-          METRO FINALS · 24 matchups
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ 
+          fontSize: 10, fontWeight: 600, fontFamily: 'var(--font-mono)', 
+          letterSpacing: '0.08em', color: 'var(--color-text-tertiary)', 
+          marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--color-border)' 
+        }}>
+          STAGE 1 · METRO FINALS
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
           {metroCards.map((m, i) => {
@@ -1780,8 +1803,8 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: m.complete && m.w1 > m.w2 ? 600 : 400 }}>{abbr(m.seed1)}</div>
-                    <div style={{ fontWeight: m.complete && m.w2 > m.w1 ? 600 : 400 }}>{abbr(m.seed2)}</div>
+                    <div style={{ fontWeight: m.complete && m.w1 > m.w2 ? 600 : 400, color: m.complete && m.w1 < m.w2 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{abbr(m.seed1)}</div>
+                    <div style={{ fontWeight: m.complete && m.w2 > m.w1 ? 600 : 400, color: m.complete && m.w2 < m.w1 ? 'var(--color-text-tertiary)' : 'var(--color-text)' }}>{abbr(m.seed2)}</div>
                   </div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8 }}>
                     <div>{m.w1}</div>
@@ -1795,17 +1818,31 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
       </div>
 
       {/* National Tournament Section */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>
-          NATIONAL TOURNAMENT
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ 
+          fontSize: 10, fontWeight: 600, fontFamily: 'var(--font-mono)', 
+          letterSpacing: '0.08em', color: 'var(--color-text-tertiary)', 
+          marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--color-border)' 
+        }}>
+          STAGE 2 · NATIONAL TOURNAMENT
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          padding: 12,
+          background: 'var(--color-bg-sunken)',
+          border: '1px solid var(--color-border)',
+          overflowX: 'auto',
+        }}>
           {/* Regional Round */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Regional</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ fontSize: 8, fontWeight: 500, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6, textAlign: 'center' }}>
+              REGIONAL
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {regionalCards.map((card, i) => (
-                <SeriesCard key={i}
+                <NatSeriesCard key={i}
                   higher={card.higherSeed} lower={card.lowerSeed}
                   w1={card.w1} w2={card.w2} complete={card.complete}
                   isUser={card.higherSeed?.id === userTeamId || card.lowerSeed?.id === userTeamId}
@@ -1813,12 +1850,17 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
               ))}
             </div>
           </div>
+          
+          <BracketConnector count={8} gap={4} />
+          
           {/* Sweet 16 */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Sweet 16</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ fontSize: 8, fontWeight: 500, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6, textAlign: 'center' }}>
+              SWEET 16
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
               {sweet16Cards.map((card, i) => (
-                <SeriesCard key={i}
+                <NatSeriesCard key={i}
                   higher={card.higherSeed} lower={card.lowerSeed}
                   w1={card.w1} w2={card.w2} complete={card.complete}
                   isUser={card.higherSeed?.id === userTeamId || card.lowerSeed?.id === userTeamId}
@@ -1826,12 +1868,17 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
               ))}
             </div>
           </div>
+          
+          <BracketConnector count={8} gap={36} />
+          
           {/* Quarterfinals */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Quarters</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ fontSize: 8, fontWeight: 500, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6, textAlign: 'center' }}>
+              QUARTERS
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 104 }}>
               {qfCards.map((card, i) => (
-                <SeriesCard key={i}
+                <NatSeriesCard key={i}
                   higher={card.higherSeed} lower={card.lowerSeed}
                   w1={card.w1} w2={card.w2} complete={card.complete}
                   isUser={card.higherSeed?.id === userTeamId || card.lowerSeed?.id === userTeamId}
@@ -1839,12 +1886,17 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
               ))}
             </div>
           </div>
+          
+          <BracketConnector count={4} gap={104} />
+          
           {/* Semifinals */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Semis</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ fontSize: 8, fontWeight: 500, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6, textAlign: 'center' }}>
+              SEMIS
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 240 }}>
               {sfCards.map((card, i) => (
-                <SeriesCard key={i}
+                <NatSeriesCard key={i}
                   higher={card.higherSeed} lower={card.lowerSeed}
                   w1={card.w1} w2={card.w2} complete={card.complete}
                   isUser={card.higherSeed?.id === userTeamId || card.lowerSeed?.id === userTeamId}
@@ -1852,30 +1904,82 @@ function T3BracketNew({ bracket, schedule, userTeamId }) {
               ))}
             </div>
           </div>
-          {/* Finals + 3rd Place */}
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Finals</div>
-            <SeriesCard
+          
+          <BracketConnector count={2} gap={240} />
+          
+          {/* Finals */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 8, fontWeight: 500, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6 }}>
+              FINALS
+            </div>
+            <NatSeriesCard
               higher={finalsRec.higherSeed} lower={finalsRec.lowerSeed}
               w1={finalsRec.w1} w2={finalsRec.w2} complete={finalsRec.complete}
               isUser={finalsRec.higherSeed?.id === userTeamId || finalsRec.lowerSeed?.id === userTeamId}
+              isFinals
             />
-            {finalsRec.complete && finalsRec.winner && (
-              <div style={{ marginTop: 8, padding: 6, background: 'var(--color-tier3-bg)', border: '1px solid rgba(179,115,64,0.3)', textAlign: 'center' }}>
-                <div style={{ fontSize: 8, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--color-tier3)', marginBottom: 2 }}>T3 CHAMPION</div>
-                <div style={{ fontSize: 10, fontWeight: 700 }}>{finalsRec.winner.name}</div>
+            
+            {/* Champion display */}
+            <div style={{ 
+              marginTop: 12, 
+              padding: '10px 16px', 
+              background: 'var(--color-tier3-bg)', 
+              border: '1px solid rgba(179,115,64,0.3)',
+              textAlign: 'center',
+            }}>
+              <div style={{ width: 10, height: 10, background: 'var(--color-tier3)', margin: '0 auto 6px' }} />
+              <div style={{ fontSize: 8, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--color-tier3)', marginBottom: 2 }}>
+                T3 CHAMPION
               </div>
-            )}
+              <div style={{ fontSize: 12, fontWeight: 700, color: finalsRec.winner ? 'var(--color-text)' : 'var(--color-text-tertiary)' }}>
+                {finalsRec.winner?.name || 'TBD'}
+              </div>
+            </div>
+            
             {/* 3rd Place */}
             <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 8, fontWeight: 500, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>3rd Place</div>
-              <SeriesCard
+              <div style={{ fontSize: 7, fontWeight: 500, fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)', marginBottom: 4, textAlign: 'center' }}>
+                3RD PLACE
+              </div>
+              <NatSeriesCard
                 higher={thirdPlaceRec.higherSeed} lower={thirdPlaceRec.lowerSeed}
                 w1={thirdPlaceRec.w1} w2={thirdPlaceRec.w2} complete={thirdPlaceRec.complete}
                 isUser={thirdPlaceRec.higherSeed?.id === userTeamId || thirdPlaceRec.lowerSeed?.id === userTeamId}
               />
             </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Explanation Section */}
+      <div style={{ 
+        padding: 12, 
+        background: 'var(--color-bg-sunken)', 
+        border: '1px solid var(--color-border)',
+      }}>
+        <div style={{ 
+          fontSize: 9, fontWeight: 600, fontFamily: 'var(--font-mono)', 
+          letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 10 
+        }}>
+          HOW T3 PLAYOFFS WORK
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 10, lineHeight: 1.5, color: 'var(--color-text-secondary)' }}>
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: 3 }}>Stage 1: Metro Finals</div>
+            <div>24 metro divisions each crown a champion in best-of-3 series. All 24 winners advance to the National Tournament.</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: 3 }}>Stage 2: National Tournament</div>
+            <div>Top 8 metro winners get byes to Sweet 16. Teams 9-24 play Regional round. From Sweet 16 onward, all rounds are best-of-5. Winner earns promotion to T2.</div>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--color-border)', display: 'flex', gap: 16, fontSize: 9, color: 'var(--color-text-tertiary)' }}>
+          <div><span style={{ fontWeight: 600 }}>Metro:</span> Bo3</div>
+          <div><span style={{ fontWeight: 600 }}>Regional:</span> Bo3</div>
+          <div><span style={{ fontWeight: 600 }}>Sweet 16+:</span> Bo5</div>
+          <div><span style={{ fontWeight: 600 }}>Promoted:</span> Champion + Runner-up + 3rd</div>
         </div>
       </div>
     </div>
