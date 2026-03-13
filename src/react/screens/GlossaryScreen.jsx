@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { GLOSSARY, getCategories, getCategoryEntries, searchGlossary } from '../../data/GLOSSARY.js';
+import { GLOSSARY, getCategories, getCategoryEntries, searchGlossary } from '../../data/Glossary.js';
 
 /**
  * GlossaryScreen - In-game encyclopedia and help system
