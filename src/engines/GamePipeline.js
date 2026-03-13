@@ -145,12 +145,93 @@ export class GamePipeline {
     static resolve(homeTeam, awayTeam, options = {}) {
         const game = new PipelineGameState(homeTeam, awayTeam, options);
         const setup = GamePipeline._setupTeams(game);
+        
+        // Track win probability if requested
+        const trackWinProb = options.trackWinProbability !== false; // Default to true
+        const winProbHistory = [];
+        
+        // Calculate pre-game probability based on team ratings
+        const homeOvr = homeTeam.rating || homeTeam.ovr || 75;
+        const awayOvr = awayTeam.rating || awayTeam.ovr || 75;
+        const preGameProb = 1 / (1 + Math.pow(10, (awayOvr - homeOvr - 3) / 15)); // Home court ~3pts
+        
+        if (trackWinProb) {
+            winProbHistory.push({
+                possession: 0,
+                elapsedSeconds: 0,
+                homeProb: preGameProb,
+                homeScore: 0,
+                awayScore: 0,
+                homeRun: 0,
+                awayRun: 0
+            });
+        }
 
         while (!game.isComplete) {
             GamePipeline._stepPossession(game, setup);
+            
+            // Record win probability after each possession
+            if (trackWinProb) {
+                const elapsedSeconds = GamePipeline._getElapsedSeconds(game);
+                const homeProb = GamePipeline._calcWinProb(
+                    game.homeScore - game.awayScore,
+                    elapsedSeconds,
+                    preGameProb
+                );
+                winProbHistory.push({
+                    possession: game.possession,
+                    elapsedSeconds,
+                    homeProb,
+                    homeScore: game.homeScore,
+                    awayScore: game.awayScore,
+                    homeRun: game.homeRun,
+                    awayRun: game.awayRun
+                });
+            }
         }
 
-        return GamePipeline._buildResult(game, setup);
+        const result = GamePipeline._buildResult(game, setup);
+        if (trackWinProb) {
+            result.winProbHistory = winProbHistory;
+            result.preGameProb = preGameProb;
+        }
+        return result;
+    }
+    
+    /**
+     * Calculate elapsed game seconds from game state
+     */
+    static _getElapsedSeconds(game) {
+        const q = game.clock.quarter;
+        const secsLeft = game.clock.secondsLeft;
+        if (q <= 4) {
+            return (q - 1) * 720 + (720 - secsLeft);
+        } else {
+            // Overtime: 5 min periods
+            return 2880 + (q - 5) * 300 + (300 - secsLeft);
+        }
+    }
+    
+    /**
+     * Calculate win probability for home team given margin and time
+     */
+    static _calcWinProb(margin, elapsedSeconds, preGameProb = 0.5) {
+        const TOTAL = 2880;
+        const remaining = Math.max(0, TOTAL - elapsedSeconds);
+        
+        // Pre-game advantage adjustment
+        const preGameAdj = (preGameProb - 0.5) * 8;
+        const adjustedMargin = margin + preGameAdj;
+        
+        // Time pressure: sqrt(remaining) gives gentle early weighting,
+        // dramatic convergence in final minutes
+        const timePressure = 1 / (Math.sqrt(remaining / 60 + 0.5));
+        const k = 0.42;
+        
+        const raw = 1 / (1 + Math.exp(-k * adjustedMargin * timePressure));
+        
+        // Clamp to [0.02, 0.98]
+        return Math.min(0.98, Math.max(0.02, raw));
     }
 
     /**

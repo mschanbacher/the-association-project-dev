@@ -513,7 +513,10 @@ export class GMMode {
                                     ftm: p.freeThrowsMade, fta: p.freeThrowsAttempted,
                                     starter: p.gamesStarted > 0, pm: p.plusMinus || 0
                                 }))
-                        }
+                        },
+                        quarterScores: gameResult.quarterScores || null,
+                        winProbHistory: gameResult.winProbHistory || null,
+                        preGameProb: gameResult.preGameProb || null
                     };
                 }
                 

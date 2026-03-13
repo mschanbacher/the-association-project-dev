@@ -49,7 +49,20 @@ export function WatchGameModal({ isOpen, data, onClose }) {
         momentum: momentumRef.current,
         plays: playsRef.current,
         leaders: leadersRef.current,
-        setGameOver: (resultData) => { setGameOver(true); setFinalData(resultData); },
+        setGameOver: (resultData) => { 
+          // Save win probability history to window for box score storage
+          window._wgWinProbHistory = winProbPointsRef.current.map(pt => ({
+            possession: pt.possession || 0,
+            elapsedSeconds: pt.elapsedSeconds,
+            homeProb: pt.prob,
+            homeScore: pt.homeScore || 0,
+            awayScore: pt.awayScore || 0,
+            homeRun: pt.homeRun || 0,
+            awayRun: pt.awayRun || 0
+          }));
+          setGameOver(true); 
+          setFinalData(resultData); 
+        },
         setSpeed: (s) => setSpeed(s),
         setPaused: (p) => setPaused(p),
         setPreGameWinProb: (prob) => {
@@ -67,7 +80,7 @@ export function WatchGameModal({ isOpen, data, onClose }) {
         },
       };
     }
-    return () => { window._wgRefs = null; };
+    return () => { window._wgRefs = null; window._wgWinProbHistory = null; };
   }, [isOpen]);
 
   useEffect(() => {

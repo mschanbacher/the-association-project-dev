@@ -162,6 +162,9 @@ export class DashboardController {
      */
     refreshStandings() {
         const { gameState, helpers } = this.ctx;
+        
+        // Skip if React is handling the UI (legacy DOM elements don't exist)
+        if (!document.getElementById('standingsBody')) return;
 
         // If viewing a specific tier, show that instead
         if (gameState.viewingTier !== null && gameState.viewingTier !== gameState.currentTier) {
@@ -171,7 +174,8 @@ export class DashboardController {
 
         // Reset to show current tier
         gameState.viewingTier = null;
-        document.getElementById('standingsLeagueInfo').textContent = '';
+        const standingsInfo = document.getElementById('standingsLeagueInfo');
+        if (standingsInfo) standingsInfo.textContent = '';
 
         const teams = helpers.getCurrentTeams();
 
@@ -201,7 +205,8 @@ export class DashboardController {
             leagueName = 'Metro Basketball League (Tier 3)';
         }
 
-        document.getElementById('standingsLeagueInfo').textContent = `Viewing: ${leagueName}`;
+        const standingsInfo = document.getElementById('standingsLeagueInfo');
+        if (standingsInfo) standingsInfo.textContent = `Viewing: ${leagueName}`;
 
         if (gameState.standingsView === 'division') {
             this._renderDivisionStandings(teams);
@@ -220,12 +225,14 @@ export class DashboardController {
         const overallBtn = document.getElementById('viewOverallBtn');
         const divisionBtn = document.getElementById('viewDivisionBtn');
 
-        if (view === 'overall') {
-            overallBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #5568d3 100%)';
-            divisionBtn.style.background = '';
-        } else {
-            overallBtn.style.background = '';
-            divisionBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #5568d3 100%)';
+        if (overallBtn && divisionBtn) {
+            if (view === 'overall') {
+                overallBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #5568d3 100%)';
+                divisionBtn.style.background = '';
+            } else {
+                overallBtn.style.background = '';
+                divisionBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #5568d3 100%)';
+            }
         }
 
         this.refreshStandings();

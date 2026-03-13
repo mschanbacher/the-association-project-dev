@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useGame } from '../hooks/GameBridge.jsx';
 import { Card } from '../components/Card.jsx';
 
@@ -11,6 +11,12 @@ import { Card } from '../components/Card.jsx';
  * - DM Sans + JetBrains Mono
  * - 8px spacing rhythm
  */
+
+// ─── Win Probability Chart Constants ───────────────────────────────────────────
+const TOTAL_GAME_SECONDS = 2880;
+const C_WIN  = '#2D7A4F';
+const C_LOSS = '#B5403A';
+const C_EVEN = '#C0C0BA';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(dateStr) {
@@ -286,7 +292,7 @@ export function GameLogScreen() {
 
 // ─── Box Score Expanded ────────────────────────────────────────────────────────
 function BoxScoreExpanded({ data, userTeamName, userTeamCity }) {
-  const { home, away, quarterScores } = data;
+  const { home, away, quarterScores, winProbHistory } = data;
   
   // Determine which team is user's team
   const isUserHome = (home.name === userTeamName) || 
@@ -318,6 +324,11 @@ function BoxScoreExpanded({ data, userTeamName, userTeamCity }) {
       {/* Quarter Scores */}
       {quarterScores && quarterScores.home && (
         <QuarterTable home={home} away={away} quarterScores={quarterScores} />
+      )}
+      
+      {/* Win Probability Chart */}
+      {winProbHistory && winProbHistory.length > 2 && (
+        <WinProbabilityChart winProbHistory={winProbHistory} userIsHome={isUserHome} />
       )}
 
       {/* Team Box Scores - User's team first */}
@@ -589,6 +600,317 @@ function PlayerRow({ p, isTopScorer }) {
       <td style={cellStyle}>{p.ftm}–{p.fta}</td>
       <td style={{ ...cellStyle, fontWeight: 'var(--weight-semi)', color: pmColor }}>{pmLabel}</td>
     </tr>
+  );
+}
+
+// ─── Win Probability Chart ─────────────────────────────────────────────────────
+function WinProbabilityChart({ winProbHistory, userIsHome }) {
+  const [tooltip, setTooltip] = useState(null);
+  
+  if (!winProbHistory || winProbHistory.length < 2) {
+    return null;
+  }
+  
+  // Chart constants matching WatchGame
+  const CHART_HEIGHT = 130;
+  const CHART_WIDTH = 920;
+  const RUN_THRESHOLD = 10;
+  const RUN_Y_OFFSET = 5;
+  
+  // Convert home probability to user probability
+  const points = winProbHistory.map(pt => ({
+    ...pt,
+    prob: userIsHome ? pt.homeProb : (1 - pt.homeProb),
+    userScore: userIsHome ? pt.homeScore : pt.awayScore,
+    oppScore: userIsHome ? pt.awayScore : pt.homeScore,
+    userRun: userIsHome ? pt.homeRun : pt.awayRun,
+    oppRun: userIsHome ? pt.awayRun : pt.homeRun,
+  }));
+  
+  // Chart geometry
+  const probToY = (prob) => (1 - prob) * CHART_HEIGHT;
+  const elapsedToX = (s) => (s / TOTAL_GAME_SECONDS) * CHART_WIDTH;
+  const lineColor = (p) => p > 0.55 ? C_WIN : p < 0.45 ? C_LOSS : C_EVEN;
+  
+  // Build color-segmented line
+  const buildSegments = (pts) => {
+    if (pts.length < 2) return [];
+    const segs = [];
+    let start = 0;
+    for (let i = 1; i <= pts.length; i++) {
+      const isLast = i === pts.length;
+      if (isLast || lineColor(pts[i].prob) !== lineColor(pts[start].prob)) {
+        const segPts = pts.slice(start, i);
+        segs.push({ color: lineColor(pts[start].prob), points: isLast ? segPts : [...segPts, pts[i]] });
+        start = i - 1;
+      }
+    }
+    return segs;
+  };
+  
+  // Detect scoring runs (matching WatchGame logic)
+  const detectRuns = (pts) => {
+    if (pts.length < 3) return [];
+    const runs = [];
+    let activeRun = null;
+    
+    for (let i = 0; i < pts.length; i++) {
+      const pt = pts[i];
+      const userRun = pt.userRun || 0;
+      const oppRun = pt.oppRun || 0;
+      
+      if (userRun >= RUN_THRESHOLD) {
+        if (!activeRun || !activeRun.isUser) {
+          if (activeRun && !activeRun.isUser) runs.push({ ...activeRun });
+          activeRun = { isUser: true, startSeconds: pt.elapsedSeconds, peakRun: userRun, endSeconds: pt.elapsedSeconds };
+        } else {
+          activeRun.peakRun = Math.max(activeRun.peakRun, userRun);
+          activeRun.endSeconds = pt.elapsedSeconds;
+        }
+      } else if (oppRun >= RUN_THRESHOLD) {
+        if (!activeRun || activeRun.isUser) {
+          if (activeRun?.isUser) runs.push({ ...activeRun });
+          activeRun = { isUser: false, startSeconds: pt.elapsedSeconds, peakRun: oppRun, endSeconds: pt.elapsedSeconds };
+        } else {
+          activeRun.peakRun = Math.max(activeRun.peakRun, oppRun);
+          activeRun.endSeconds = pt.elapsedSeconds;
+        }
+      } else {
+        if (activeRun) {
+          runs.push({ ...activeRun });
+          activeRun = null;
+        }
+      }
+    }
+    if (activeRun) runs.push({ ...activeRun });
+    return runs;
+  };
+  
+  const segments = buildSegments(points);
+  const runs = detectRuns(points);
+  const lastPoint = points[points.length - 1];
+  const finalUserProb = lastPoint ? Math.round(lastPoint.prob * 100) : null;
+  
+  // Mouse handling for tooltip
+  const handleMouseMove = useCallback((e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const chartFrac = mouseX / rect.width;
+    const targetSeconds = chartFrac * TOTAL_GAME_SECONDS;
+    
+    let closest = points[0];
+    let minDist = Infinity;
+    for (const pt of points) {
+      const d = Math.abs(pt.elapsedSeconds - targetSeconds);
+      if (d < minDist) { minDist = d; closest = pt; }
+    }
+    
+    const ptX = (closest.elapsedSeconds / TOTAL_GAME_SECONDS) * rect.width;
+    const userProbPct = Math.round(closest.prob * 100);
+    
+    setTooltip({
+      left: Math.max(50, Math.min(ptX, rect.width - 70)),
+      userProbPct,
+      userScore: closest.userScore,
+      oppScore: closest.oppScore,
+    });
+  }, [points]);
+  
+  const handleMouseLeave = useCallback(() => setTooltip(null), []);
+  
+  // Grid lines
+  const gridVerticals = [];
+  for (let s = 360; s < TOTAL_GAME_SECONDS; s += 360) {
+    gridVerticals.push(s);
+  }
+  
+  return (
+    <div style={{ 
+      marginBottom: 16,
+      background: 'var(--color-bg-raised)',
+      padding: '12px 16px',
+      border: '1px solid var(--color-border-subtle)',
+    }}>
+      {/* Header with title and final probability */}
+      <div style={{ 
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+      }}>
+        <div style={{ 
+          fontSize: 'var(--text-xs)', 
+          color: 'var(--color-text-tertiary)', 
+          fontWeight: 'var(--weight-semi)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}>
+          Win Probability
+        </div>
+        {finalUserProb !== null && (
+          <div style={{
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--weight-bold)',
+            color: finalUserProb > 55 ? C_WIN : finalUserProb < 45 ? C_LOSS : 'var(--color-text)',
+          }}>
+            {finalUserProb}%
+          </div>
+        )}
+      </div>
+      
+      <div 
+        style={{ position: 'relative', cursor: 'crosshair' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        <svg
+          viewBox={`-8 0 ${CHART_WIDTH + 16} ${CHART_HEIGHT + 20}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
+        >
+          {/* Subtle grid — verticals every 6 min */}
+          {gridVerticals.map((s) => (
+            <line key={`gv-${s}`}
+              x1={elapsedToX(s)} y1={0}
+              x2={elapsedToX(s)} y2={CHART_HEIGHT}
+              stroke="#ECEAE6" strokeWidth={0.75}
+            />
+          ))}
+          
+          {/* Subtle grid — horizontals at 25% and 75% */}
+          <line x1={0} y1={probToY(0.75)} x2={CHART_WIDTH} y2={probToY(0.75)} stroke="#ECEAE6" strokeWidth={0.75} />
+          <line x1={0} y1={probToY(0.25)} x2={CHART_WIDTH} y2={probToY(0.25)} stroke="#ECEAE6" strokeWidth={0.75} />
+          
+          {/* Quarter boundary lines — more visible */}
+          {[720, 1440, 2160].map((s, i) => (
+            <line key={`qb-${i}`}
+              x1={elapsedToX(s)} y1={0}
+              x2={elapsedToX(s)} y2={CHART_HEIGHT}
+              stroke="#E0DDD8" strokeWidth={1} strokeDasharray="3,3"
+            />
+          ))}
+          
+          {/* 50% baseline — most prominent */}
+          <line
+            x1={0} y1={CHART_HEIGHT / 2}
+            x2={CHART_WIDTH} y2={CHART_HEIGHT / 2}
+            stroke="#D8D5D0" strokeWidth={1.5}
+          />
+          
+          {/* Probability line — color segmented */}
+          {segments.map((seg, i) => (
+            <polyline key={i}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={seg.points
+                .map(p => `${elapsedToX(p.elapsedSeconds).toFixed(1)},${probToY(p.prob).toFixed(1)}`)
+                .join(' ')}
+            />
+          ))}
+          
+          {/* Run annotations */}
+          {runs.map((run, i) => {
+            const x1 = elapsedToX(run.startSeconds);
+            const x2 = elapsedToX(run.endSeconds);
+            const midX = (x1 + x2) / 2;
+            const lineY = run.isUser
+              ? CHART_HEIGHT / 2 - RUN_Y_OFFSET
+              : CHART_HEIGHT / 2 + RUN_Y_OFFSET;
+            const labelY = run.isUser ? lineY - 4 : lineY + 10;
+            const color = run.isUser ? C_WIN : C_LOSS;
+            return (
+              <g key={`run-${i}`}>
+                <line
+                  x1={x1} y1={lineY}
+                  x2={x2} y2={lineY}
+                  stroke={color}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  opacity={0.85}
+                />
+                {/* End caps */}
+                <line x1={x1} y1={lineY - 3} x2={x1} y2={lineY + 3} stroke={color} strokeWidth={1.5} opacity={0.85}/>
+                <line x1={x2} y1={lineY - 3} x2={x2} y2={lineY + 3} stroke={color} strokeWidth={1.5} opacity={0.85}/>
+                {/* Label */}
+                <text
+                  x={midX} y={labelY}
+                  fontSize={8} fontWeight={600}
+                  fill={color}
+                  fontFamily="DM Sans, sans-serif"
+                  textAnchor="middle"
+                >
+                  {run.peakRun}-0 run
+                </text>
+              </g>
+            );
+          })}
+          
+          {/* End point marker */}
+          {lastPoint && (
+            <circle 
+              cx={elapsedToX(lastPoint.elapsedSeconds)} 
+              cy={probToY(lastPoint.prob)} 
+              r={3.5} 
+              fill={lineColor(lastPoint.prob)} 
+            />
+          )}
+          
+          {/* X-axis labels */}
+          {[
+            { s: 0, label: '0' },
+            { s: 720, label: 'Q2' },
+            { s: 1440, label: 'Q3' },
+            { s: 2160, label: 'Q4' },
+            { s: 2880, label: '48' },
+          ].map(({ s, label }) => (
+            <text key={label}
+              x={elapsedToX(s)} y={CHART_HEIGHT + 14}
+              fontSize={9} fill="#A0A09A"
+              fontFamily="DM Sans, sans-serif"
+              textAnchor="middle"
+            >{label}</text>
+          ))}
+          
+          {/* Y-axis edge labels */}
+          <text x={5} y={11} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="start">Opp</text>
+          <text x={5} y={CHART_HEIGHT - 3} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="start">You</text>
+          <text x={CHART_WIDTH - 5} y={11} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="end">Opp</text>
+          <text x={CHART_WIDTH - 5} y={CHART_HEIGHT - 3} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="end">You</text>
+        </svg>
+        
+        {/* Tooltip */}
+        {tooltip && (
+          <div style={{
+            position: 'absolute',
+            left: tooltip.left,
+            top: 8,
+            transform: 'translateX(-50%)',
+            background: 'var(--color-bg-raised)',
+            border: '1px solid var(--color-border)',
+            padding: '4px 8px',
+            fontSize: 'var(--text-xs)',
+            fontFamily: 'var(--font-mono)',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 10,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}>
+            <span style={{ 
+              fontWeight: 'var(--weight-bold)',
+              color: tooltip.userProbPct > 55 ? C_WIN : tooltip.userProbPct < 45 ? C_LOSS : 'var(--color-text)',
+            }}>
+              {tooltip.userProbPct}%
+            </span>
+            <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 8 }}>
+              {tooltip.userScore}–{tooltip.oppScore}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

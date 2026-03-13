@@ -423,8 +423,12 @@ export class GameSimController {
                         .map(p => ({ name: p.playerName, pos: p.position, min: p.minutesPlayed, pts: p.points, reb: p.rebounds, ast: p.assists, stl: p.steals, blk: p.blocks, to: p.turnovers, pf: p.fouls, fgm: p.fieldGoalsMade, fga: p.fieldGoalsAttempted, tpm: p.threePointersMade, tpa: p.threePointersAttempted, ftm: p.freeThrowsMade, fta: p.freeThrowsAttempted, starter: p.gamesStarted > 0, pm: p.plusMinus || 0 }))
                 },
                 quarterScores: result.quarterScores,
+                winProbHistory: window._wgWinProbHistory || null,
+                preGameProb: this._watchPreGameProb || null,
                 events: result.events.filter(e => ['made_shot', 'run', 'quarter_end'].includes(e.type)).slice(-30)
             };
+            // Clear the temporary storage
+            window._wgWinProbHistory = null;
         }
 
         // Fatigue and injuries
@@ -846,8 +850,14 @@ export class GameSimController {
         game.boxScore = {
             home: { city: this._watchHomeTeam.city || '', name: this._watchHomeTeam.name, score: result.homeScore, players: mapStats(result.homePlayerStats) },
             away: { city: this._watchAwayTeam.city || '', name: this._watchAwayTeam.name, score: result.awayScore, players: mapStats(result.awayPlayerStats) },
-            quarterScores: result.quarterScores || null
+            quarterScores: result.quarterScores || null,
+            // Capture win probability history from the watch game component
+            winProbHistory: window._wgWinProbHistory || null,
+            preGameProb: this._watchPreGameProb || null
         };
+        
+        // Clear the temporary storage
+        window._wgWinProbHistory = null;
         
         console.log(`✅ Playoff game complete: ${this._watchHomeTeam.name} ${result.homeScore} - ${result.awayScore} ${this._watchAwayTeam.name}`);
         
@@ -3296,7 +3306,9 @@ export class GameSimController {
             game.boxScore = {
                 home: { city: homeTeam.city || '', name: homeTeam.name, score: result.homeScore, players: mapStats(result.homePlayerStats) },
                 away: { city: awayTeam.city || '', name: awayTeam.name, score: result.awayScore, players: mapStats(result.awayPlayerStats) },
-                quarterScores: result.quarterScores || null
+                quarterScores: result.quarterScores || null,
+                winProbHistory: result.winProbHistory || null,
+                preGameProb: result.preGameProb || null
             };
         }
         

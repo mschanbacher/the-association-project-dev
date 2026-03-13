@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { getFatiguePenalty } from './BasketballMath.js';
+import { GamePipeline } from './GamePipeline.js';
 
 export const GameEngine = {
     /**
@@ -164,13 +165,13 @@ export const GameEngine = {
      * @param {boolean} isPlayoffs - Whether this is a playoff game
      * @returns {Object} Game result with scores, winner, and player stat lines
      */
-    calculateGameOutcome(homeTeam, awayTeam, isPlayoffs = false) {
+    calculateGameOutcome(homeTeam, awayTeam, isPlayoffs = false, trackWinProbability = true) {
         const tier = homeTeam.tier || awayTeam.tier || 1;
-        return window.StatEngine.generateGame(homeTeam, awayTeam, {
+        // Use GamePipeline for possession-by-possession simulation with win probability tracking
+        return GamePipeline.resolve(homeTeam, awayTeam, {
             isPlayoffs: isPlayoffs,
             tier: tier,
-            homeCourtBonus: this.getHomeCourtAdvantage(tier),
-            getFatiguePenalty: getFatiguePenalty,
+            trackWinProbability: trackWinProbability,
         });
     },
 
