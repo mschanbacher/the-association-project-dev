@@ -604,6 +604,8 @@ function PlayerRow({ p, isTopScorer }) {
 }
 
 // ─── Win Probability Chart ─────────────────────────────────────────────────────
+// Displays from HOME team perspective (home at bottom, away at top) like WatchGame
+// Colors are based on USER's probability (green = user winning, red = user losing)
 function WinProbabilityChart({ winProbHistory, userIsHome }) {
   const [tooltip, setTooltip] = useState(null);
   
@@ -617,38 +619,46 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
   const RUN_THRESHOLD = 10;
   const RUN_Y_OFFSET = 5;
   
-  // Convert home probability to user probability
+  // Keep points in home perspective (don't flip probability)
+  // Just add user-relative fields for tooltip and coloring
   const points = winProbHistory.map(pt => ({
     ...pt,
-    prob: userIsHome ? pt.homeProb : (1 - pt.homeProb),
+    // Keep homeProb as-is for chart positioning
+    prob: pt.homeProb,
+    // User probability for coloring
+    userProb: userIsHome ? pt.homeProb : (1 - pt.homeProb),
     userScore: userIsHome ? pt.homeScore : pt.awayScore,
     oppScore: userIsHome ? pt.awayScore : pt.homeScore,
-    userRun: userIsHome ? pt.homeRun : pt.awayRun,
-    oppRun: userIsHome ? pt.awayRun : pt.homeRun,
+    // Runs from home/away perspective for positioning
+    homeRun: pt.homeRun || 0,
+    awayRun: pt.awayRun || 0,
   }));
   
-  // Chart geometry
-  const probToY = (prob) => (1 - prob) * CHART_HEIGHT;
+  // Chart geometry - home at bottom (high homeProb = low Y)
+  const probToY = (homeProb) => (1 - homeProb) * CHART_HEIGHT;
   const elapsedToX = (s) => (s / TOTAL_GAME_SECONDS) * CHART_WIDTH;
-  const lineColor = (p) => p > 0.55 ? C_WIN : p < 0.45 ? C_LOSS : C_EVEN;
   
-  // Build color-segmented line
+  // Color based on USER probability
+  const lineColorForUser = (userProb) => userProb > 0.55 ? C_WIN : userProb < 0.45 ? C_LOSS : C_EVEN;
+  
+  // Build color-segmented line (colored by user probability)
   const buildSegments = (pts) => {
     if (pts.length < 2) return [];
     const segs = [];
     let start = 0;
     for (let i = 1; i <= pts.length; i++) {
       const isLast = i === pts.length;
-      if (isLast || lineColor(pts[i].prob) !== lineColor(pts[start].prob)) {
+      if (isLast || lineColorForUser(pts[i].userProb) !== lineColorForUser(pts[start].userProb)) {
         const segPts = pts.slice(start, i);
-        segs.push({ color: lineColor(pts[start].prob), points: isLast ? segPts : [...segPts, pts[i]] });
+        segs.push({ color: lineColorForUser(pts[start].userProb), points: isLast ? segPts : [...segPts, pts[i]] });
         start = i - 1;
       }
     }
     return segs;
   };
   
-  // Detect scoring runs (matching WatchGame logic)
+  // Detect scoring runs from HOME perspective (like WatchGame)
+  // Home runs appear above midline, away runs below
   const detectRuns = (pts) => {
     if (pts.length < 3) return [];
     const runs = [];
@@ -656,23 +666,23 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
     
     for (let i = 0; i < pts.length; i++) {
       const pt = pts[i];
-      const userRun = pt.userRun || 0;
-      const oppRun = pt.oppRun || 0;
+      const homeRun = pt.homeRun || 0;
+      const awayRun = pt.awayRun || 0;
       
-      if (userRun >= RUN_THRESHOLD) {
-        if (!activeRun || !activeRun.isUser) {
-          if (activeRun && !activeRun.isUser) runs.push({ ...activeRun });
-          activeRun = { isUser: true, startSeconds: pt.elapsedSeconds, peakRun: userRun, endSeconds: pt.elapsedSeconds };
+      if (homeRun >= RUN_THRESHOLD) {
+        if (!activeRun || !activeRun.isHome) {
+          if (activeRun && !activeRun.isHome) runs.push({ ...activeRun });
+          activeRun = { isHome: true, startSeconds: pt.elapsedSeconds, peakRun: homeRun, endSeconds: pt.elapsedSeconds };
         } else {
-          activeRun.peakRun = Math.max(activeRun.peakRun, userRun);
+          activeRun.peakRun = Math.max(activeRun.peakRun, homeRun);
           activeRun.endSeconds = pt.elapsedSeconds;
         }
-      } else if (oppRun >= RUN_THRESHOLD) {
-        if (!activeRun || activeRun.isUser) {
-          if (activeRun?.isUser) runs.push({ ...activeRun });
-          activeRun = { isUser: false, startSeconds: pt.elapsedSeconds, peakRun: oppRun, endSeconds: pt.elapsedSeconds };
+      } else if (awayRun >= RUN_THRESHOLD) {
+        if (!activeRun || activeRun.isHome) {
+          if (activeRun?.isHome) runs.push({ ...activeRun });
+          activeRun = { isHome: false, startSeconds: pt.elapsedSeconds, peakRun: awayRun, endSeconds: pt.elapsedSeconds };
         } else {
-          activeRun.peakRun = Math.max(activeRun.peakRun, oppRun);
+          activeRun.peakRun = Math.max(activeRun.peakRun, awayRun);
           activeRun.endSeconds = pt.elapsedSeconds;
         }
       } else {
@@ -689,7 +699,7 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
   const segments = buildSegments(points);
   const runs = detectRuns(points);
   const lastPoint = points[points.length - 1];
-  const finalUserProb = lastPoint ? Math.round(lastPoint.prob * 100) : null;
+  const finalUserProb = lastPoint ? Math.round(lastPoint.userProb * 100) : null;
   
   // Mouse handling for tooltip
   const handleMouseMove = useCallback((e) => {
@@ -706,7 +716,7 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
     }
     
     const ptX = (closest.elapsedSeconds / TOTAL_GAME_SECONDS) * rect.width;
-    const userProbPct = Math.round(closest.prob * 100);
+    const userProbPct = Math.round(closest.userProb * 100);
     
     setTooltip({
       left: Math.max(50, Math.min(ptX, rect.width - 70)),
@@ -723,6 +733,10 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
   for (let s = 360; s < TOTAL_GAME_SECONDS; s += 360) {
     gridVerticals.push(s);
   }
+  
+  // Y-axis labels: if user is home, "You" at bottom; if user is away, "You" at top
+  const topLabel = userIsHome ? 'Opp' : 'You';
+  const bottomLabel = userIsHome ? 'You' : 'Opp';
   
   return (
     <div style={{ 
@@ -797,7 +811,7 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
             stroke="#D8D5D0" strokeWidth={1.5}
           />
           
-          {/* Probability line — color segmented */}
+          {/* Probability line — color segmented by USER probability */}
           {segments.map((seg, i) => (
             <polyline key={i}
               fill="none"
@@ -811,16 +825,19 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
             />
           ))}
           
-          {/* Run annotations */}
+          {/* Run annotations - positioned from HOME perspective */}
           {runs.map((run, i) => {
             const x1 = elapsedToX(run.startSeconds);
             const x2 = elapsedToX(run.endSeconds);
             const midX = (x1 + x2) / 2;
-            const lineY = run.isUser
-              ? CHART_HEIGHT / 2 - RUN_Y_OFFSET
-              : CHART_HEIGHT / 2 + RUN_Y_OFFSET;
-            const labelY = run.isUser ? lineY - 4 : lineY + 10;
-            const color = run.isUser ? C_WIN : C_LOSS;
+            // Home runs sit below midline (home is at bottom), away runs above
+            const lineY = run.isHome
+              ? CHART_HEIGHT / 2 + RUN_Y_OFFSET
+              : CHART_HEIGHT / 2 - RUN_Y_OFFSET;
+            const labelY = run.isHome ? lineY + 10 : lineY - 4;
+            // Color based on whether this run helps the user
+            const isUserRun = run.isHome === userIsHome;
+            const color = isUserRun ? C_WIN : C_LOSS;
             return (
               <g key={`run-${i}`}>
                 <line
@@ -854,7 +871,7 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
               cx={elapsedToX(lastPoint.elapsedSeconds)} 
               cy={probToY(lastPoint.prob)} 
               r={3.5} 
-              fill={lineColor(lastPoint.prob)} 
+              fill={lineColorForUser(lastPoint.userProb)} 
             />
           )}
           
@@ -874,11 +891,11 @@ function WinProbabilityChart({ winProbHistory, userIsHome }) {
             >{label}</text>
           ))}
           
-          {/* Y-axis edge labels */}
-          <text x={5} y={11} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="start">Opp</text>
-          <text x={5} y={CHART_HEIGHT - 3} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="start">You</text>
-          <text x={CHART_WIDTH - 5} y={11} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="end">Opp</text>
-          <text x={CHART_WIDTH - 5} y={CHART_HEIGHT - 3} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="end">You</text>
+          {/* Y-axis edge labels - adjusted based on user's side */}
+          <text x={5} y={11} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="start">{topLabel}</text>
+          <text x={5} y={CHART_HEIGHT - 3} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="start">{bottomLabel}</text>
+          <text x={CHART_WIDTH - 5} y={11} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="end">{topLabel}</text>
+          <text x={CHART_WIDTH - 5} y={CHART_HEIGHT - 3} fontSize={9} fill="#A0A09A" fontFamily="DM Sans, sans-serif" textAnchor="end">{bottomLabel}</text>
         </svg>
         
         {/* Tooltip */}
