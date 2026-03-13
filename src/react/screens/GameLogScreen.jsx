@@ -267,8 +267,7 @@ export function GameLogScreen() {
                   {game.boxScore ? (
                     <BoxScoreExpanded 
                       data={game.boxScore} 
-                      userTeamName={userTeam?.name}
-                      userTeamCity={userTeam?.city}
+                      isUserHome={game.isHome}
                     />
                   ) : (
                     <div style={{ 
@@ -291,12 +290,10 @@ export function GameLogScreen() {
 }
 
 // ─── Box Score Expanded ────────────────────────────────────────────────────────
-function BoxScoreExpanded({ data, userTeamName, userTeamCity }) {
+function BoxScoreExpanded({ data, isUserHome }) {
   const { home, away, quarterScores, winProbHistory } = data;
   
-  // Determine which team is user's team
-  const isUserHome = (home.name === userTeamName) || 
-    (home.city === userTeamCity && home.name === userTeamName);
+  // Use the passed isUserHome prop directly (computed from game.homeTeamId === userTeamId)
   const userTeam = isUserHome ? home : away;
   const oppTeam = isUserHome ? away : home;
 
