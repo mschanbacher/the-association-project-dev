@@ -756,7 +756,7 @@ export class TeamFactory {
     };
 
     static TIER_CONFIG = {
-        1: { idOffset: 0, ratingBase: 75, ratingRange: 20, divisions: 'TIER1_DIVISIONS' },
+        1: { idOffset: 1, ratingBase: 75, ratingRange: 20, divisions: 'TIER1_DIVISIONS' },
         2: { idOffset: 1000, ratingBase: 65, ratingRange: 15, divisions: 'TIER2_DIVISIONS' },
         3: { idOffset: 2000, ratingBase: 55, ratingRange: 15, divisions: 'TIER3_DIVISIONS' }
     };
