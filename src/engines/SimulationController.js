@@ -19,9 +19,10 @@ export class SimulationController {
      * @param {boolean} isPlayoffs - Whether this is a playoff game
      * @returns {Object} Game result
      */
-    simulateFullGame(homeTeam, awayTeam, isPlayoffs = false) {
-        // Use GameEngine to calculate outcome (now powered by StatEngine)
-        const result = GameEngine.calculateGameOutcome(homeTeam, awayTeam, isPlayoffs);
+    simulateFullGame(homeTeam, awayTeam, isPlayoffs = false, trackWinProbability = false) {
+        // Use GameEngine to calculate outcome
+        // trackWinProbability should only be true for user team games to save memory
+        const result = GameEngine.calculateGameOutcome(homeTeam, awayTeam, isPlayoffs, trackWinProbability);
         
         // Apply state changes
         if (result.homeWon) {
