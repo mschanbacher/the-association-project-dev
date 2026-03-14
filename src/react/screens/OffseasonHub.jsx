@@ -422,6 +422,46 @@ function FreeAgencyScreen({ faData, faPhase, onFaDataUpdate }) {
   const [posFilter, setPosFilter] = useState('ALL');
   const [offers, setOffers] = useState({});
 
+  // Extract data (with defaults for when faData is null)
+  const formerPlayers = faData?.formerPlayers || [];
+  const otherPlayers = faData?.otherPlayers || [];
+  const hiddenCount = faData?.hiddenCount || 0;
+  const roster = faData?.roster || [];
+  const capSpace = faData?.capSpace || 0;
+
+  const fc = faData?.formatCurrency || (v => `$${(v / 1e6).toFixed(1)}M`);
+  const rc = faData?.getRatingColor || ((r) =>
+    r >= 80 ? 'var(--color-rating-elite)' : r >= 70 ? 'var(--color-rating-good)'
+    : r >= 60 ? 'var(--color-rating-avg)' : 'var(--color-rating-poor)');
+
+  // All useMemo/useCallback hooks MUST be called every render (before any return)
+  const allPlayers = useMemo(() => [...formerPlayers, ...otherPlayers], [formerPlayers, otherPlayers]);
+  const watchedFAs = useMemo(() => otherPlayers.filter(p => p._isWatched), [otherPlayers]);
+  const unwatchedFAs = useMemo(() => otherPlayers.filter(p => !p._isWatched), [otherPlayers]);
+
+  const filterByPos = useCallback((list) =>
+    posFilter === 'ALL' ? list : list.filter(p => p.position === posFilter), [posFilter]);
+
+  const filteredFormer = useMemo(() => filterByPos(formerPlayers), [formerPlayers, filterByPos]);
+  const filteredWatched = useMemo(() => filterByPos(watchedFAs), [watchedFAs, filterByPos]);
+  const filteredUnwatched = useMemo(() => filterByPos(unwatchedFAs), [unwatchedFAs, filterByPos]);
+
+  const selectedPlayers = useMemo(() =>
+    allPlayers.filter(p => selectedIds.has(String(p.id))), [allPlayers, selectedIds]);
+
+  const estCost = useMemo(() =>
+    selectedPlayers.reduce((sum, p) => sum + (offers[p.id]?.salary || p._marketValue || p.salary || 0), 0),
+    [selectedPlayers, offers]);
+
+  const posCounts = useMemo(() => {
+    const counts = { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 };
+    roster.forEach(p => { if (counts[p.position] !== undefined) counts[p.position]++; });
+    return counts;
+  }, [roster]);
+
+  const sortedRoster = useMemo(() =>
+    [...roster].sort((a, b) => (b.rating || 0) - (a.rating || 0)), [roster]);
+
   // Initialize selections when data arrives
   useEffect(() => {
     if (faData && faPhase === 'select') {
@@ -433,11 +473,51 @@ function FreeAgencyScreen({ faData, faPhase, onFaDataUpdate }) {
     }
   }, [faData, faPhase]);
 
+  // Toggle player selection
+  const toggle = useCallback((id) => {
+    const idStr = String(id);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(idStr)) {
+        next.delete(idStr);
+        setOffers(o => { const n = { ...o }; delete n[id]; return n; });
+      } else {
+        next.add(idStr);
+        const player = allPlayers.find(p => String(p.id) === idStr);
+        if (player) {
+          setOffers(o => ({
+            ...o,
+            [id]: { salary: player._marketValue || player.salary || 500000, years: player._suggestedYears || 2 },
+          }));
+        }
+      }
+      return next;
+    });
+  }, [allPlayers]);
+
+  const handleSubmit = useCallback(() => {
+    if (selectedPlayers.length === 0) { 
+      alert('Select at least one player to make offers.'); 
+      return; 
+    }
+    const finalOffers = selectedPlayers.map(p => ({
+      playerId: p.id,
+      salary: offers[p.id]?.salary || p._marketValue || p.salary,
+      years: offers[p.id]?.years || p._suggestedYears || 2,
+    }));
+    window._faSubmitOffers?.(finalOffers);
+  }, [selectedPlayers, offers]);
+
+  // Derived values
+  const remaining = capSpace - estCost;
+  const isEmpty = filteredFormer.length === 0 && filteredWatched.length === 0 && filteredUnwatched.length === 0;
+  const raw = gameState?._raw || gameState;
+  const inFaPhase = raw?.offseasonPhase === 'free_agency';
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
+
   // No FA data yet — show waiting state
   if (!faData) {
-    const raw = gameState?._raw || gameState;
-    const inFaPhase = raw?.offseasonPhase === 'free_agency';
-    
     return (
       <div style={{
         maxWidth: 'var(--content-max)',
@@ -463,11 +543,6 @@ function FreeAgencyScreen({ faData, faPhase, onFaDataUpdate }) {
       </div>
     );
   }
-
-  const fc = faData.formatCurrency || (v => `$${(v / 1e6).toFixed(1)}M`);
-  const rc = faData.getRatingColor || ((r) =>
-    r >= 80 ? 'var(--color-rating-elite)' : r >= 70 ? 'var(--color-rating-good)'
-    : r >= 60 ? 'var(--color-rating-avg)' : 'var(--color-rating-poor)');
 
   // Results phase
   if (faPhase === 'results' && faData.results) {
@@ -511,73 +586,6 @@ function FreeAgencyScreen({ faData, faPhase, onFaDataUpdate }) {
   }
 
   // Selection phase
-  const { formerPlayers = [], otherPlayers = [], hiddenCount = 0, roster = [], capSpace = 0 } = faData;
-
-  const allPlayers = useMemo(() => [...(formerPlayers || []), ...(otherPlayers || [])], [formerPlayers, otherPlayers]);
-  const watchedFAs = useMemo(() => (otherPlayers || []).filter(p => p._isWatched), [otherPlayers]);
-  const unwatchedFAs = useMemo(() => (otherPlayers || []).filter(p => !p._isWatched), [otherPlayers]);
-
-  const filterByPos = useCallback((list) =>
-    posFilter === 'ALL' ? list : list.filter(p => p.position === posFilter), [posFilter]);
-
-  const filteredFormer = useMemo(() => filterByPos(formerPlayers || []), [formerPlayers, filterByPos]);
-  const filteredWatched = useMemo(() => filterByPos(watchedFAs), [watchedFAs, filterByPos]);
-  const filteredUnwatched = useMemo(() => filterByPos(unwatchedFAs), [unwatchedFAs, filterByPos]);
-
-  const selectedPlayers = useMemo(() =>
-    allPlayers.filter(p => selectedIds.has(String(p.id))), [allPlayers, selectedIds]);
-
-  const estCost = useMemo(() =>
-    selectedPlayers.reduce((sum, p) => sum + (offers[p.id]?.salary || p._marketValue || p.salary || 0), 0),
-    [selectedPlayers, offers]);
-
-  const remaining = capSpace - estCost;
-  const isEmpty = filteredFormer.length === 0 && filteredWatched.length === 0 && filteredUnwatched.length === 0;
-
-  const toggle = (id) => {
-    const idStr = String(id);
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(idStr)) {
-        next.delete(idStr);
-        setOffers(o => { const n = { ...o }; delete n[id]; return n; });
-      } else {
-        next.add(idStr);
-        const player = allPlayers.find(p => String(p.id) === idStr);
-        if (player) {
-          setOffers(o => ({
-            ...o,
-            [id]: { salary: player._marketValue || player.salary || 500000, years: player._suggestedYears || 2 },
-          }));
-        }
-      }
-      return next;
-    });
-  };
-
-  const handleSubmit = () => {
-    if (selectedPlayers.length === 0) { 
-      alert('Select at least one player to make offers.'); 
-      return; 
-    }
-    const finalOffers = selectedPlayers.map(p => ({
-      playerId: p.id,
-      salary: offers[p.id]?.salary || p._marketValue || p.salary,
-      years: offers[p.id]?.years || p._suggestedYears || 2,
-    }));
-    window._faSubmitOffers?.(finalOffers);
-  };
-
-  // Position counts from roster
-  const posCounts = useMemo(() => {
-    const counts = { PG: 0, SG: 0, SF: 0, PF: 0, C: 0 };
-    (roster || []).forEach(p => { if (counts[p.position] !== undefined) counts[p.position]++; });
-    return counts;
-  }, [roster]);
-
-  const sortedRoster = useMemo(() =>
-    [...(roster || [])].sort((a, b) => (b.rating || 0) - (a.rating || 0)), [roster]);
-
   return (
     <div style={{
       maxWidth: 1100,
