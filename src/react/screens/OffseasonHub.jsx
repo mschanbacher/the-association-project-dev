@@ -40,7 +40,9 @@ function hasReachedPhase(currentDateStr, phaseKey, seasonStartYear) {
   const phase = OFFSEASON_PHASES.find(p => p.key === phaseKey);
   if (!phase) return false;
   
-  const current = new Date(currentDateStr);
+  // Parse date string manually to avoid UTC vs local timezone issues
+  const [year, month, day] = currentDateStr.split('-').map(Number);
+  const current = new Date(year, month - 1, day); // month is 0-indexed
   const phaseDate = new Date(seasonStartYear + 1, phase.month, phase.day);
   return current >= phaseDate;
 }
