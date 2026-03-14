@@ -29,7 +29,7 @@
             if (!_offseasonController) {
                 _offseasonController = new window.OffseasonController({
                     gameState, eventBus, GameEvents,
-                    engines: { PlayoffEngine, CalendarEngine, CoachEngine, StatEngine, FinanceEngine, FreeAgencyEngine, StorageEngine, PlayerDevelopmentEngine, PlayerAttributes, TeamFactory, LeagueManager, SalaryCapEngine, DivisionManager },
+                    engines: { PlayoffEngine, CalendarEngine, CoachEngine, StatEngine, FinanceEngine, FreeAgencyEngine, StorageEngine, PlayerDevelopmentEngine, PlayerAttributes, TeamFactory, LeagueManager, SalaryCapEngine, DivisionManager, DraftEngine },
                     helpers: {
                         getUserTeam, getTeamById, formatCurrency, getRatingColor,
                         getEffectiveCap, calculateTeamSalary, getRemainingCap, getSalaryCap,
