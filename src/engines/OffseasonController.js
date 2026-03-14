@@ -1604,13 +1604,23 @@ export class OffseasonController {
         const { gameState, engines, helpers } = this.ctx;
         const P = OffseasonController.PHASES;
         
-        const current = new Date(dateStr);
+        // Parse date string to get year, month, day (avoiding timezone issues)
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const currentDateOnly = new Date(year, month - 1, day); // month is 0-indexed
+        
         const seasonYear = gameState.seasonStartYear || gameState.currentSeason;
         const seasonDates = engines.CalendarEngine.getSeasonDates(seasonYear);
         const userTier = gameState.currentTier || gameState.userTeam?.tier || 1;
         
+        // Helper to compare dates (ignoring time)
+        const dateGTE = (d1, d2) => {
+            const a = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+            const b = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+            return a >= b;
+        };
+        
         // Draft Day (Jun 15) — trigger lottery and draft for T1
-        if (current >= seasonDates.draftDay && !gameState._draftComplete && userTier === 1) {
+        if (dateGTE(currentDateOnly, seasonDates.draftDay) && !gameState._draftComplete && userTier === 1) {
             console.log('🎰 [OFFSEASON] Draft day reached — triggering draft via hub');
             this.setPhase(P.DRAFT);
             
@@ -1641,7 +1651,7 @@ export class OffseasonController {
         }
         
         // College FA (Jun 22) — trigger for T2/T3
-        if (current >= seasonDates.collegeFA && !gameState._collegeFAComplete && userTier > 1) {
+        if (dateGTE(currentDateOnly, seasonDates.collegeFA) && !gameState._collegeFAComplete && userTier > 1) {
             console.log('🎓 [OFFSEASON] College FA reached — triggering via hub');
             this.setPhase(P.COLLEGE_FA);
             
@@ -1658,7 +1668,7 @@ export class OffseasonController {
         }
         
         // Free Agency (Jul 1)
-        if (current >= seasonDates.freeAgencyStart && !gameState._freeAgencyComplete) {
+        if (dateGTE(currentDateOnly, seasonDates.freeAgencyStart) && !gameState._freeAgencyComplete) {
             console.log('📝 [OFFSEASON] Free Agency reached — triggering via hub');
             this.setPhase(P.FREE_AGENCY);
             
@@ -1677,7 +1687,7 @@ export class OffseasonController {
         }
         
         // Player Development (Aug 1)
-        if (current >= seasonDates.playerDevelopment && !gameState._developmentComplete) {
+        if (dateGTE(currentDateOnly, seasonDates.playerDevelopment) && !gameState._developmentComplete) {
             console.log('📈 [OFFSEASON] Development reached — triggering via hub');
             this.setPhase(P.DEVELOPMENT);
             
@@ -1695,7 +1705,7 @@ export class OffseasonController {
         }
         
         // Training Camp (Aug 16) — setup new season
-        if (current >= seasonDates.trainingCamp && gameState.offseasonPhase !== P.SETUP_COMPLETE) {
+        if (dateGTE(currentDateOnly, seasonDates.trainingCamp) && gameState.offseasonPhase !== P.SETUP_COMPLETE) {
             console.log('⛺ [OFFSEASON] Training Camp reached — setting up new season');
             this.setPhase(P.SETUP_COMPLETE);
             this.setupNewSeason();
