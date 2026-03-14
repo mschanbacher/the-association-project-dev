@@ -1639,6 +1639,20 @@ export class OffseasonController {
             const lotteryData = engines.DraftEngine.simulateDraftLottery(gameState.tier1Teams, promotedTeamIds);
             gameState._lotteryResults = lotteryData.lotteryResults;
             
+            // Generate draft order from lottery results
+            const draftOrder = helpers.getDraftController?.()?.generateDraftOrder?.() || 
+                engines.DraftEngine.generateDraftOrder?.(
+                    gameState.tier1Teams,
+                    lotteryData.lotteryResults,
+                    gameState.draftPickOwnership
+                ) || [];
+            
+            // Set up pending draft data so closeLotteryModal -> startDraftAfterLottery works
+            window.pendingDraftData = {
+                prospects: gameState.draftClass,
+                draftOrder
+            };
+            
             // Send to React hub
             if (window._reactShowLottery) {
                 window._reactShowLottery({

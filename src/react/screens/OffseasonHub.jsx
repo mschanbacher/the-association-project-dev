@@ -1404,17 +1404,28 @@ function DraftScreen({ draftData, draftPhase, setDraftPhase, currentDate, season
           </div>
         )}
         
-        {/* Info about next steps - no Continue button needed */}
-        <div style={{ 
-          padding: '12px 16px', 
-          background: 'var(--color-bg-sunken)', 
-          border: '1px solid var(--color-border-subtle)',
-          fontSize: 'var(--text-xs)',
-          color: 'var(--color-text-secondary)',
-          textAlign: 'center',
-        }}>
-          The draft will begin shortly. Your pick selections will appear when it's your turn.
-        </div>
+        {/* Continue to Draft button */}
+        <button
+          onClick={() => {
+            // Close lottery and start draft via DraftController
+            if (window.closeLotteryModal) {
+              window.closeLotteryModal();
+            }
+          }}
+          style={{
+            width: '100%',
+            padding: '14px 20px',
+            background: 'var(--color-accent)',
+            border: 'none',
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 600,
+            color: 'var(--color-text-inverse)',
+            cursor: 'pointer',
+          }}
+        >
+          Continue to Draft
+        </button>
       </div>
     );
   }
