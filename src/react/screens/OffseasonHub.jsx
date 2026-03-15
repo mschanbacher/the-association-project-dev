@@ -2377,14 +2377,15 @@ export function OffseasonHub({ data, onClose }) {
       engines.FinanceEngine.ensureFinances(userTeam);
       const pendingOffers = userTeam.finances?.pendingSponsorOffers || [];
       console.log('📋 [OFFSEASON-HUB] Current pending offers:', pendingOffers.length);
-      if (pendingOffers.length === 0) {
+      if (pendingOffers.length === 0 && engines?.OwnerEngine) {
         console.log('📋 [OFFSEASON-HUB] Generating sponsor offers...');
-        window._helpers?.generateSponsorOffers?.(userTeam);
+        engines.OwnerEngine.generateSponsorOffers(userTeam);
+        console.log('📋 [OFFSEASON-HUB] After generation:', userTeam.finances?.pendingSponsorOffers?.length || 0);
         // Trigger a refresh so components see the new offers
         if (refresh) refresh();
       }
     }
-  }, [gameState?.userTeam, engines?.FinanceEngine, refresh]);
+  }, [gameState?.userTeam, engines?.FinanceEngine, engines?.OwnerEngine, refresh]);
 
   // ─── Intercept all offseason modal calls ───────────────────────────────────
   useEffect(() => {

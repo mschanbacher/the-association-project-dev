@@ -105,6 +105,7 @@ function getEngines() {
     ScoutingEngine:   window.ScoutingEngine,
     TeamFactory:      window.TeamFactory,
     GamePipeline:     window.GamePipeline,
+    OwnerEngine:      window.OwnerEngine,
   };
 }
 
