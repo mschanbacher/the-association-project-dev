@@ -1762,7 +1762,10 @@ export class OffseasonController {
         
         // Generate draft class if needed
         if (!gameState.draftClass || gameState.draftClass.length === 0) {
-            gameState.draftClass = engines.DraftEngine.generateDraftClass(60);
+            gameState.draftClass = engines.DraftEngine.generateDraftProspects(
+                gameState.currentSeason,
+                { PlayerAttributes: engines.PlayerAttributes, TeamFactory: engines.TeamFactory }
+            );
         }
         
         // Run lottery silently
