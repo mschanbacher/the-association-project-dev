@@ -84,6 +84,11 @@
             get: () => getDraftController(),
             configurable: true
         });
+        // Expose financeController for owner mode in FinancesScreen
+        Object.defineProperty(window, '_financeController', {
+            get: () => getFinanceController(),
+            configurable: true
+        });
 
         // ─── TradeController (lazy init) ───
         let _tradeController = null;
