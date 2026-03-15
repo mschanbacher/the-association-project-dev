@@ -597,7 +597,7 @@ export class FreeAgencyController {
 
     /**
      * Continue after viewing FA results.
-     * Triggers AI signing phase and proceeds to roster compliance.
+     * Triggers AI signing phase and returns to hub (or proceeds in legacy flow).
      */
     continue() {
         const { gameState, helpers } = this.ctx;
@@ -605,14 +605,20 @@ export class FreeAgencyController {
         // Mark FA as complete so it doesn't re-trigger
         gameState._freeAgencyComplete = true;
 
-        if (window._reactCloseFA) window._reactCloseFA();
-        // [LEGACY DOM] document.getElementById('freeAgencyResultsModal').classList.add('hidden');
-
         // Let AI teams fill remaining needs from leftover free agents
         console.log('🤖 AI teams filling remaining roster needs...');
         helpers.aiSigningPhase();
+        
+        helpers.saveGameState();
 
-        // Proceed to roster compliance check
+        // In hub mode, just close FA and return to hub - let user continue simming
+        if (window._reactCloseFA) {
+            window._reactCloseFA();
+            console.log('📝 [FA] Complete - returning to Offseason Hub');
+            return;
+        }
+        
+        // Legacy flow: proceed to roster compliance check
         helpers.getOffseasonController().checkRosterComplianceAndContinue();
     }
 }
