@@ -2557,8 +2557,8 @@ export function OffseasonHub({ data, onClose }) {
     history: <HistoryScreen />,
     glossary: <GlossaryScreen />,
     trainingcamp: <TrainingCampScreen onContinue={() => {
-      // Skip directly to season setup (owner mode not yet integrated into hub)
-      window._offseasonController?.continueToSeasonSetup?.();
+      // Check roster compliance before starting season
+      window._offseasonController?.checkRosterComplianceAndContinue?.();
     }} />,
   }), [gameState, engines, faData, faPhase, cgfaData, cgfaPhase, draftData, draftPhase, devData, contractData, complianceData, currentDate, seasonStartYear]);
 

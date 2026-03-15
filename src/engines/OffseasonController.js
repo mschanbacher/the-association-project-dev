@@ -1317,7 +1317,7 @@ export class OffseasonController {
                 }
             }
 
-            // If still non-compliant, show modal
+            // If still non-compliant, show modal/banner
             const stillOverCap = helpers.calculateTeamSalary(userTeam) > helpers.getEffectiveCap(userTeam);
             const stillUnderMin = userTeam.roster.length < 12;
             if (stillOverCap || stillUnderMin) {
@@ -1327,7 +1327,23 @@ export class OffseasonController {
             }
         }
 
-        // Compliant — show owner mode or continue
+        // Compliant — in hub mode, show success banner; in legacy mode, continue to owner mode
+        if (window._reactShowCompliance) {
+            console.log('✅ Roster compliant — showing success banner');
+            window._reactShowCompliance({
+                isOverCap: false, 
+                isUnderMinimum: false, 
+                isOverMaximum: false,
+                totalSalary: helpers.calculateTeamSalary(userTeam), 
+                salaryCap: helpers.getEffectiveCap(userTeam), 
+                rosterSize: userTeam.roster.length, 
+                tier: userTeam.tier,
+                formatCurrency: helpers.formatCurrency
+            });
+            return;
+        }
+        
+        // Legacy flow
         this.showOffseasonManagement();
         } catch (err) {
             console.error('❌ Error in checkRosterComplianceAndContinue:', err);

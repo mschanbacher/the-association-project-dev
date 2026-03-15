@@ -11,8 +11,8 @@ import {
   PERCENTILE_STATS, MIN_GAMES_PERCENTILE, computePercentile, pctBarColor,
   LeaguePercentileSection, PlayerStatGrid, AttrBars,
 } from '../visualizations/PlayerVisuals.jsx';
-export function RosterScreen() {
-  const { gameState, engines, isReady } = useGame();
+export function RosterScreen({ complianceData }) {
+  const { gameState, engines, isReady, refresh } = useGame();
   const [sortBy, setSortBy] = useState('rating');
   const [sortDir, setSortDir] = useState('desc');
   const [expandedPlayer, setExpandedPlayer] = useState(null);
@@ -113,6 +113,85 @@ export function RosterScreen() {
       flexDirection: 'column',
       gap: 'var(--space-5)',
     }}>
+      {/* Compliance Warning Banner */}
+      {complianceData && (complianceData.isOverCap || complianceData.isUnderMinimum || complianceData.isOverMaximum) && (
+        <div style={{
+          padding: 'var(--space-4)',
+          background: 'var(--color-loss-bg, rgba(220, 38, 38, 0.1))',
+          border: '1px solid var(--color-loss)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-3)',
+        }}>
+          <div style={{
+            fontWeight: 'var(--weight-semi)',
+            color: 'var(--color-loss)',
+            fontSize: 'var(--text-base)',
+          }}>
+            Roster Compliance Required
+          </div>
+          <div style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-secondary)',
+            lineHeight: 1.5,
+          }}>
+            {complianceData.isOverCap && (
+              <div>Your payroll ({complianceData.formatCurrency?.(complianceData.totalSalary) || `$${(complianceData.totalSalary/1e6).toFixed(1)}M`}) exceeds the {complianceData.tier === 1 ? 'salary cap' : 'spending limit'} ({complianceData.formatCurrency?.(complianceData.salaryCap) || `$${(complianceData.salaryCap/1e6).toFixed(1)}M`}). Release players to get under the cap.</div>
+            )}
+            {complianceData.isUnderMinimum && (
+              <div>Your roster has only {complianceData.rosterSize} players. You need at least 12 to start the season. Sign free agents to fill your roster.</div>
+            )}
+            {complianceData.isOverMaximum && (
+              <div>Your roster has {complianceData.rosterSize} players. The maximum is 15. Release players to comply.</div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <Button variant="secondary" size="sm" onClick={() => window._reactOpenFreeAgentBrowse?.()}>
+              Browse Free Agents
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => {
+              // Re-check compliance
+              window._offseasonController?.checkRosterComplianceAndContinue?.();
+            }}>
+              Check Compliance
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Compliance Success Banner - show when compliant and in compliance check mode */}
+      {complianceData && !complianceData.isOverCap && !complianceData.isUnderMinimum && !complianceData.isOverMaximum && (
+        <div style={{
+          padding: 'var(--space-4)',
+          background: 'var(--color-win-bg, rgba(34, 197, 94, 0.1))',
+          border: '1px solid var(--color-win)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{
+              fontWeight: 'var(--weight-semi)',
+              color: 'var(--color-win)',
+              fontSize: 'var(--text-base)',
+            }}>
+              Roster Compliant
+            </div>
+            <div style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-secondary)',
+            }}>
+              Your roster meets all requirements. Ready to start the season.
+            </div>
+          </div>
+          <Button variant="primary" onClick={() => {
+            window._offseasonController?.continueToSeasonSetup?.();
+          }}>
+            Start Season
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         display: 'flex',
