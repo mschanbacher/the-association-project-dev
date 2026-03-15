@@ -882,10 +882,15 @@ function FreeAgencyScreen({ faData, faPhase, cgfaData, cgfaPhase, currentDate, s
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <button
             onClick={() => {
+              console.log('📋 [FA] Return to Dashboard clicked');
+              console.log('📋 [FA] onFaComplete exists:', !!onFaComplete);
               // Run the controller logic (AI signing, mark complete, save)
               window.continueFreeAgency?.();
               // Then navigate back to dashboard
-              if (onFaComplete) onFaComplete();
+              if (onFaComplete) {
+                console.log('📋 [FA] Calling onFaComplete...');
+                onFaComplete();
+              }
             }}
             style={{
               padding: '12px 32px',
