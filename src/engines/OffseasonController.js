@@ -733,11 +733,17 @@ export class OffseasonController {
         const { gameState, helpers } = this.ctx;
 
         console.log('🌟 Applying player development...');
+        
+        // Debug: Log user team contract status BEFORE development
+        const userTeam = helpers.getUserTeam();
+        console.log(`📋 [DEBUG] User team roster BEFORE development (${userTeam.roster.length} players):`);
+        userTeam.roster.forEach(p => {
+            console.log(`   ${p.name}: contractYears=${p.contractYears}, age=${p.age}, rating=${p.rating}`);
+        });
 
         const allTeams = [...gameState.tier1Teams, ...gameState.tier2Teams, ...gameState.tier3Teams];
         helpers.advanceFinancialTransitions(allTeams);
 
-        const userTeam = helpers.getUserTeam();
         let userTeamLog = [];
         let userExpiredContracts = [];
 
