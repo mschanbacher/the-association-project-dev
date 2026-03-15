@@ -1249,6 +1249,49 @@ function PlayerDetailRow({ player, engines, team }) {
           {/* ── Attributes ── */}
           <AttrBars attributes={player.attributes} />
 
+          {/* ── Release Player Action ── */}
+          {team && (() => {
+            const rosterSize = team.roster?.length || 0;
+            const totalSalary = team.roster?.reduce((sum, p) => sum + (p.salary || 0), 0) || 0;
+            const salaryCap = window.SalaryCapEngine?.getEffectiveCap?.(team) || 0;
+            const isOverCap = totalSalary > salaryCap;
+            const canRelease = rosterSize > 12 || isOverCap;
+            
+            return (
+              <div style={{ 
+                marginTop: 20, 
+                paddingTop: 16, 
+                borderTop: '1px solid var(--color-border-subtle)',
+                display: 'flex',
+                justifyContent: 'flex-end',
+              }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!canRelease) return;
+                    if (window.confirm(`Release ${player.name} from roster?`)) {
+                      window.dropPlayer?.(player.id);
+                    }
+                  }}
+                  disabled={!canRelease}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'transparent',
+                    border: `1px solid ${canRelease ? 'var(--color-loss)' : 'var(--color-border)'}`,
+                    color: canRelease ? 'var(--color-loss)' : 'var(--color-text-tertiary)',
+                    fontSize: 'var(--text-sm)',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 'var(--weight-semi)',
+                    cursor: canRelease ? 'pointer' : 'not-allowed',
+                    opacity: canRelease ? 1 : 0.5,
+                  }}
+                >
+                  Release Player
+                </button>
+              </div>
+            );
+          })()}
+
         </div>
       </td>
     </tr>
