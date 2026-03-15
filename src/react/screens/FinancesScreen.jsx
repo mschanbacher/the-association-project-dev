@@ -1,18 +1,31 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useGame } from '../hooks/GameBridge.jsx';
 import { Card, CardHeader } from '../components/Card.jsx';
 import { Badge } from '../components/Badge.jsx';
 import { Button } from '../components/Button.jsx';
 
-export function FinancesScreen() {
-  const { gameState, engines, isReady } = useGame();
+export function FinancesScreen({ isOffseason = false, onConfirm }) {
+  const { gameState, engines, isReady, refresh } = useGame();
+  
+  // Local state for owner mode controls
+  const [ticketPrice, setTicketPrice] = useState(null);
+  const [marketingBudget, setMarketingBudget] = useState(null);
+  const [spendingRatio, setSpendingRatio] = useState(null);
 
   if (!isReady || !gameState?.userTeam) {
-    return <Loader text="Loading finances…" />;
+    return <Loader text="Loading finances..." />;
   }
 
   const { userTeam, currentTier } = gameState;
   const { FinanceEngine, SalaryCapEngine } = engines;
+  const finances = userTeam.finances || {};
+  const ownerModeEnabled = finances.ownerMode ?? false;
+  const isT1 = currentTier === 1;
+
+  // Initialize local state from finances on first render
+  if (ticketPrice === null) setTicketPrice(Math.round((finances.ticketPriceMultiplier || 1.0) * 100));
+  if (marketingBudget === null) setMarketingBudget(finances.marketingBudget || 0);
+  if (spendingRatio === null) setSpendingRatio(Math.round((finances.spendingRatio || 0.8) * 100));
 
   const summary = useMemo(() => {
     if (!FinanceEngine?.getFinancialSummary) return null;
@@ -174,29 +187,322 @@ export function FinancesScreen() {
       </Card>
 
       {/* Owner Mode teaser */}
-      {userTeam.finances?.ownerMode && (
-        <Card padding="lg" className="animate-slide-up">
-          <CardHeader>Owner Mode</CardHeader>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)' }}>
-            <MiniCard label="Arena" value={`${(userTeam.finances.arena?.capacity || 0).toLocaleString()} seats`}
-              sub={`${userTeam.finances.arena?.condition || 0}% condition`} />
-            <MiniCard label="Sponsors" value={`${userTeam.finances.sponsorships?.length || 0} deals`}
-              sub={userTeam.finances.sponsorships?.length > 0
-                ? fc(userTeam.finances.sponsorships.reduce((s, d) => s + d.annualValue, 0)) + '/yr'
-                : 'None'} />
-            <MiniCard label="Tickets"
-              value={`${Math.round((userTeam.finances.ticketPriceMultiplier || 1) * 100)}% of base`} />
-            <MiniCard label="Marketing"
-              value={userTeam.finances.marketingBudget > 0
-                ? fc(userTeam.finances.marketingBudget) + '/yr' : 'None'} />
-          </div>
-        </Card>
-      )}
+      {/* Owner Mode Section */}
+      <OwnerModeSection 
+        userTeam={userTeam}
+        finances={finances}
+        isT1={isT1}
+        isOffseason={isOffseason}
+        ticketPrice={ticketPrice}
+        setTicketPrice={setTicketPrice}
+        marketingBudget={marketingBudget}
+        setMarketingBudget={setMarketingBudget}
+        spendingRatio={spendingRatio}
+        setSpendingRatio={setSpendingRatio}
+        totalRev={totalRev}
+        fc={fc}
+        refresh={refresh}
+        onConfirm={onConfirm}
+        FinanceEngine={FinanceEngine}
+      />
     </div>
   );
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   Owner Mode Section
+   ═══════════════════════════════════════════════════════════════ */
+
+function OwnerModeSection({ 
+  userTeam, finances, isT1, isOffseason, 
+  ticketPrice, setTicketPrice, 
+  marketingBudget, setMarketingBudget,
+  spendingRatio, setSpendingRatio,
+  totalRev, fc, refresh, onConfirm, FinanceEngine
+}) {
+  const ownerModeEnabled = finances.ownerMode ?? false;
+  const arena = finances.arena || { capacity: 10000, condition: 80 };
+  const sponsorships = finances.sponsorships || [];
+  const pendingOffers = finances.pendingSponsorOffers || [];
+  const tier = userTeam.tier || 1;
+  
+  // Toggle owner mode
+  const handleToggleOwnerMode = useCallback(() => {
+    userTeam.finances.ownerMode = !ownerModeEnabled;
+    if (refresh) refresh();
+  }, [userTeam, ownerModeEnabled, refresh]);
+  
+  // Accept sponsor
+  const handleAcceptSponsor = useCallback((index) => {
+    window._financeController?.acceptSponsor?.(index);
+    if (refresh) refresh();
+  }, [refresh]);
+  
+  // Arena upgrades
+  const handleUpgradeArena = useCallback((type) => {
+    window._financeController?.upgradeArena?.(type);
+    if (refresh) refresh();
+  }, [refresh]);
+  
+  // Apply slider changes
+  const handleApplyTicketPrice = useCallback(() => {
+    window._financeController?.updateTicketPrice?.(ticketPrice);
+    if (refresh) refresh();
+  }, [ticketPrice, refresh]);
+  
+  const handleApplyMarketing = useCallback(() => {
+    window._financeController?.setMarketingBudget?.(marketingBudget);
+    if (refresh) refresh();
+  }, [marketingBudget, refresh]);
+  
+  const handleApplySpendingRatio = useCallback(() => {
+    window._financeController?.updateOwnerSpendingRatio?.(spendingRatio);
+    if (refresh) refresh();
+  }, [spendingRatio, refresh]);
+  
+  // Confirm offseason decisions
+  const handleConfirm = useCallback(() => {
+    // Apply all current values
+    window._financeController?.updateTicketPrice?.(ticketPrice);
+    window._financeController?.setMarketingBudget?.(marketingBudget);
+    if (!isT1) window._financeController?.updateOwnerSpendingRatio?.(spendingRatio);
+    
+    // Call confirm callback
+    if (onConfirm) onConfirm();
+    else window._offseasonController?.confirmOffseasonDecisions?.();
+  }, [ticketPrice, marketingBudget, spendingRatio, isT1, onConfirm]);
+  
+  // Calculate costs
+  const expansionCost = Math.round(arena.capacity * (tier === 1 ? 1500 : tier === 2 ? 800 : 300));
+  const renovationCost = Math.round(arena.capacity * (tier === 1 ? 500 : tier === 2 ? 200 : 80));
+  const expansionSeats = Math.round(arena.capacity * 0.20);
+  const upgradeInProgress = arena.upgradeYearsLeft > 0;
+  
+  // Marketing options based on revenue
+  const marketingOptions = [
+    { value: 0, label: 'None' },
+    { value: Math.round(totalRev * 0.01), label: `1% (${fc(Math.round(totalRev * 0.01))})` },
+    { value: Math.round(totalRev * 0.03), label: `3% (${fc(Math.round(totalRev * 0.03))})` },
+    { value: Math.round(totalRev * 0.05), label: `5% (${fc(Math.round(totalRev * 0.05))})` },
+  ];
+
+  return (
+    <Card padding="lg" className="animate-slide-up">
+      {/* Header with toggle */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+        <CardHeader style={{ margin: 0 }}>Owner Mode</CardHeader>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+            {ownerModeEnabled ? 'Enabled' : 'Disabled'}
+          </span>
+          <ToggleSwitch checked={ownerModeEnabled} onChange={handleToggleOwnerMode} />
+        </label>
+      </div>
+      
+      {!ownerModeEnabled ? (
+        <div style={{ 
+          padding: 'var(--space-4)', 
+          background: 'var(--color-bg-sunken)', 
+          textAlign: 'center',
+          color: 'var(--color-text-tertiary)',
+          fontSize: 'var(--text-sm)',
+        }}>
+          Enable Owner Mode to manage sponsors, arena, ticket pricing, and marketing budget.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          
+          {/* Sponsor Offers */}
+          {pendingOffers.length > 0 && (
+            <div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>
+                Sponsor Offers
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {pendingOffers.map((offer, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: 'var(--space-3)', background: 'var(--color-bg-sunken)',
+                    border: '1px solid var(--color-border-subtle)',
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 'var(--weight-medium)' }}>{offer.name}</div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                        {fc(offer.annualValue)}/yr for {offer.years} years
+                        {offer.conditionLabel && ` · ${offer.conditionLabel}`}
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => handleAcceptSponsor(i)}>Accept</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Active Sponsorships */}
+          {sponsorships.length > 0 && (
+            <div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>
+                Active Sponsorships
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-2)' }}>
+                {sponsorships.map((s, i) => (
+                  <div key={i} style={{
+                    padding: 'var(--space-3)', background: 'var(--color-bg-sunken)',
+                    fontSize: 'var(--text-sm)',
+                  }}>
+                    <div style={{ fontWeight: 'var(--weight-medium)' }}>{s.name}</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                      {fc(s.annualValue)}/yr · {s.yearsRemaining}yr left
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Arena Management */}
+          <div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-3)' }}>
+              Arena
+            </div>
+            <div style={{ 
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)',
+              padding: 'var(--space-3)', background: 'var(--color-bg-sunken)',
+            }}>
+              <div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Capacity</div>
+                <div style={{ fontWeight: 'var(--weight-semi)' }}>{arena.capacity.toLocaleString()} seats</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Condition</div>
+                <div style={{ fontWeight: 'var(--weight-semi)', color: arena.condition < 60 ? 'var(--color-loss)' : undefined }}>
+                  {arena.condition}%
+                </div>
+              </div>
+            </div>
+            {upgradeInProgress ? (
+              <div style={{ 
+                marginTop: 'var(--space-2)', padding: 'var(--space-2)', 
+                background: 'var(--color-accent-bg)', fontSize: 'var(--text-xs)',
+                textAlign: 'center',
+              }}>
+                Upgrade in progress · {arena.upgradeYearsLeft} year{arena.upgradeYearsLeft > 1 ? 's' : ''} remaining
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                <Button size="sm" variant="secondary" style={{ flex: 1 }} onClick={() => handleUpgradeArena('expand')}>
+                  Expand +{expansionSeats.toLocaleString()} ({fc(expansionCost)})
+                </Button>
+                <Button size="sm" variant="secondary" style={{ flex: 1 }} onClick={() => handleUpgradeArena('renovate')}>
+                  Renovate +25% ({fc(renovationCost)})
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          {/* Sliders */}
+          <div style={{ display: 'grid', gridTemplateColumns: isT1 ? '1fr 1fr' : '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
+            {/* Ticket Pricing */}
+            <div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-2)' }}>
+                Ticket Pricing
+              </div>
+              <input 
+                type="range" 
+                min="50" max="150" 
+                value={ticketPrice}
+                onChange={(e) => setTicketPrice(parseInt(e.target.value))}
+                onMouseUp={handleApplyTicketPrice}
+                onTouchEnd={handleApplyTicketPrice}
+                style={{ width: '100%' }}
+              />
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textAlign: 'center' }}>
+                {ticketPrice}% of base
+              </div>
+            </div>
+            
+            {/* Marketing Budget */}
+            <div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-2)' }}>
+                Marketing
+              </div>
+              <select 
+                value={marketingBudget}
+                onChange={(e) => {
+                  setMarketingBudget(parseInt(e.target.value));
+                  window._financeController?.setMarketingBudget?.(parseInt(e.target.value));
+                }}
+                style={{
+                  width: '100%', padding: 'var(--space-2)',
+                  background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)',
+                  fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)',
+                }}
+              >
+                {marketingOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Spending Ratio (T2/T3 only) */}
+            {!isT1 && (
+              <div>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-2)' }}>
+                  Spending Ratio
+                </div>
+                <input 
+                  type="range" 
+                  min="50" max="100" 
+                  value={spendingRatio}
+                  onChange={(e) => setSpendingRatio(parseInt(e.target.value))}
+                  onMouseUp={handleApplySpendingRatio}
+                  onTouchEnd={handleApplySpendingRatio}
+                  style={{ width: '100%' }}
+                />
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textAlign: 'center' }}>
+                  {spendingRatio}% of revenue
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Confirm Button (during offseason) */}
+          {isOffseason && (
+            <Button onClick={handleConfirm} style={{ marginTop: 'var(--space-2)' }}>
+              Confirm Offseason Decisions
+            </Button>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ToggleSwitch({ checked, onChange }) {
+  return (
+    <div 
+      onClick={onChange}
+      style={{
+        width: 40, height: 22, 
+        background: checked ? 'var(--color-accent)' : 'var(--color-bg-sunken)',
+        border: '1px solid var(--color-border-subtle)',
+        position: 'relative', cursor: 'pointer',
+        transition: 'background 0.2s',
+      }}
+    >
+      <div style={{
+        width: 16, height: 16, 
+        background: 'var(--color-bg-raised)',
+        position: 'absolute', top: 2,
+        left: checked ? 20 : 2,
+        transition: 'left 0.2s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+      }} />
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════
    Sub-components

@@ -1500,7 +1500,7 @@ function PlaceholderScreen({ title, message }) {
 }
 
 // ─── Training Camp Screen ─────────────────────────────────────────────────────
-function TrainingCampScreen({ onContinue }) {
+function TrainingCampScreen({ onContinue, onNavigate }) {
   return (
     <div style={{
       maxWidth: 600,
@@ -1534,6 +1534,22 @@ function TrainingCampScreen({ onContinue }) {
         }}>
           Training camp will include expanded roster limits, preseason games, 
           and cutdown decisions before the regular season begins.
+        </div>
+      </div>
+      
+      <div style={{
+        padding: 'var(--space-4)',
+        background: 'var(--color-bg-raised)',
+        border: '1px solid var(--color-border-subtle)',
+        marginBottom: 'var(--space-4)',
+        fontSize: 'var(--text-sm)',
+      }}>
+        <div style={{ fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-2)' }}>
+          Before continuing:
+        </div>
+        <div style={{ color: 'var(--color-text-secondary)' }}>
+          Visit the <strong>Finances</strong> tab to manage Owner Mode settings 
+          (sponsors, arena, ticket pricing, marketing).
         </div>
       </div>
       
@@ -2505,7 +2521,9 @@ export function OffseasonHub({ data, onClose }) {
     trades: <TradesScreen />,
     scouting: <ScoutingScreen />,
     coach: <CoachScreen />,
-    finances: <FinancesScreen />,
+    finances: <FinancesScreen isOffseason={true} onConfirm={() => {
+      window._offseasonController?.continueToSeasonSetup?.();
+    }} />,
     history: <HistoryScreen />,
     glossary: <GlossaryScreen />,
     trainingcamp: <TrainingCampScreen onContinue={() => {
