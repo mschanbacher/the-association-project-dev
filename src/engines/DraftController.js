@@ -360,6 +360,9 @@ export class DraftController {
 
         console.log(`✅ Draft complete: ${state.results.length} players drafted`);
 
+        // Mark draft as complete so it doesn't re-trigger
+        gameState._draftComplete = true;
+
         // Undrafted to FA
         console.log(`📝 Adding ${state.prospects.length} undrafted prospects to free agency`);
         state.prospects.forEach(prospect => {
