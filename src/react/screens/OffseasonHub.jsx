@@ -594,8 +594,174 @@ function FreeAgencyScreen({ faData, faPhase, cgfaData, cgfaPhase, currentDate, s
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
 
-  // Not yet FA date
+  // ─── COLLEGE GRAD FA (T2/T3 only) ───────────────────────────────────────────
+  if (showCgfa) {
+    const graduates = cgfaData?.graduates || [];
+    const cgCapSpace = cgfaData?.capSpace || 0;
+    const cgRosterSize = cgfaData?.rosterSize || 0;
+    const cgSeason = cgfaData?.season || '';
+    const cgFc = cgfaData?.formatCurrency || fc;
+    const cgRc = cgfaData?.getRatingColor || rc;
+    
+    // Filter graduates by position
+    const filteredGrads = posFilter === 'ALL' ? graduates : graduates.filter(g => g.position === posFilter);
+    
+    // Results phase
+    if (cgfaPhase === 'results') {
+      return (
+        <div style={{ maxWidth: 700, margin: '0 auto', padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-4)' }}>
+            College Graduate FA Results
+          </h2>
+          <div style={{ padding: 24, background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)', textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: 'var(--text-md)', marginBottom: 8 }}>
+              {cgfaData?.signed || 0} graduates signed
+            </div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)' }}>
+              {cgfaData?.lost || 0} chose other teams
+            </div>
+          </div>
+          <button
+            onClick={() => window.closeCollegeGradResults?.()}
+            style={{
+              width: '100%', padding: '14px 20px', background: 'var(--color-accent)',
+              border: 'none', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)',
+              fontWeight: 600, color: 'var(--color-text-inverse)', cursor: 'pointer',
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      );
+    }
+    
+    // Selection phase
+    return (
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-6)' }}>
+        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-4)' }}>
+          College Graduate Free Agency
+        </h2>
+        
+        {/* Summary */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '12px 16px', background: 'var(--color-bg-raised)',
+          border: '1px solid var(--color-border-subtle)', marginBottom: 12,
+          fontSize: 'var(--text-sm)',
+        }}>
+          <span>
+            {selectedIds.size} selected
+          </span>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span>Roster: <strong>{cgRosterSize}/15</strong></span>
+            <span>Cap: <strong style={{ fontFamily: 'var(--font-mono)' }}>{cgFc(cgCapSpace)}</strong></span>
+          </div>
+        </div>
+        
+        {/* Position filter */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+          {['ALL', 'PG', 'SG', 'SF', 'PF', 'C'].map(pos => (
+            <button
+              key={pos}
+              onClick={() => setPosFilter(pos)}
+              style={{
+                padding: '6px 12px', border: 'none', fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer',
+                background: posFilter === pos ? 'var(--color-accent)' : 'var(--color-bg-raised)',
+                color: posFilter === pos ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+              }}
+            >
+              {pos}
+            </button>
+          ))}
+        </div>
+        
+        {/* Graduate list */}
+        <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border-subtle)', marginBottom: 16 }}>
+          {filteredGrads.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+              No graduates available
+            </div>
+          ) : (
+            filteredGrads.map(grad => {
+              const isSelected = selectedIds.has(String(grad.id));
+              return (
+                <div
+                  key={grad.id}
+                  onClick={() => toggle(grad.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', padding: '10px 14px',
+                    borderBottom: '1px solid var(--color-border-subtle)',
+                    cursor: 'pointer',
+                    background: isSelected ? 'var(--color-accent-bg)' : 'transparent',
+                  }}
+                >
+                  <div style={{
+                    width: 20, height: 20, border: '2px solid var(--color-border-subtle)',
+                    background: isSelected ? 'var(--color-accent)' : 'transparent',
+                    marginRight: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, color: 'var(--color-text-inverse)',
+                  }}>
+                    {isSelected && '✓'}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 500 }}>{grad.name}</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                      {grad.position} · {grad.age}yo · {grad._measurables || ''}
+                    </div>
+                  </div>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 'var(--text-md)',
+                    color: cgRc(grad.rating), marginRight: 16,
+                  }}>
+                    {grad.rating}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                    {cgFc(grad.salary)}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        
+        {/* Submit button */}
+        <button
+          onClick={() => {
+            const selectedIdStrings = [...selectedIds];
+            window._cgSubmitOffers?.(selectedIdStrings);
+          }}
+          style={{
+            width: '100%', padding: '14px 20px', background: 'var(--color-accent)',
+            border: 'none', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)',
+            fontWeight: 600, color: 'var(--color-text-inverse)', cursor: 'pointer',
+          }}
+        >
+          {selectedIds.size > 0 ? `Sign ${selectedIds.size} Graduate${selectedIds.size > 1 ? 's' : ''}` : 'Skip College FA'}
+        </button>
+      </div>
+    );
+  }
+
+  // Not yet FA date (for regular FA)
   if (!faReached) {
+    // If college FA date reached but no data yet for T2/T3
+    if (collegeFAReached && !showCgfa) {
+      return (
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-4)' }}>College Graduate FA</h2>
+          <div style={{ padding: 40, background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)', textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--text-md)', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
+              Loading college graduates...
+            </div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)' }}>
+              Use Sim Day to trigger the college FA period
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div style={{ maxWidth: 600, margin: '0 auto', padding: 'var(--space-6)' }}>
         <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semi)', marginBottom: 'var(--space-4)' }}>Free Agency</h2>
