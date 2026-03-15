@@ -1620,8 +1620,10 @@ export class OffseasonController {
         };
         
         // Draft Day (Jun 15) — trigger lottery and draft for T1
-        if (dateGTE(currentDateOnly, seasonDates.draftDay) && !gameState._draftComplete && userTier === 1) {
+        // Only trigger once - use _draftStarted to track if we've shown the lottery
+        if (dateGTE(currentDateOnly, seasonDates.draftDay) && !gameState._draftComplete && !gameState._draftStarted && userTier === 1) {
             console.log('🎰 [OFFSEASON] Draft day reached — triggering draft via hub');
+            gameState._draftStarted = true;  // Mark as started so we don't re-trigger
             this.setPhase(P.DRAFT);
             
             // Generate draft class if needed
@@ -1665,8 +1667,10 @@ export class OffseasonController {
         }
         
         // College FA (Jun 22) — trigger for T2/T3
-        if (dateGTE(currentDateOnly, seasonDates.collegeFA) && !gameState._collegeFAComplete && userTier > 1) {
+        // Only trigger once - use _collegeFAStarted to track if we've shown the window
+        if (dateGTE(currentDateOnly, seasonDates.collegeFA) && !gameState._collegeFAComplete && !gameState._collegeFAStarted && userTier > 1) {
             console.log('🎓 [OFFSEASON] College FA reached — triggering via hub');
+            gameState._collegeFAStarted = true;  // Mark as started so we don't re-trigger
             this.setPhase(P.COLLEGE_FA);
             
             // Use DraftController to properly generate and show college grads
@@ -1675,8 +1679,10 @@ export class OffseasonController {
         }
         
         // Free Agency (Jul 1)
-        if (dateGTE(currentDateOnly, seasonDates.freeAgencyStart) && !gameState._freeAgencyComplete) {
+        // Only trigger once - use _freeAgencyStarted to track if we've shown the FA window
+        if (dateGTE(currentDateOnly, seasonDates.freeAgencyStart) && !gameState._freeAgencyComplete && !gameState._freeAgencyStarted) {
             console.log('📝 [OFFSEASON] Free Agency reached — triggering via hub');
+            gameState._freeAgencyStarted = true;  // Mark as started so we don't re-trigger
             this.setPhase(P.FREE_AGENCY);
             
             // Use FreeAgencyController to properly prepare and show FA
