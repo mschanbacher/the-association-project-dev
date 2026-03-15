@@ -600,7 +600,10 @@ export class FreeAgencyController {
      * Triggers AI signing phase and proceeds to roster compliance.
      */
     continue() {
-        const { helpers } = this.ctx;
+        const { gameState, helpers } = this.ctx;
+
+        // Mark FA as complete so it doesn't re-trigger
+        gameState._freeAgencyComplete = true;
 
         if (window._reactCloseFA) window._reactCloseFA();
         // [LEGACY DOM] document.getElementById('freeAgencyResultsModal').classList.add('hidden');

@@ -1686,17 +1686,9 @@ export class OffseasonController {
             console.log('📝 [OFFSEASON] Free Agency reached — triggering via hub');
             this.setPhase(P.FREE_AGENCY);
             
-            // Prepare FA data and send to hub
-            if (window._reactShowFA) {
-                const userTeam = helpers.getUserTeam();
-                window._reactShowFA({
-                    freeAgents: gameState.freeAgents || [],
-                    userTeamId: userTeam?.id,
-                    userTier: userTeam?.tier || userTier,
-                    salary: helpers.calculateTeamSalary?.(userTeam) || 0,
-                    cap: engines.SalaryCapEngine?.getEffectiveCap?.(userTeam, userTeam?.tier) || 100000000
-                });
-            }
+            // Use FreeAgencyController to properly prepare and show FA
+            // This sets up enriched player data, former players, etc.
+            helpers.showFreeAgencyModal();
             return;
         }
         
