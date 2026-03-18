@@ -210,52 +210,71 @@ function OffseasonPhaseTracker({ currentDate, seasonStartYear }) {
 }
 
 // ─── Sidebar Navigation ──────────────────────────────────────────────────────
-function OffseasonSidebar({ activeScreen, onNavigate }) {
+function OffseasonSidebar({ activeScreen, onNavigate, inCamp }) {
   const [hoveredItem, setHoveredItem] = useState(null);
+
+  // Build nav items based on whether we're in camp mode
+  const campItems = inCamp ? [
+    { id: 'trainingcamp', label: 'Dashboard' },
+    { id: 'focuses', label: 'Focus Assignment' },
+    { id: 'invites', label: 'Camp Invites' },
+  ] : [];
+
+  const standardItems = inCamp ? [
+    { id: 'roster', label: 'Roster' },
+    { id: 'finances', label: 'Finances' },
+    { id: 'history', label: 'History' },
+    { id: 'glossary', label: 'Glossary' },
+  ] : NAV_ITEMS;
+
+  const renderItem = (item) => {
+    const isActive = activeScreen === item.id;
+    const isHovered = hoveredItem === item.id;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => onNavigate?.(item.id)}
+        onMouseEnter={() => setHoveredItem(item.id)}
+        onMouseLeave={() => setHoveredItem(null)}
+        style={{
+          display: 'block',
+          width: '100%',
+          textAlign: 'left',
+          padding: '8px 12px 8px 16px',
+          border: 'none',
+          borderLeft: isActive ? '3px solid var(--color-accent)' : '3px solid transparent',
+          background: isHovered && !isActive ? 'var(--color-bg-hover)' : 'transparent',
+          color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+          fontSize: 'var(--text-sm)',
+          fontWeight: isActive ? 'var(--weight-semi)' : 'var(--weight-medium)',
+          fontFamily: 'var(--font-body)',
+          cursor: 'pointer',
+          transition: 'all var(--duration-fast) ease',
+          letterSpacing: '-0.005em',
+        }}
+      >
+        {item.label}
+      </button>
+    );
+  };
 
   return (
     <nav style={{
       width: 'var(--sidebar-width)',
-      minHeight: 'calc(100vh - var(--topbar-height) - 42px)', // Account for phase tracker
+      minHeight: 'calc(100vh - var(--topbar-height) - 42px)',
       background: 'var(--color-bg-raised)',
       borderRight: '1px solid var(--color-border-subtle)',
-      padding: 'var(--space-4) var(--space-2)',
+      padding: 'var(--space-4) 0',
       display: 'flex',
       flexDirection: 'column',
-      gap: 1,
+      gap: 0,
     }}>
-      {NAV_ITEMS.map(item => {
-        const isActive = activeScreen === item.id;
-        const isHovered = hoveredItem === item.id;
-
-        return (
-          <button
-            key={item.id}
-            onClick={() => onNavigate?.(item.id)}
-            onMouseEnter={() => setHoveredItem(item.id)}
-            onMouseLeave={() => setHoveredItem(null)}
-            style={{
-              display: 'block',
-              width: '100%',
-              textAlign: 'left',
-              padding: '8px 12px',
-              border: 'none',
-              background: isActive ? 'var(--color-accent-bg)' :
-                          isHovered ? 'var(--color-bg-hover)' :
-                          'transparent',
-              color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: isActive ? 'var(--weight-semi)' : 'var(--weight-medium)',
-              fontFamily: 'var(--font-body)',
-              cursor: 'pointer',
-              transition: 'all var(--duration-fast) ease',
-              letterSpacing: '-0.005em',
-            }}
-          >
-            {item.label}
-          </button>
-        );
-      })}
+      {campItems.map(renderItem)}
+      {campItems.length > 0 && standardItems.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--color-border-subtle)', margin: '8px 16px' }} />
+      )}
+      {standardItems.map(renderItem)}
     </nav>
   );
 }
@@ -1667,6 +1686,183 @@ function TrainingCampScreen({ campData, onNavigate }) {
   );
 }
 
+// ─── Camp Invites Screen ─────────────────────────────────────────────────────
+function CampInvitesScreen({ onNavigate }) {
+  const { gameState, engines, refresh } = useGame();
+  const raw = gameState?._raw || gameState;
+  const userTeam = gameState?.userTeam;
+  const [posFilter, setPosFilter] = useState('ALL');
+  const [signingId, setSigningId] = useState(null);
+
+  if (!userTeam) return null;
+
+  const rosterSize = userTeam.roster?.length || 0;
+  const spotsAvailable = 20 - rosterSize;
+  const freeAgents = raw?.freeAgents || [];
+  const userTier = raw?.currentTier || 1;
+
+  // Get candidates from TrainingCampEngine
+  const TCE = window.TrainingCampEngine;
+  const allCandidates = TCE ? TCE.getCampInviteCandidates(freeAgents, userTier, rosterSize) : [];
+
+  // Position filter
+  const posGroups = {
+    ALL: null,
+    Guards: ['PG', 'SG'],
+    Wings: ['SF'],
+    Bigs: ['PF', 'C'],
+  };
+  const filtered = posFilter === 'ALL' ? allCandidates :
+    allCandidates.filter(p => posGroups[posFilter]?.includes(p.position));
+
+  // Get team name from previousTeamId
+  const getTeamName = (teamId) => {
+    if (!teamId) return null;
+    const allTeams = [...(raw?.tier1Teams || []), ...(raw?.tier2Teams || []), ...(raw?.tier3Teams || [])];
+    const team = allTeams.find(t => t.id === teamId);
+    return team ? team.name : null;
+  };
+
+  // Build origin string
+  const getOrigin = (player) => {
+    if (player.isCollegeGrad) return 'College grad, undrafted';
+    if (player.previousTeamId) {
+      const name = getTeamName(player.previousTeamId);
+      if (name) {
+        const prevTeam = [...(raw?.tier1Teams || []), ...(raw?.tier2Teams || []), ...(raw?.tier3Teams || [])].find(t => t.id === player.previousTeamId);
+        const tierLabel = prevTeam ? `T${prevTeam.tier}` : '';
+        return `Cut by ${name}${tierLabel ? ' (' + tierLabel + ')' : ''}`;
+      }
+    }
+    return 'Free agent';
+  };
+
+  const handleInvite = (player) => {
+    if (spotsAvailable <= 0) return;
+    setSigningId(player.id);
+
+    const TF = window.TeamFactory;
+    const success = TCE?.signCampInvite(player, userTeam, freeAgents, { TeamFactory: TF });
+
+    if (success) {
+      console.log(`⛺ [CAMP] Signed camp invite: ${player.name} (${player.rating} OVR)`);
+      // Save and refresh
+      window._offseasonController?.ctx?.helpers?.saveGameState?.();
+      if (refresh) refresh();
+    }
+
+    setTimeout(() => setSigningId(null), 300);
+  };
+
+  return (
+    <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--gap)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Camp Invites</div>
+        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--color-text-secondary)' }}>
+          {spotsAvailable} roster spot{spotsAvailable !== 1 ? 's' : ''} available
+        </div>
+      </div>
+
+      {spotsAvailable <= 0 && (
+        <div style={{ padding: '10px 16px', background: 'var(--color-warning-bg, #fdf5e4)', border: '1px solid var(--color-warning)', fontSize: 'var(--text-sm)' }}>
+          <b style={{ color: 'var(--color-warning)' }}>Roster full (20 players).</b> Release a player from the Roster screen to open a camp invite spot.
+        </div>
+      )}
+
+      {/* Position filter */}
+      <div style={{ display: 'flex', gap: 0 }}>
+        {Object.keys(posGroups).map(key => (
+          <button key={key} onClick={() => setPosFilter(key)} style={{
+            padding: '6px 14px', fontSize: 'var(--text-sm)', fontWeight: posFilter === key ? 600 : 500,
+            color: posFilter === key ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+            background: posFilter === key ? 'var(--color-accent)' : 'transparent',
+            border: `1px solid ${posFilter === key ? 'var(--color-accent)' : 'var(--color-border)'}`,
+            marginRight: -1, cursor: 'pointer', fontFamily: 'var(--font-body)',
+          }}>{key === 'ALL' ? 'All Positions' : key}</button>
+        ))}
+      </div>
+
+      {/* Candidates table */}
+      <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Pos</th>
+              <th style={{ ...thStyle, textAlign: 'left' }}>Player</th>
+              <th style={thStyle}>Age</th>
+              <th style={thStyle}>OVR</th>
+              <th style={{ ...thStyle, textAlign: 'left' }}>Origin</th>
+              <th style={{ ...thStyle, width: 72 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.slice(0, 30).map(player => (
+              <tr key={player.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-accent-bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}>
+                <td style={{ ...tdStyle, fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-tertiary)', width: 36 }}>{player.position}</td>
+                <td style={{ ...tdStyle, fontWeight: 500 }}>
+                  {player.name}
+                  {player.measurables && (
+                    <span style={{ marginLeft: 8, fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                      {player.measurables.height ? Math.floor(player.measurables.height / 12) + "'" + (player.measurables.height % 12) + '"' : ''}
+                      {player.measurables.weight ? ' · ' + player.measurables.weight + 'lbs' : ''}
+                    </span>
+                  )}
+                </td>
+                <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', width: 36 }}>{player.age}</td>
+                <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontWeight: 700, width: 40 }}>{player.rating}</td>
+                <td style={{ ...tdStyle, fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{getOrigin(player)}</td>
+                <td style={{ ...tdStyle, width: 72 }}>
+                  <button onClick={() => handleInvite(player)} disabled={spotsAvailable <= 0 || signingId === player.id}
+                    style={{
+                      padding: '4px 10px', fontSize: 'var(--text-xs)', fontWeight: 600,
+                      background: 'var(--color-accent)', color: 'var(--color-text-inverse)', border: 'none',
+                      cursor: spotsAvailable > 0 ? 'pointer' : 'not-allowed',
+                      opacity: spotsAvailable <= 0 || signingId === player.id ? 0.4 : 1,
+                      fontFamily: 'var(--font-body)',
+                    }}>Invite</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length > 30 && (
+          <div style={{ padding: 8, fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textAlign: 'center', borderTop: '1px solid var(--color-border-subtle)' }}>
+            Showing 30 of {filtered.length} eligible free agents
+          </div>
+        )}
+        {filtered.length === 0 && (
+          <div style={{ padding: 16, fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textAlign: 'center' }}>
+            No eligible free agents for this tier and position filter.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Table cell styles for Camp Invites (shared)
+const thStyle = { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid var(--color-border)' };
+const tdStyle = { padding: '6px 8px', verticalAlign: 'middle', textAlign: 'center' };
+
+// ─── Focus Assignment Screen (placeholder for Phase 3) ──────────────────────
+function FocusAssignmentScreen() {
+  return (
+    <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: 'var(--space-6)' }}>
+      <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
+        Focus Assignment
+      </div>
+      <div style={{ padding: 'var(--space-6)', background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)', textAlign: 'center' }}>
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', lineHeight: 1.6 }}>
+          Development focus assignment will be available in a future update.
+          Assign training focuses to your players to improve specific skills during camp.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Draft Screen ────────────────────────────────────────────────────────────
 function DraftScreen({ draftData, draftPhase, setDraftPhase, currentDate, seasonStartYear }) {
   const { gameState } = useGame();
@@ -2462,6 +2658,11 @@ export function OffseasonHub({ data, onClose }) {
   const currentPhase = raw?.offseasonPhase || 'free_agency';
   const currentDate = raw?.currentDate;
   const seasonStartYear = raw?.seasonStartYear || raw?.currentSeason;
+  const userTier = raw?.currentTier || raw?.userTeam?.tier || 1;
+
+  // Determine if we're in training camp mode
+  const inCamp = hasReachedPhase(currentDate, 'training_camp', seasonStartYear, userTier) &&
+                 !hasReachedPhase(currentDate, 'season_start', seasonStartYear, userTier);
 
   // ─── Initialize offseason data on mount ──────────────────────────────────────
   useEffect(() => {
@@ -2642,6 +2843,8 @@ export function OffseasonHub({ data, onClose }) {
     history: <HistoryScreen />,
     glossary: <GlossaryScreen />,
     trainingcamp: <TrainingCampScreen campData={trainingCampData} onNavigate={setActiveScreen} />,
+    invites: <CampInvitesScreen onNavigate={setActiveScreen} />,
+    focuses: <FocusAssignmentScreen />,
   }), [gameState, engines, faData, faPhase, cgfaData, cgfaPhase, draftData, draftPhase, devData, contractData, complianceData, trainingCampData, currentDate, seasonStartYear]);
 
   return (
@@ -2659,9 +2862,10 @@ export function OffseasonHub({ data, onClose }) {
         <OffseasonSidebar
           activeScreen={activeScreen}
           onNavigate={setActiveScreen}
+          inCamp={inCamp}
         />
         <main style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
-          {screens[activeScreen] || screens.dashboard}
+          {screens[activeScreen] || (inCamp ? screens.trainingcamp : screens.dashboard)}
         </main>
       </div>
     </div>

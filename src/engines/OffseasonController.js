@@ -1855,7 +1855,7 @@ export class OffseasonController {
 
     /**
      * Run training camp silently for all teams in a tier.
-     * Includes AI focus assignment, camp resolution, and cutdown.
+     * Includes AI camp invites, focus assignment, camp resolution, and cutdown.
      * @param {number} tier - Tier to process
      * @param {boolean} [skipUserTeam=false] - Skip user's team (they handle camp interactively)
      */
@@ -1869,6 +1869,10 @@ export class OffseasonController {
         
         const tierTeams = tier === 1 ? gameState.tier1Teams : tier === 2 ? gameState.tier2Teams : gameState.tier3Teams;
         const userTeam = helpers.getUserTeam();
+        const skipId = skipUserTeam ? userTeam?.id : null;
+        
+        // AI teams sign camp invites first (expand to 17-19 players)
+        const invitesSigned = TCE.aiSignCampInvites(tierTeams, gameState.freeAgents, { TeamFactory: engines.TeamFactory }, skipId);
         
         let totalImproved = 0;
         let totalCut = 0;
@@ -1885,7 +1889,7 @@ export class OffseasonController {
             totalCut += cutPlayers.length;
         });
         
-        console.log(`⛺ [OFFSEASON] T${tier} AI camp complete: ${totalImproved} players improved, ${totalCut} players cut to FA pool`);
+        console.log(`⛺ [OFFSEASON] T${tier} AI camp: ${invitesSigned} invites signed, ${totalImproved} players improved, ${totalCut} players cut to FA pool`);
         helpers.saveGameState();
     }
 

@@ -692,6 +692,82 @@ export class TrainingCampEngine {
             .sort((a, b) => b.rating - a.rating);
     }
 
+    /**
+     * Sign a free agent to a camp invite contract.
+     * Removes from FA pool, adds to team roster with a minimum camp contract.
+     *
+     * @param {Object} player - Player to sign
+     * @param {Object} team - Team signing the player
+     * @param {Array} freeAgentPool - gameState.freeAgents (mutated)
+     * @param {Object} deps - { TeamFactory } for salary generation
+     * @returns {boolean} True if signed successfully
+     */
+    static signCampInvite(player, team, freeAgentPool, deps) {
+        const roster = team.roster || [];
+        if (roster.length >= this.MAX_CAMP_ROSTER) return false;
+
+        const { TeamFactory: TF } = deps;
+
+        // Remove from FA pool
+        const idx = freeAgentPool.findIndex(p => p.id === player.id || String(p.id) === String(player.id));
+        if (idx === -1) return false;
+        freeAgentPool.splice(idx, 1);
+
+        // Set camp contract (minimum salary, 1 year — non-guaranteed)
+        player.salary = TF?.generateSalary?.(player.rating, team.tier) || 500000;
+        player.contractYears = 1;
+        player.originalContractLength = 1;
+        player.tier = team.tier;
+        player.isCampInvite = true;
+
+        // Add to roster
+        roster.push(player);
+        return true;
+    }
+
+    /**
+     * AI teams sign camp invites to fill roster up to 18-20 players.
+     * Called when a tier's camp opens for AI teams.
+     *
+     * @param {Array} teams - Teams in this tier
+     * @param {Array} freeAgentPool - gameState.freeAgents (mutated)
+     * @param {Object} deps - { TeamFactory }
+     * @param {string} [skipTeamId] - User's team ID to skip
+     * @returns {number} Total invites signed
+     */
+    static aiSignCampInvites(teams, freeAgentPool, deps, skipTeamId) {
+        let totalSigned = 0;
+
+        // Shuffle for fairness
+        const shuffled = [...teams].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(team => {
+            if (team.id === skipTeamId) return;
+            const rosterSize = team.roster?.length || 0;
+            if (rosterSize >= 18) return; // AI teams target 18-19, not always full 20
+
+            // Sign 1-3 invites depending on roster need
+            const target = 17 + Math.floor(Math.random() * 3); // 17-19
+            const toSign = Math.max(0, target - rosterSize);
+
+            for (let i = 0; i < toSign; i++) {
+                // Find best available for this tier
+                const candidates = this.getCampInviteCandidates(freeAgentPool, team.tier, team.roster.length);
+                if (candidates.length === 0) break;
+
+                // Pick from top 5 randomly for variety
+                const pickIdx = Math.floor(Math.random() * Math.min(5, candidates.length));
+                const pick = candidates[pickIdx];
+
+                if (this.signCampInvite(pick, team, freeAgentPool, deps)) {
+                    totalSigned++;
+                }
+            }
+        });
+
+        return totalSigned;
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // CUTDOWN HELPERS
     // ═══════════════════════════════════════════════════════════════════
