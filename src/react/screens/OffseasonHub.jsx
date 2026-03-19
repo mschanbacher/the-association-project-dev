@@ -1857,18 +1857,415 @@ function CampInvitesScreen({ onNavigate }) {
 const thStyle = { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid var(--color-border)' };
 const tdStyle = { padding: '6px 8px', verticalAlign: 'middle', textAlign: 'center' };
 
-// ─── Focus Assignment Screen (placeholder for Phase 3) ──────────────────────
-function FocusAssignmentScreen() {
+// ─── Focus Assignment Screen (Phase 3) ──────────────────────────────────────
+function FocusAssignmentScreen({ onNavigate }) {
+  const { gameState, engines, refresh } = useGame();
+  const raw = gameState?._raw || gameState;
+  const userTeam = gameState?.userTeam;
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  const [posFilter, setPosFilter] = useState('ALL');
+
+  if (!userTeam) return null;
+
+  const TCE = window.TrainingCampEngine;
+  const coach = userTeam.coach || {};
+  const roster = userTeam.roster || [];
+
+  // Focus assignments: { playerId: [focusId, ...] }
+  const campFocuses = userTeam._campFocuses || {};
+
+  // Pool accounting
+  const focusPool = TCE?.getFocusPoolSize?.(userTeam) || 25;
+  const focusesUsed = Object.values(campFocuses).reduce((s, a) => s + (a?.length || 0), 0);
+  const focusesRemaining = focusPool - focusesUsed;
+
+  // Position filter groups
+  const posGroups = { ALL: null, Guards: ['PG', 'SG'], Wings: ['SF'], Bigs: ['PF', 'C'] };
+  const filteredRoster = posFilter === 'ALL' ? roster :
+    roster.filter(p => posGroups[posFilter]?.includes(p.position));
+
+  // Sort roster: players with open focus slots first, then by rating desc
+  const sortedRoster = [...filteredRoster].sort((a, b) => {
+    const aFocuses = campFocuses[a.id]?.length || 0;
+    const bFocuses = campFocuses[b.id]?.length || 0;
+    const aOpen = aFocuses < 2 ? 1 : 0;
+    const bOpen = bFocuses < 2 ? 1 : 0;
+    if (aOpen !== bOpen) return bOpen - aOpen;
+    return b.rating - a.rating;
+  });
+
+  const selectedPlayer = roster.find(p => String(p.id) === String(selectedPlayerId));
+
+  // Get available focuses for selected player
+  const availableFocuses = selectedPlayer && TCE ? TCE.getAvailableFocuses(selectedPlayer) : [];
+  const playerFocuses = selectedPlayer ? (campFocuses[selectedPlayer.id] || []) : [];
+  const playerFocusCount = playerFocuses.length;
+  const maxPerPlayer = TCE?.MAX_FOCUSES_PER_PLAYER || 2;
+  const canAssignMore = playerFocusCount < maxPerPlayer && focusesRemaining > 0;
+
+  // Get projections for each available focus
+  const focusProjections = useMemo(() => {
+    if (!selectedPlayer || !TCE) return {};
+    const projs = {};
+    for (const focus of availableFocuses) {
+      projs[focus.id] = TCE.projectOutcome(selectedPlayer, focus, coach);
+    }
+    return projs;
+  }, [selectedPlayerId, availableFocuses.length]);
+
+  const handleAssignFocus = (focusId) => {
+    if (!selectedPlayer || !canAssignMore) return;
+    if (playerFocuses.includes(focusId)) return;
+
+    // Write to team object
+    if (!userTeam._campFocuses) userTeam._campFocuses = {};
+    if (!userTeam._campFocuses[selectedPlayer.id]) userTeam._campFocuses[selectedPlayer.id] = [];
+    userTeam._campFocuses[selectedPlayer.id].push(focusId);
+
+    // Also write to raw gameState for persistence
+    const rawTeam = raw?.tier1Teams?.find(t => t.id === userTeam.id)
+      || raw?.tier2Teams?.find(t => t.id === userTeam.id)
+      || raw?.tier3Teams?.find(t => t.id === userTeam.id);
+    if (rawTeam) {
+      if (!rawTeam._campFocuses) rawTeam._campFocuses = {};
+      if (!rawTeam._campFocuses[selectedPlayer.id]) rawTeam._campFocuses[selectedPlayer.id] = [];
+      if (!rawTeam._campFocuses[selectedPlayer.id].includes(focusId)) {
+        rawTeam._campFocuses[selectedPlayer.id].push(focusId);
+      }
+    }
+
+    window._offseasonController?.ctx?.helpers?.saveGameState?.();
+    if (refresh) refresh();
+  };
+
+  const handleRemoveFocus = (focusId) => {
+    if (!selectedPlayer) return;
+    const arr = userTeam._campFocuses?.[selectedPlayer.id];
+    if (!arr) return;
+    const idx = arr.indexOf(focusId);
+    if (idx !== -1) arr.splice(idx, 1);
+    if (arr.length === 0) delete userTeam._campFocuses[selectedPlayer.id];
+
+    // Mirror to raw
+    const rawTeam = raw?.tier1Teams?.find(t => t.id === userTeam.id)
+      || raw?.tier2Teams?.find(t => t.id === userTeam.id)
+      || raw?.tier3Teams?.find(t => t.id === userTeam.id);
+    if (rawTeam?._campFocuses?.[selectedPlayer.id]) {
+      const rArr = rawTeam._campFocuses[selectedPlayer.id];
+      const rIdx = rArr.indexOf(focusId);
+      if (rIdx !== -1) rArr.splice(rIdx, 1);
+      if (rArr.length === 0) delete rawTeam._campFocuses[selectedPlayer.id];
+    }
+
+    window._offseasonController?.ctx?.helpers?.saveGameState?.();
+    if (refresh) refresh();
+  };
+
+  const handleAutoAssign = () => {
+    if (!TCE || focusesRemaining <= 0) return;
+
+    let remaining = focusesRemaining;
+    const assignments = { ...(userTeam._campFocuses || {}) };
+
+    // Sort roster by development potential: younger + higher work ethic first
+    const candidates = [...roster].sort((a, b) => {
+      const aAge = a.age || 25;
+      const bAge = b.age || 25;
+      const aWE = a.attributes?.workEthic || 50;
+      const bWE = b.attributes?.workEthic || 50;
+      return (aAge - bAge) || (bWE - aWE);
+    });
+
+    for (const player of candidates) {
+      if (remaining <= 0) break;
+      const current = assignments[player.id]?.length || 0;
+      if (current >= maxPerPlayer) continue;
+
+      const available = TCE.getAvailableFocuses(player);
+      if (available.length === 0) continue;
+
+      // Pick best projected focuses
+      const projections = available
+        .filter(f => !(assignments[player.id] || []).includes(f.id))
+        .map(f => ({ focus: f, proj: TCE.projectOutcome(player, f, coach) }))
+        .sort((a, b) => {
+          const aChance = a.proj.probabilities.major + a.proj.probabilities.moderate + a.proj.probabilities.minor;
+          const bChance = b.proj.probabilities.major + b.proj.probabilities.moderate + b.proj.probabilities.minor;
+          return bChance - aChance;
+        });
+
+      const slotsToFill = Math.min(maxPerPlayer - current, remaining);
+      for (let i = 0; i < slotsToFill && i < projections.length; i++) {
+        if (!assignments[player.id]) assignments[player.id] = [];
+        assignments[player.id].push(projections[i].focus.id);
+        remaining--;
+      }
+    }
+
+    // Write all assignments
+    userTeam._campFocuses = assignments;
+    const rawTeam = raw?.tier1Teams?.find(t => t.id === userTeam.id)
+      || raw?.tier2Teams?.find(t => t.id === userTeam.id)
+      || raw?.tier3Teams?.find(t => t.id === userTeam.id);
+    if (rawTeam) rawTeam._campFocuses = JSON.parse(JSON.stringify(assignments));
+
+    window._offseasonController?.ctx?.helpers?.saveGameState?.();
+    if (refresh) refresh();
+  };
+
+  // Projection tier colors (using semantic colors from design system)
+  const tierColor = (tier) => {
+    switch (tier) {
+      case 'strong': return 'var(--color-win)';
+      case 'good': return 'var(--color-win)';
+      case 'moderate': return 'var(--color-warning)';
+      case 'unlikely': return 'var(--color-text-tertiary)';
+      case 'risky': return 'var(--color-loss)';
+      default: return 'var(--color-text-secondary)';
+    }
+  };
+
+  // Focus category labels
+  const categoryLabel = (cat) => {
+    switch (cat) {
+      case 'offense': return 'OFF';
+      case 'defense': return 'DEF';
+      case 'physical': return 'PHY';
+      default: return '';
+    }
+  };
+
+  const focusDefs = TCE?.FOCUS_DEFINITIONS || {};
+
   return (
-    <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: 'var(--space-6)' }}>
-      <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
-        Focus Assignment
-      </div>
-      <div style={{ padding: 'var(--space-6)', background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)', textAlign: 'center' }}>
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', lineHeight: 1.6 }}>
-          Development focus assignment will be available in a future update.
-          Assign training focuses to your players to improve specific skills during camp.
+    <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--gap)' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Focus Assignment</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: focusesRemaining > 0 ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-accent)' }}>{focusesUsed}</span>
+            <span style={{ color: 'var(--color-text-tertiary)' }}> / {focusPool}</span>
+            {' '}focuses assigned
+          </span>
+          {focusesRemaining > 0 && (
+            <button onClick={handleAutoAssign} style={{
+              padding: '5px 12px', fontSize: 'var(--text-xs)', fontWeight: 600,
+              background: 'transparent', border: '1px solid var(--color-border)',
+              fontFamily: 'var(--font-body)', color: 'var(--color-text-secondary)', cursor: 'pointer',
+            }}>Auto-Assign Remaining</button>
+          )}
         </div>
+      </div>
+
+      {/* Position filter */}
+      <div style={{ display: 'flex', gap: 0 }}>
+        {Object.keys(posGroups).map(key => (
+          <button key={key} onClick={() => setPosFilter(key)} style={{
+            padding: '6px 14px', fontSize: 'var(--text-sm)', fontWeight: posFilter === key ? 600 : 500,
+            color: posFilter === key ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+            background: posFilter === key ? 'var(--color-accent)' : 'transparent',
+            border: `1px solid ${posFilter === key ? 'var(--color-accent)' : 'var(--color-border)'}`,
+            marginRight: -1, cursor: 'pointer', fontFamily: 'var(--font-body)',
+          }}>{key === 'ALL' ? 'All Positions' : key}</button>
+        ))}
+      </div>
+
+      {/* Two-panel layout: roster table + focus panel */}
+      <div style={{ display: 'grid', gridTemplateColumns: selectedPlayer ? '1fr 340px' : '1fr', gap: 'var(--gap)', alignItems: 'start' }}>
+
+        {/* Roster table */}
+        <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Pos</th>
+                <th style={{ ...thStyle, textAlign: 'left' }}>Player</th>
+                <th style={thStyle}>Age</th>
+                <th style={thStyle}>OVR</th>
+                <th style={{ ...thStyle, textAlign: 'left' }}>Focuses</th>
+                <th style={thStyle}>Slots</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRoster.map(player => {
+                const pFocuses = campFocuses[player.id] || [];
+                const isSelected = String(player.id) === String(selectedPlayerId);
+                const isFull = pFocuses.length >= maxPerPlayer;
+                return (
+                  <tr key={player.id}
+                    onClick={() => setSelectedPlayerId(isSelected ? null : player.id)}
+                    style={{
+                      borderBottom: '1px solid var(--color-border-subtle)',
+                      cursor: 'pointer',
+                      background: isSelected ? 'var(--color-accent-bg)' : '',
+                      borderLeft: isSelected ? '3px solid var(--color-accent)' : '3px solid transparent',
+                    }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--color-accent-bg)'; }}
+                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = ''; }}
+                  >
+                    <td style={{ ...tdStyle, fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-tertiary)', width: 36 }}>{player.position}</td>
+                    <td style={{ ...tdStyle, fontWeight: 500, textAlign: 'left' }}>
+                      {player.name}
+                      {player.isCampInvite && (
+                        <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-text-tertiary)', background: 'var(--color-bg-sunken)', padding: '1px 4px' }}>INV</span>
+                      )}
+                    </td>
+                    <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', width: 36 }}>{player.age}</td>
+                    <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontWeight: 700, width: 40 }}>{player.rating}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                      {pFocuses.length > 0 ? pFocuses.map(fId => {
+                        const def = focusDefs[fId];
+                        return def ? (
+                          <span key={fId} style={{
+                            display: 'inline-block', marginRight: 4, padding: '1px 6px',
+                            background: 'var(--color-accent-bg)', border: '1px solid var(--color-accent)',
+                            fontSize: 10, fontWeight: 600, color: 'var(--color-accent)',
+                          }}>{def.name}</span>
+                        ) : null;
+                      }) : (
+                        <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>None assigned</span>
+                      )}
+                    </td>
+                    <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontWeight: 600, width: 48,
+                      color: isFull ? 'var(--color-text-tertiary)' : 'var(--color-accent)' }}>
+                      {pFocuses.length}/{maxPerPlayer}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Focus panel — shown when a player is selected */}
+        {selectedPlayer && (
+          <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column' }}>
+            {/* Panel header */}
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700 }}>{selectedPlayer.name}</div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                  {selectedPlayer.position} · {selectedPlayer.age}y · {selectedPlayer.rating} OVR
+                </div>
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontWeight: 700, color: canAssignMore ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}>
+                {playerFocusCount}/{maxPerPlayer}
+              </div>
+            </div>
+
+            {/* Key intangibles */}
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--color-border-subtle)', display: 'flex', gap: 12, fontSize: 'var(--text-xs)' }}>
+              {[
+                { label: 'Work Ethic', val: selectedPlayer.attributes?.workEthic },
+                { label: 'Coachability', val: selectedPlayer.attributes?.coachability },
+                { label: 'BBIQ', val: selectedPlayer.attributes?.basketballIQ },
+              ].map(({ label, val }) => (
+                <div key={label} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 500 }}>{label}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700,
+                    color: (val || 50) >= 70 ? 'var(--color-win)' : (val || 50) >= 50 ? 'var(--color-text-primary)' : 'var(--color-loss)'
+                  }}>{val || '??'}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Assigned focuses */}
+            {playerFocuses.length > 0 && (
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6 }}>Assigned</div>
+                {playerFocuses.map(fId => {
+                  const def = focusDefs[fId];
+                  if (!def) return null;
+                  const proj = focusProjections[fId];
+                  return (
+                    <div key={fId} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '5px 0', borderBottom: '1px solid var(--color-border-subtle)',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{def.name}</div>
+                        {proj && <div style={{ fontSize: 'var(--text-xs)', color: tierColor(proj.tier), fontWeight: 500 }}>{proj.label}</div>}
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); handleRemoveFocus(fId); }} style={{
+                        padding: '3px 8px', fontSize: 'var(--text-xs)', fontWeight: 600,
+                        background: 'transparent', border: '1px solid var(--color-loss)',
+                        color: 'var(--color-loss)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                      }}>Remove</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Available focuses */}
+            <div style={{ padding: '8px 12px', flex: 1, overflowY: 'auto', maxHeight: 420 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6 }}>
+                {canAssignMore ? 'Available Focuses' : (playerFocusCount >= maxPerPlayer ? 'Focus slots full' : 'No pool remaining')}
+              </div>
+              {availableFocuses
+                .filter(f => !playerFocuses.includes(f.id))
+                .map(focus => {
+                  const proj = focusProjections[focus.id];
+                  const improvePct = proj ? Math.round((proj.probabilities.major + proj.probabilities.moderate + proj.probabilities.minor) * 100) : 0;
+                  const regressPct = proj ? Math.round(proj.probabilities.regression * 100) : 0;
+                  return (
+                    <div key={focus.id} style={{
+                      padding: '8px 0', borderBottom: '1px solid var(--color-border-subtle)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                            color: 'var(--color-text-tertiary)', padding: '1px 4px',
+                            background: 'var(--color-bg-sunken)',
+                          }}>{categoryLabel(focus.category)}</span>
+                          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{focus.name}</span>
+                        </div>
+                        {canAssignMore && (
+                          <button onClick={(e) => { e.stopPropagation(); handleAssignFocus(focus.id); }} style={{
+                            padding: '3px 10px', fontSize: 'var(--text-xs)', fontWeight: 600,
+                            background: 'var(--color-accent)', color: 'var(--color-text-inverse)',
+                            border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                          }}>Assign</button>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>{focus.description}</div>
+
+                      {proj && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--text-xs)' }}>
+                          {/* Projection bar */}
+                          <div style={{ flex: 1, height: 6, background: 'var(--color-bg-sunken)', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{
+                              position: 'absolute', left: 0, top: 0, height: '100%',
+                              width: `${improvePct}%`, background: tierColor(proj.tier),
+                              opacity: 0.7,
+                            }} />
+                            {regressPct > 3 && (
+                              <div style={{
+                                position: 'absolute', right: 0, top: 0, height: '100%',
+                                width: `${regressPct}%`, background: 'var(--color-loss)',
+                                opacity: 0.5,
+                              }} />
+                            )}
+                          </div>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: tierColor(proj.tier), minWidth: 32, textAlign: 'right' }}>{improvePct}%</span>
+                        </div>
+                      )}
+
+                      {proj && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 10, color: 'var(--color-text-tertiary)' }}>
+                          <span>Current: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--color-text-secondary)' }}>{proj.factors.currentLevel}</span></span>
+                          <span>Coach: <span style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>{proj.factors.coachFit}</span></span>
+                          {regressPct > 3 && <span style={{ color: 'var(--color-loss)' }}>Regression risk: {regressPct}%</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2855,7 +3252,7 @@ export function OffseasonHub({ data, onClose }) {
     glossary: <GlossaryScreen />,
     trainingcamp: <TrainingCampScreen campData={trainingCampData} onNavigate={setActiveScreen} />,
     invites: <CampInvitesScreen onNavigate={setActiveScreen} />,
-    focuses: <FocusAssignmentScreen />,
+    focuses: <FocusAssignmentScreen onNavigate={setActiveScreen} />,
   }), [gameState, engines, faData, faPhase, cgfaData, cgfaPhase, draftData, draftPhase, devData, contractData, complianceData, trainingCampData, currentDate, seasonStartYear]);
 
   return (
