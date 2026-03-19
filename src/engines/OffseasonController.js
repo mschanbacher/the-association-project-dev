@@ -1951,7 +1951,7 @@ export class OffseasonController {
         const away = allTeams.find(t => t.id === game.awayTeamId);
         if (!home || !away) return null;
 
-        const result = engines.GamePipeline.resolve(home, away, {
+        const result = window.GamePipeline.resolve(home, away, {
             isPlayoffs: false,
             tier: home.tier || 1,
             lightweight: true,
@@ -1989,7 +1989,7 @@ export class OffseasonController {
         this._preseasonWatchIndex = gameIndex;
 
         // Create step-by-step game
-        const pipeline = engines.GamePipeline.create(home, away, {
+        const pipeline = window.GamePipeline.create(home, away, {
             isPlayoffs: false,
             tier: home.tier || 1,
         });
