@@ -248,17 +248,17 @@ function OffseasonSidebar({ activeScreen, onNavigate, inCamp }) {
           display: 'block',
           width: '100%',
           textAlign: 'left',
-          padding: '8px 12px 8px 16px',
+          padding: isActive ? '8px 12px 8px 13px' : '8px 12px 8px 16px',
           border: 'none',
-          borderLeft: isActive ? '3px solid var(--color-accent)' : '3px solid transparent',
+          borderLeft: isActive ? '3px solid var(--color-accent)' : 'none',
           background: isHovered && !isActive ? 'var(--color-bg-hover)' : 'transparent',
           color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
           fontSize: 'var(--text-sm)',
           fontWeight: isActive ? 'var(--weight-semi)' : 'var(--weight-medium)',
           fontFamily: 'var(--font-body)',
           cursor: 'pointer',
-          transition: 'all var(--duration-fast) ease',
           letterSpacing: '-0.005em',
+          outline: 'none',
         }}
       >
         {item.label}
@@ -1705,12 +1705,16 @@ function CampInvitesScreen({ onNavigate }) {
 
   const rosterSize = userTeam.roster?.length || 0;
   const spotsAvailable = 20 - rosterSize;
-  const freeAgents = raw?.freeAgents || [];
   const userTier = raw?.currentTier || 1;
+
+  // Access freeAgents from the live gameState (try multiple paths)
+  const freeAgents = raw?.freeAgents || raw?._freeAgents || gameState?.freeAgents || [];
 
   // Get candidates from TrainingCampEngine
   const TCE = window.TrainingCampEngine;
   const allCandidates = TCE ? TCE.getCampInviteCandidates(freeAgents, userTier, rosterSize) : [];
+
+  console.log(`[CAMP INVITES] FA pool: ${freeAgents.length}, tier: ${userTier}, roster: ${rosterSize}, candidates: ${allCandidates.length}, TCE: ${!!TCE}`);
 
   // Position filter
   const posGroups = {
