@@ -1850,9 +1850,23 @@ export class OffseasonController {
             return;
         }
         
-        // User's tier cutdown day reached — trigger compliance and season setup
+        // User's tier cutdown day reached — resolve camp, show results, then cutdown
         if (gameState._userCampStarted && dateGTE(currentDateOnly, userCamp.cutdown) && !gameState._userCampComplete && gameState.offseasonPhase !== P.SETUP_COMPLETE) {
-            console.log(`⛺ [OFFSEASON] Cutdown day reached for user (T${userTier}) — proceeding to season setup`);
+            console.log(`[OFFSEASON] Cutdown day reached for user (T${userTier}) — resolving camp`);
+            
+            // Resolve user's camp focuses
+            const TCE = engines.TrainingCampEngine;
+            const userTeam = helpers.getUserTeam();
+            if (TCE && userTeam) {
+                const focusAssignments = userTeam._campFocuses || {};
+                const campResults = TCE.resolveCamp(userTeam, focusAssignments, { PlayerAttributes: engines.PlayerAttributes });
+                gameState._campResults = campResults;
+                console.log(`[CAMP RESULTS] ${campResults.summary.improved} improved, ${campResults.summary.declined} declined, ${campResults.summary.unchanged} unchanged`);
+                
+                // Clear the focus assignments now that they've been resolved
+                delete userTeam._campFocuses;
+            }
+            
             gameState._userCampComplete = true;
             
             // Run AI camp for user's tier (non-user teams) — invites, focuses, resolution, cutdown
@@ -1863,6 +1877,15 @@ export class OffseasonController {
             else if (userTier === 2) gameState._t2CampComplete = true;
             else if (userTier === 3) gameState._t3CampComplete = true;
             
+            helpers.saveGameState();
+            
+            // Show results screen — user clicks "Continue to Cutdown" to proceed
+            if (gameState._campResults && window._reactShowCampResults) {
+                window._reactShowCampResults(gameState._campResults);
+                return;
+            }
+            
+            // Fallback if no results screen available
             this.checkRosterComplianceAndContinue();
         }
     }

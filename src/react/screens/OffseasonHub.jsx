@@ -2271,6 +2271,154 @@ function FocusAssignmentScreen({ onNavigate }) {
   );
 }
 
+// ─── Camp Results Screen (Phase 4) ───────────────────────────────────────────
+function CampResultsScreen({ data, onNavigate }) {
+  const { gameState, refresh } = useGame();
+  const raw = gameState?._raw || gameState;
+
+  if (!data) {
+    return (
+      <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
+          Camp Results
+        </div>
+        <div style={{ padding: 'var(--space-6)', background: 'var(--color-bg-sunken)', border: '1px solid var(--color-border-subtle)', textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)' }}>
+          No camp results available yet. Assign focuses and sim to cutdown day.
+        </div>
+      </div>
+    );
+  }
+
+  const { results, summary } = data;
+
+  // Sort: biggest improvers first, then decliners, then unchanged
+  const sorted = [...results].sort((a, b) => {
+    if (b.ratingChange !== a.ratingChange) return b.ratingChange - a.ratingChange;
+    return b.ratingAfter - a.ratingAfter;
+  });
+
+  // Outcome label and color
+  const outcomeStyle = (outcome) => {
+    switch (outcome) {
+      case 'major': return { label: 'Major improvement', color: 'var(--color-win)' };
+      case 'moderate': return { label: 'Moderate improvement', color: 'var(--color-win)' };
+      case 'minor': return { label: 'Minor improvement', color: 'var(--color-warning)' };
+      case 'noChange': return { label: 'No change', color: 'var(--color-text-tertiary)' };
+      case 'regression': return { label: 'Regression', color: 'var(--color-loss)' };
+      default: return { label: outcome, color: 'var(--color-text-secondary)' };
+    }
+  };
+
+  const changeColor = (val) => val > 0 ? 'var(--color-win)' : val < 0 ? 'var(--color-loss)' : 'var(--color-text-tertiary)';
+  const changeStr = (val) => val > 0 ? `+${val}` : val < 0 ? `${val}` : '--';
+
+  // Attribute display name lookup
+  const attrNames = {
+    speed: 'SPD', strength: 'STR', verticality: 'VRT', endurance: 'END',
+    basketballIQ: 'IQ', clutch: 'CLT', collaboration: 'COL',
+    workEthic: 'WRK', coachability: 'CCH',
+  };
+
+  const handleContinue = () => {
+    // Proceed to cutdown / compliance
+    window._offseasonController?.checkRosterComplianceAndContinue?.();
+  };
+
+  return (
+    <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--gap)' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Camp Results</div>
+        <button onClick={handleContinue} style={{
+          padding: '7px 16px', fontSize: 'var(--text-sm)', fontWeight: 600,
+          background: 'var(--color-accent)', color: 'var(--color-text-inverse)',
+          border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
+        }}>Continue to Cutdown</button>
+      </div>
+
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--gap)' }}>
+        <MetricCard label="Players" value={summary.totalPlayers} detail={`${summary.focusedPlayers} with focuses, ${summary.conditioningPlayers} conditioning`} />
+        <MetricCard label="Improved" value={summary.improved} valueColor="var(--color-win)"
+          detail={`${summary.focusesUsed} / ${summary.focusPool} focuses used`} />
+        <MetricCard label="Unchanged" value={summary.unchanged}
+          detail="No rating change" />
+        <MetricCard label="Declined" value={summary.declined} valueColor={summary.declined > 0 ? 'var(--color-loss)' : undefined}
+          detail={summary.declined > 0 ? 'Regression during camp' : 'No declines'} />
+      </div>
+
+      {/* Results table */}
+      <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Pos</th>
+              <th style={{ ...thStyle, textAlign: 'left' }}>Player</th>
+              <th style={thStyle}>Age</th>
+              <th style={thStyle}>Before</th>
+              <th style={thStyle}>After</th>
+              <th style={thStyle}>Chg</th>
+              <th style={{ ...thStyle, textAlign: 'left' }}>Focus Results</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(result => (
+              <tr key={result.playerId} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-accent-bg)'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}>
+                <td style={{ ...tdStyle, fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-tertiary)', width: 36 }}>{result.position}</td>
+                <td style={{ ...tdStyle, fontWeight: 500, textAlign: 'left' }}>{result.playerName}</td>
+                <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', width: 36 }}>{result.age}</td>
+                <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontWeight: 600, width: 40, color: 'var(--color-text-secondary)' }}>{result.ratingBefore}</td>
+                <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontWeight: 700, width: 40 }}>{result.ratingAfter}</td>
+                <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontWeight: 700, width: 40, color: changeColor(result.ratingChange) }}>
+                  {changeStr(result.ratingChange)}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                  {result.focuses.length > 0 ? result.focuses.map((f, i) => {
+                    const os = outcomeStyle(f.outcome);
+                    const attrChanges = Object.entries(f.changes || {}).map(([attr, delta]) => {
+                      const name = attrNames[attr] || attr;
+                      return `${name} ${delta > 0 ? '+' : ''}${delta}`;
+                    }).join(', ');
+                    return (
+                      <span key={i} style={{ display: 'inline-block', marginRight: 8, marginBottom: 2 }}>
+                        <span style={{
+                          display: 'inline-block', padding: '1px 5px', marginRight: 3,
+                          background: 'var(--color-bg-sunken)', fontSize: 10, fontWeight: 600,
+                        }}>{f.focusName}</span>
+                        <span style={{ color: os.color, fontWeight: 600 }}>{os.label}</span>
+                        {attrChanges && (
+                          <span style={{ color: 'var(--color-text-tertiary)', marginLeft: 4, fontFamily: 'var(--font-mono)' }}>
+                            ({attrChanges})
+                          </span>
+                        )}
+                      </span>
+                    );
+                  }) : (
+                    <span style={{ color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
+                      {result.type === 'conditioning' ? 'General conditioning' : 'No focuses assigned'}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Bottom action */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={handleContinue} style={{
+          padding: '8px 20px', fontSize: 'var(--text-sm)', fontWeight: 600,
+          background: 'var(--color-accent)', color: 'var(--color-text-inverse)',
+          border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
+        }}>Continue to Cutdown</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Draft Screen ────────────────────────────────────────────────────────────
 function DraftScreen({ draftData, draftPhase, setDraftPhase, currentDate, seasonStartYear }) {
   const { gameState } = useGame();
@@ -3060,6 +3208,7 @@ export function OffseasonHub({ data, onClose }) {
   
   // Training Camp
   const [trainingCampData, setTrainingCampData] = useState(null);
+  const [campResultsData, setCampResultsData] = useState(null);
 
   // Get current offseason state
   const raw = gameState?._raw || gameState;
@@ -3104,6 +3253,7 @@ export function OffseasonHub({ data, onClose }) {
       showContractDecisions: window._reactShowContractDecisions,
       showCompliance: window._reactShowCompliance,
       showTrainingCamp: window._reactShowTrainingCamp,
+      showCampResults: window._reactShowCampResults,
     };
     
     // Free Agency
@@ -3175,9 +3325,16 @@ export function OffseasonHub({ data, onClose }) {
     
     // Training Camp
     window._reactShowTrainingCamp = (campData) => {
-      console.log('⛺ [OFFSEASON-HUB] Intercepting training camp data');
+      console.log('[OFFSEASON-HUB] Intercepting training camp data');
       setTrainingCampData(campData);
       setActiveScreen('trainingcamp');
+    };
+
+    // Camp Results (Phase 4 — after resolution, before cutdown)
+    window._reactShowCampResults = (resultsData) => {
+      console.log('[OFFSEASON-HUB] Intercepting camp results data');
+      setCampResultsData(resultsData);
+      setActiveScreen('campresults');
     };
 
     // Cleanup
@@ -3192,6 +3349,7 @@ export function OffseasonHub({ data, onClose }) {
       window._reactShowContractDecisions = originals.showContractDecisions;
       window._reactShowCompliance = originals.showCompliance;
       window._reactShowTrainingCamp = originals.showTrainingCamp;
+      window._reactShowCampResults = originals.showCampResults;
     };
   }, []);
 
@@ -3253,7 +3411,8 @@ export function OffseasonHub({ data, onClose }) {
     trainingcamp: <TrainingCampScreen campData={trainingCampData} onNavigate={setActiveScreen} />,
     invites: <CampInvitesScreen onNavigate={setActiveScreen} />,
     focuses: <FocusAssignmentScreen onNavigate={setActiveScreen} />,
-  }), [gameState, engines, faData, faPhase, cgfaData, cgfaPhase, draftData, draftPhase, devData, contractData, complianceData, trainingCampData, currentDate, seasonStartYear]);
+    campresults: <CampResultsScreen data={campResultsData} onNavigate={setActiveScreen} />,
+  }), [gameState, engines, faData, faPhase, cgfaData, cgfaPhase, draftData, draftPhase, devData, contractData, complianceData, trainingCampData, campResultsData, currentDate, seasonStartYear]);
 
   return (
     <div style={{
