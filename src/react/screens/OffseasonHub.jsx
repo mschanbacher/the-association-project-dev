@@ -54,8 +54,13 @@ function hasReachedPhase(currentDateStr, phaseKey, seasonStartYear, userTier) {
       return current >= campOpen;
     }
     if (phaseKey === 'season_start') {
-      const start = tier === 1 ? dates.t1Start : tier === 2 ? dates.t2Start : dates.t3Start;
-      return current >= start;
+      // Use next season tier start dates (same year as camp dates)
+      const nextStart = tier === 1 ? dates.t1CampOpen : tier === 2 ? dates.t2CampOpen : dates.t3CampOpen;
+      // Season starts = cutdown + 1 day (day after cutdown is first game)
+      const cutdown = tier === 1 ? dates.t1Cutdown : tier === 2 ? dates.t2Cutdown : dates.t3Cutdown;
+      // Season start is the day after cutdown
+      const seasonStart = new Date(cutdown.getTime() + 86400000);
+      return current >= seasonStart;
     }
     return false;
   }
@@ -77,7 +82,9 @@ function getPhaseDateStr(phase, seasonStartYear, userTier) {
   if (phase.key === 'training_camp') {
     d = tier === 1 ? dates.t1CampOpen : tier === 2 ? dates.t2CampOpen : dates.t3CampOpen;
   } else if (phase.key === 'season_start') {
-    d = tier === 1 ? dates.t1Start : tier === 2 ? dates.t2Start : dates.t3Start;
+    // Day after cutdown
+    const cutdown = tier === 1 ? dates.t1Cutdown : tier === 2 ? dates.t2Cutdown : dates.t3Cutdown;
+    d = new Date(cutdown.getTime() + 86400000);
   }
   if (!d) return '';
   return `${months[d.getMonth()]} ${d.getDate()}`;
