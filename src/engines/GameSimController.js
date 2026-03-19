@@ -385,6 +385,17 @@ export class GameSimController {
             return;
         }
 
+        // If we're watching a preseason game, record result without W/L impact
+        if (this._isPreseasonWatch) {
+            const { helpers } = this.ctx;
+            if (this._watchTimer) clearInterval(this._watchTimer);
+            this._watchTimer = null;
+            this._isPreseasonWatch = false;
+            // Let OffseasonController record the result
+            window._offseasonController?.recordPreseasonWatchResult?.();
+            return;
+        }
+
         const { gameState, helpers, engines } = this.ctx;
         if (this._watchTimer) clearInterval(this._watchTimer);
         this._watchTimer = null;

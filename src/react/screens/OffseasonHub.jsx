@@ -1568,6 +1568,122 @@ function PlaceholderScreen({ title, message }) {
   );
 }
 
+// ─── Preseason Schedule Widget ───────────────────────────────────────────────
+function PreseasonScheduleWidget() {
+  const { gameState, refresh } = useGame();
+  const raw = gameState?._raw || gameState;
+  const userTeamId = raw?.userTeamId;
+  const schedule = raw?._preseasonSchedule || [];
+  const currentDate = raw?.currentDate || '';
+
+  // Find user's games
+  const userGames = schedule
+    .map((game, idx) => ({ ...game, _idx: idx }))
+    .filter(g => g.homeTeamId === userTeamId || g.awayTeamId === userTeamId);
+
+  // Lookup team name
+  const allTeams = [...(raw?.tier1Teams || []), ...(raw?.tier2Teams || []), ...(raw?.tier3Teams || [])];
+  const teamName = (id) => allTeams.find(t => t.id === id)?.name || 'Unknown';
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const handleSim = (gameIndex) => {
+    window._offseasonController?.simPreseasonGame?.(gameIndex);
+    if (refresh) refresh();
+  };
+
+  const handleWatch = (gameIndex) => {
+    window._offseasonController?.watchPreseasonGame?.(gameIndex);
+  };
+
+  // Preseason record
+  const wins = userGames.filter(g => g.played && g.winnerId === userTeamId).length;
+  const losses = userGames.filter(g => g.played && g.winnerId && g.winnerId !== userTeamId).length;
+
+  return (
+    <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border-subtle)', padding: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <CardLabel>Preseason Schedule</CardLabel>
+        {(wins > 0 || losses > 0) && (
+          <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+            {wins}-{losses}
+          </span>
+        )}
+      </div>
+      {userGames.length === 0 ? (
+        <div style={{ padding: '6px 0', fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
+          Preseason schedule will be generated when camp opens.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {userGames.map((game, i) => {
+            const isHome = game.homeTeamId === userTeamId;
+            const opponentId = isHome ? game.awayTeamId : game.homeTeamId;
+            const opponent = teamName(opponentId);
+            const prefix = isHome ? 'vs' : '@';
+            const isPast = game.date <= currentDate;
+            const userScore = game.played ? (isHome ? game.homeScore : game.awayScore) : null;
+            const oppScore = game.played ? (isHome ? game.awayScore : game.homeScore) : null;
+            const won = game.played && game.winnerId === userTeamId;
+
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '6px 0',
+                borderBottom: i < userGames.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-tertiary)', minWidth: 50 }}>
+                    {formatDate(game.date)}
+                  </span>
+                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-text-tertiary)', width: 16 }}>{prefix}</span>
+                  <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>{opponent}</span>
+                </div>
+                <div>
+                  {game.played ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{
+                        fontSize: 'var(--text-xs)', fontWeight: 700, padding: '1px 5px',
+                        background: won ? 'var(--color-win)' : 'var(--color-loss)',
+                        color: 'white',
+                      }}>{won ? 'W' : 'L'}</span>
+                      <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                        {userScore}-{oppScore}
+                      </span>
+                    </div>
+                  ) : isPast ? (
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button onClick={() => handleWatch(game._idx)} style={{
+                        padding: '3px 8px', fontSize: 'var(--text-xs)', fontWeight: 600,
+                        background: 'var(--color-accent)', color: 'var(--color-text-inverse)',
+                        border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                      }}>Watch</button>
+                      <button onClick={() => handleSim(game._idx)} style={{
+                        padding: '3px 8px', fontSize: 'var(--text-xs)', fontWeight: 600,
+                        background: 'transparent', border: '1px solid var(--color-border)',
+                        color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                      }}>Sim</button>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                      {formatDate(game.date)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Training Camp Dashboard ─────────────────────────────────────────────────
 function TrainingCampScreen({ campData, onNavigate }) {
   const { gameState, engines } = useGame();
@@ -1664,13 +1780,8 @@ function TrainingCampScreen({ campData, onNavigate }) {
 
         {/* Right column: schedule + notes */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gap)' }}>
-          {/* Preseason schedule placeholder */}
-          <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border-subtle)', padding: 'var(--space-4)' }}>
-            <CardLabel>Preseason Schedule</CardLabel>
-            <div style={{ padding: '6px 0', fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>
-              Preseason games coming in a future update.
-            </div>
-          </div>
+          {/* Preseason schedule */}
+          <PreseasonScheduleWidget />
 
           {/* Camp notes */}
           <div style={{ background: 'var(--color-bg-raised)', border: '1px solid var(--color-border-subtle)', padding: 'var(--space-4)' }}>

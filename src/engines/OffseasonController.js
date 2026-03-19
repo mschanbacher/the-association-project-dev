@@ -1548,7 +1548,10 @@ export class OffseasonController {
         const nextDate = engines.CalendarEngine.addDays(gameState.currentDate, 1);
         gameState.currentDate = nextDate;
         
-        console.log(`📅 [OFFSEASON] Simmed to ${nextDate}`);
+        console.log(`[OFFSEASON] Simmed to ${nextDate}`);
+        
+        // Auto-sim any preseason games on this date (non-user games)
+        this._autoSimPreseasonGames(nextDate);
         
         // Check for phase triggers based on new date
         this._checkDateTriggers(nextDate);
@@ -1569,7 +1572,10 @@ export class OffseasonController {
         const nextDate = engines.CalendarEngine.addDays(gameState.currentDate, 7);
         gameState.currentDate = nextDate;
         
-        console.log(`📅 [OFFSEASON] Simmed week to ${nextDate}`);
+        console.log(`[OFFSEASON] Simmed week to ${nextDate}`);
+        
+        // Auto-sim any preseason games up to this date (non-user games)
+        this._autoSimPreseasonGames(nextDate);
         
         // Check for phase triggers
         this._checkDateTriggers(nextDate);
@@ -1818,6 +1824,15 @@ export class OffseasonController {
             const totalCampDays = Math.round((cutdownDate - campOpenDate) / 86400000);
             const campDayNum = Math.max(1, Math.round((currentDateOnly - campOpenDate) / 86400000) + 1);
             
+            // Generate preseason schedule if not already generated
+            const TCE = engines.TrainingCampEngine;
+            if (!gameState._preseasonSchedule && TCE) {
+                const tierTeams = userTier === 1 ? gameState.tier1Teams : userTier === 2 ? gameState.tier2Teams : gameState.tier3Teams;
+                const campOpenStr = engines.CalendarEngine.toDateString(campOpenDate);
+                gameState._preseasonSchedule = TCE.generatePreseasonSchedule(tierTeams, campOpenStr, totalCampDays);
+                console.log(`[PRESEASON] Generated ${gameState._preseasonSchedule.length} preseason games`);
+            }
+            
             // Show training camp dashboard in hub
             if (window._reactShowTrainingCamp) {
                 window._reactShowTrainingCamp({
@@ -1914,6 +1929,154 @@ export class OffseasonController {
         
         console.log(`[CAMP T${tier}] ${invitesSigned} invites signed (pool ${poolBefore} -> ${poolAfterInvites}), ${totalCut} cut back to pool (now ${gameState.freeAgents.length}), ${totalImproved} players improved`);
         helpers.saveGameState();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Preseason Games
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Simulate a single preseason game (instant result, no W/L impact).
+     * @param {number} gameIndex - Index in _preseasonSchedule
+     * @returns {Object|null} Result with scores, or null if invalid
+     */
+    simPreseasonGame(gameIndex) {
+        const { gameState, engines, helpers } = this.ctx;
+        const schedule = gameState._preseasonSchedule;
+        if (!schedule || !schedule[gameIndex] || schedule[gameIndex].played) return null;
+
+        const game = schedule[gameIndex];
+        const allTeams = [...(gameState.tier1Teams || []), ...(gameState.tier2Teams || []), ...(gameState.tier3Teams || [])];
+        const home = allTeams.find(t => t.id === game.homeTeamId);
+        const away = allTeams.find(t => t.id === game.awayTeamId);
+        if (!home || !away) return null;
+
+        const result = engines.GamePipeline.resolve(home, away, {
+            isPlayoffs: false,
+            tier: home.tier || 1,
+            lightweight: true,
+        });
+
+        game.played = true;
+        game.homeScore = result.homeScore;
+        game.awayScore = result.awayScore;
+        game.winnerId = result.homeWon ? home.id : away.id;
+
+        console.log(`[PRESEASON] ${home.name} ${result.homeScore} - ${result.awayScore} ${away.name}`);
+        helpers.saveGameState();
+        if (window._notifyReact) window._notifyReact();
+        return result;
+    }
+
+    /**
+     * Start watching a preseason game (step-by-step via WatchGameModal).
+     * @param {number} gameIndex - Index in _preseasonSchedule
+     */
+    watchPreseasonGame(gameIndex) {
+        const { gameState, engines, helpers } = this.ctx;
+        const schedule = gameState._preseasonSchedule;
+        if (!schedule || !schedule[gameIndex] || schedule[gameIndex].played) return;
+
+        const game = schedule[gameIndex];
+        const allTeams = [...(gameState.tier1Teams || []), ...(gameState.tier2Teams || []), ...(gameState.tier3Teams || [])];
+        const home = allTeams.find(t => t.id === game.homeTeamId);
+        const away = allTeams.find(t => t.id === game.awayTeamId);
+        if (!home || !away) return;
+
+        const userIsHome = home.id === gameState.userTeamId;
+
+        // Store reference so we can record result when game completes
+        this._preseasonWatchIndex = gameIndex;
+
+        // Create step-by-step game
+        const pipeline = engines.GamePipeline.create(home, away, {
+            isPlayoffs: false,
+            tier: home.tier || 1,
+        });
+
+        // Stash on the simulation controller so WatchGameModal can drive it
+        const simController = helpers.getSimulationController?.();
+        if (simController) {
+            simController._watchGame = pipeline;
+            simController._watchHomeTeam = home;
+            simController._watchAwayTeam = away;
+            simController._watchHomeName = home.name;
+            simController._watchAwayName = away.name;
+            simController._watchDate = game.date;
+            simController._watchPaused = false;
+            simController._watchSpeed = 1;
+            simController._isPreseasonWatch = true;
+        }
+
+        // Show WatchGameModal
+        if (window._reactShowWatchGame) {
+            window._reactShowWatchGame({
+                homeName: home.name,
+                awayName: away.name,
+                homeTeamFullName: home.name,
+                awayTeamFullName: away.name,
+                userIsHome,
+                isPreseason: true,
+            });
+        }
+
+        // Start the watch timer
+        if (simController?._startWatchTimer) {
+            simController._startWatchTimer();
+        }
+    }
+
+    /**
+     * Record the result of a watched preseason game.
+     * Called when WatchGameModal completes.
+     */
+    recordPreseasonWatchResult() {
+        const { gameState, helpers } = this.ctx;
+        const simController = helpers.getSimulationController?.();
+        if (!simController?._isPreseasonWatch) return;
+
+        const idx = this._preseasonWatchIndex;
+        const schedule = gameState._preseasonSchedule;
+        if (idx == null || !schedule?.[idx]) return;
+
+        const game = schedule[idx];
+        const pipeline = simController._watchGame;
+        if (pipeline?.isComplete) {
+            const result = pipeline.getResult();
+            game.played = true;
+            game.homeScore = result.homeScore;
+            game.awayScore = result.awayScore;
+            game.winnerId = result.homeWon ? game.homeTeamId : game.awayTeamId;
+        }
+
+        simController._isPreseasonWatch = false;
+        this._preseasonWatchIndex = null;
+        helpers.saveGameState();
+        if (window._notifyReact) window._notifyReact();
+    }
+
+    /**
+     * Auto-sim any preseason games whose date has passed.
+     * Called from simOffseasonDay/simOffseasonWeek.
+     */
+    _autoSimPreseasonGames(currentDateStr) {
+        const { gameState, engines } = this.ctx;
+        const schedule = gameState._preseasonSchedule;
+        if (!schedule) return;
+
+        const userTeamId = gameState.userTeamId;
+
+        for (let i = 0; i < schedule.length; i++) {
+            const game = schedule[i];
+            if (game.played) continue;
+            if (game.date > currentDateStr) continue;
+
+            // Skip user's unplayed games — they get to choose Sim/Watch
+            if (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId) continue;
+
+            // Auto-sim non-user games
+            this.simPreseasonGame(i);
+        }
     }
 
     /**
