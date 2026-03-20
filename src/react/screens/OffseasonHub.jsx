@@ -29,7 +29,6 @@ const OFFSEASON_PHASES = [
   { key: 'draft', label: 'Draft', month: 5, day: 15 },              // Jun 15
   { key: 'contracts_expire', label: 'Exp', month: 5, day: 30 },     // Jun 30
   { key: 'free_agency', label: 'FA', month: 6, day: 1 },            // Jul 1
-  { key: 'development', label: 'Dev', month: 7, day: 1 },           // Aug 1
   { key: 'training_camp', label: 'Camp', dynamic: true },            // Tier-specific
   { key: 'season_start', label: 'Ready', dynamic: true },            // Tier-specific
 ];
@@ -96,7 +95,6 @@ const NAV_ITEMS = [
   { id: 'roster', label: 'Roster' },
   { id: 'draft', label: 'Draft' },
   { id: 'freeagency', label: 'Free Agency' },
-  { id: 'development', label: 'Development' },
   { id: 'contracts', label: 'Contracts' },
   { id: 'trades', label: 'Trades' },
   { id: 'scouting', label: 'Scouting' },

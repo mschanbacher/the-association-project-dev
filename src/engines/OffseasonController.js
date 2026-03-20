@@ -1606,7 +1606,7 @@ export class OffseasonController {
             ...(userTier === 1 ? [{ date: seasonDates.draftDay, label: 'Draft Day', done: !!(gameState._draftStarted || gameState._draftComplete) }] : []),
             { date: seasonDates.contractExpiration, label: 'Contract Expiration', done: !!gameState._contractExpirationComplete },
             { date: seasonDates.freeAgencyStart, label: 'Free Agency', done: !!(gameState._freeAgencyStarted || gameState._freeAgencyComplete) },
-            { date: seasonDates.playerDevelopment, label: 'Development', done: !!gameState._developmentComplete },
+            // Development runs silently (no stop) so it's not in this list
             { date: userCampOpen, label: 'Training Camp', done: !!gameState._userCampStarted },
             { date: userCutdown, label: 'Cutdown Day', done: !!gameState._userCampComplete },
         ];
@@ -1764,20 +1764,10 @@ export class OffseasonController {
         
         // Player Development (Aug 1) - NOW only handles aging, ratings, retirements (not contracts)
         if (dateGTE(currentDateOnly, seasonDates.playerDevelopment) && !gameState._developmentComplete) {
-            console.log('📈 [OFFSEASON] Development reached — triggering via hub');
-            this.setPhase(P.DEVELOPMENT);
-            
-            // Run development and send results to hub
-            const developmentResult = this.applyPlayerDevelopment();
-            if (window._reactShowDevelopment) {
-                window._reactShowDevelopment({
-                    developmentLog: developmentResult?.developmentLog || [],
-                    retirements: gameState._userTeamRetirements || [],
-                    notableRetirements: gameState._seasonRetirements?.filter(r => r.peakRating >= 80) || []
-                });
-            }
+            console.log('[OFFSEASON] Running player development silently (aging, retirements, healing, fatigue reset)');
+            this.applyPlayerDevelopment();
             gameState._developmentComplete = true;
-            return;
+            // Don't return — allow camp triggers to fire on the same sim tick
         }
         
         // ─── STAGGERED TRAINING CAMP ─────────────────────────────────────────
