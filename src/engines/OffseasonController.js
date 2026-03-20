@@ -2128,81 +2128,18 @@ export class OffseasonController {
     }
 
     /**
-     * Run draft without UI (for quick sim)
-     * For T1: runs full draft with AI picks, user's picks go to best available
+     * Run draft without UI (for quick sim / T2+T3 silent flow).
+     * Delegates to DraftController.runSilently() which handles everything:
+     * prospect generation, lottery, all picks, undrafted to FA, college grads, roster trim.
      */
     runDraftSilently() {
-        const { gameState, engines, helpers } = this.ctx;
-        
-        // Generate draft class if needed
-        if (!gameState.draftClass || gameState.draftClass.length === 0) {
-            const startId = gameState.getNextPlayerId(100);
-            gameState.draftClass = engines.DraftEngine.generateDraftProspects(
-                gameState.currentSeason,
-                { PlayerAttributes: engines.PlayerAttributes, TeamFactory: engines.TeamFactory },
-                startId
-            );
+        const { helpers } = this.ctx;
+        const draftController = helpers.getDraftController?.();
+        if (draftController) {
+            draftController.runSilently();
+        } else {
+            console.warn('[OFFSEASON] DraftController not available for silent draft');
         }
-        
-        // Run lottery silently
-        const promotedTeamIds = gameState.postseasonResults?.promoted?.toT1?.map(t => t.id) || [];
-        const lotteryData = engines.DraftEngine.simulateDraftLottery(gameState.tier1Teams, promotedTeamIds);
-        const lotteryResults = lotteryData.lotteryResults;
-        gameState._lotteryResults = lotteryResults;
-        
-        // Run full draft - AI makes all picks (user's picks go to best available)
-        const draftOrder = engines.DraftEngine.generateDraftOrder(
-            gameState.tier1Teams,
-            lotteryResults,
-            gameState.draftPickOwnership
-        );
-        
-        const prospects = [...gameState.draftClass];
-        const results = [];
-        
-        draftOrder.forEach((pick, idx) => {
-            if (prospects.length === 0) return;
-            
-            // Pick best available
-            prospects.sort((a, b) => b.rating - a.rating);
-            const selection = prospects.shift();
-            
-            const team = gameState.tier1Teams.find(t => t.id === pick.teamId);
-            if (team && selection) {
-                // Sign rookie
-                selection.salary = engines.TeamFactory?.generateRookieSalary?.(idx + 1) || 1500000;
-                selection.contractYears = 4;
-                selection.tier = 1;
-                team.roster.push(selection);
-                
-                results.push({
-                    pick: idx + 1,
-                    round: idx < 30 ? 1 : 2,
-                    teamId: team.id,
-                    teamName: team.name,
-                    player: selection
-                });
-            }
-        });
-        
-        gameState._draftResults = results;
-        gameState._draftComplete = true;
-        
-        // Undrafted prospects go to FA pool
-        const undrafted = prospects.length;
-        prospects.forEach(prospect => {
-            prospect.isDraftProspect = false;
-            gameState.freeAgents.push(prospect);
-        });
-        gameState.draftClass = []; // Clear draft class
-        
-        // Generate college graduates and add to FA pool (replaces standalone College FA phase)
-        const cgStartId = gameState.getNextPlayerId(120);
-        const graduates = engines.TeamFactory?.generateCollegeGraduateClass?.(cgStartId, { PlayerAttributes: engines.PlayerAttributes }) || [];
-        graduates.forEach(g => { g.previousTeamId = null; gameState.freeAgents.push(g); });
-        gameState._collegeFAComplete = true;
-        
-        console.log(`🎰 [OFFSEASON] Draft complete silently: ${results.length} picks, ${undrafted} undrafted + ${graduates.length} college grads to FA`);
     }
 
     /**

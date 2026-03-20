@@ -638,6 +638,77 @@ export class DraftController {
             graduates.forEach(g => { g.previousTeamId = null; gameState.freeAgents.push(g); });
         }
 
-        console.log(`🎓 AI College Grad Results: ${totalSigned} signed by AI teams, ${unsigned} entered general FA pool`);
+        console.log(`AI College Grad Results: ${totalSigned} signed by AI teams, ${unsigned} entered general FA pool`);
+    }
+
+    /**
+     * Run the entire draft silently (no UI). Used for T2/T3 users
+     * and quick-sim paths. Generates prospects, runs lottery, makes
+     * all picks as AI (including user's picks as best-available),
+     * handles undrafted, college grads, and roster trim.
+     */
+    runSilently() {
+        const { gameState, helpers } = this.ctx;
+
+        // Generate prospects
+        const prospects = this.generateDraftProspects();
+        if (!gameState.draftClass || gameState.draftClass.length === 0) {
+            gameState.draftClass = prospects;
+        }
+
+        // Generate draft order (runs lottery internally)
+        const draftOrder = this.generateDraftOrder();
+
+        // Set up draft state (executeDraft/processDraftPick/aiDraftPick read from this)
+        window.currentDraftState = {
+            prospects: [...gameState.draftClass],
+            draftOrder,
+            results: [],
+            currentPickIndex: 0,
+        };
+
+        // Run all picks as AI
+        const state = window.currentDraftState;
+        while (state.currentPickIndex < state.draftOrder.length && state.prospects.length > 0) {
+            this.aiDraftPick(state.draftOrder[state.currentPickIndex]);
+            state.currentPickIndex++;
+        }
+
+        // Finalize: undrafted to FA, college grads, roster trim, mark complete
+        // finalizeDraft calls showDraftResults which sets up UI callbacks,
+        // so we do the finalization inline to skip UI
+        gameState._draftComplete = true;
+        gameState._draftStarted = true;
+
+        // Undrafted to FA
+        state.prospects.forEach(prospect => {
+            prospect.previousTeamId = null;
+            gameState.freeAgents.push(prospect);
+        });
+
+        // College graduates to FA
+        const graduates = this.generateCollegeGraduateClass();
+        graduates.forEach(g => { g.previousTeamId = null; gameState.freeAgents.push(g); });
+        gameState._collegeFAComplete = true;
+
+        // Post-draft roster trim to 20
+        const MAX_OFFSEASON_ROSTER = 20;
+        const allTeams = [...gameState.tier1Teams, ...gameState.tier2Teams, ...gameState.tier3Teams];
+        allTeams.forEach(team => {
+            if (!team.roster || team.roster.length <= MAX_OFFSEASON_ROSTER) return;
+            team.roster.sort((a, b) => a.rating - b.rating);
+            const excess = team.roster.length - MAX_OFFSEASON_ROSTER;
+            const cut = team.roster.splice(0, excess);
+            cut.forEach(player => {
+                player.contractYears = player.contractYears || 1;
+                gameState.freeAgents.push(player);
+            });
+        });
+
+        gameState.draftClass = [];
+        gameState._draftResults = state.results;
+        delete window.currentDraftState;
+
+        console.log(`[DRAFT] Complete silently: ${state.results.length} picks, ${graduates.length} college grads to FA`);
     }
 }
