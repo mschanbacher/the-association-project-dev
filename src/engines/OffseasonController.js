@@ -2073,17 +2073,12 @@ export class OffseasonController {
         const schedule = gameState._preseasonSchedule;
         if (!schedule) return;
 
-        const userTeamId = gameState.userTeamId;
-
         for (let i = 0; i < schedule.length; i++) {
             const game = schedule[i];
             if (game.played) continue;
-            if (game.date > currentDateStr) continue;
+            // Only auto-sim games from BEFORE today — today's game gets Watch/Sim buttons
+            if (game.date >= currentDateStr) continue;
 
-            // Skip user's unplayed games — they get to choose Sim/Watch
-            if (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId) continue;
-
-            // Auto-sim non-user games
             this.simPreseasonGame(i);
         }
     }
