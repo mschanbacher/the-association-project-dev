@@ -1602,8 +1602,7 @@ export class OffseasonController {
         const userCutdown = userTier === 1 ? seasonDates.t1Cutdown : userTier === 2 ? seasonDates.t2Cutdown : seasonDates.t3Cutdown;
         
         const eventDates = [
-            // Draft is interactive for T1 only; for T2/T3 it runs silently, skip it
-            ...(userTier === 1 ? [{ date: seasonDates.draftDay, label: 'Draft Day', done: !!(gameState._draftStarted || gameState._draftComplete) }] : []),
+            { date: seasonDates.draftDay, label: 'Draft Day', done: !!(gameState._draftStarted || gameState._draftComplete) },
             { date: seasonDates.contractExpiration, label: 'Contract Expiration', done: !!gameState._contractExpirationComplete },
             { date: seasonDates.freeAgencyStart, label: 'Free Agency', done: !!(gameState._freeAgencyStarted || gameState._freeAgencyComplete) },
             // Development runs silently (no stop) so it's not in this list
@@ -1723,6 +1722,16 @@ export class OffseasonController {
                 });
             }
             return; // Only trigger one event per sim
+        }
+        
+        // Draft Day (Jun 15) — T2/T3 users: run draft silently, show results
+        if (dateGTE(currentDateOnly, seasonDates.draftDay) && !gameState._draftComplete && !gameState._draftStarted && userTier !== 1) {
+            console.log('[OFFSEASON] Draft day reached (T2/T3) — running silently');
+            const draftController = helpers.getDraftController?.();
+            if (draftController) {
+                draftController.runSilently();
+            }
+            return; // Stop here so user sees draft results
         }
         
         // College FA (Jun 22) — trigger for T2/T3

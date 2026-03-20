@@ -65,15 +65,12 @@ export class DraftController {
     // Draft Order Generation (Tier 1 only, with lottery)
     // ═══════════════════════════════════════════════════════════════════
 
-    generateDraftOrder() {
+    generateDraftOrder(silent = false) {
         const { gameState, helpers } = this.ctx;
 
-        console.log('📋 Generating draft order (Tier 1 only with lottery)...');
-        console.log(`📅 Current season: ${gameState.currentSeason}`);
+        console.log('Generating draft order (Tier 1 only with lottery)...');
 
         const draftYear = gameState.currentSeason;
-        console.log(`🎓 Draft year: ${draftYear}`);
-        console.log('📋 Draft pick ownership structure:', JSON.stringify(gameState.draftPickOwnership, null, 2));
 
         const draftOrder = [];
         const tier1Teams = [...gameState.tier1Teams];
@@ -81,7 +78,9 @@ export class DraftController {
 
         // Run lottery
         const lotteryData = this.simulateDraftLottery(tier1Teams, promotedTeamIds);
-        this.showLotteryResults(lotteryData);
+        if (!silent) {
+            this.showLotteryResults(lotteryData);
+        }
 
         // Round 1: Lottery results (picks 1-14) + Playoff teams (picks 15-30)
         lotteryData.lotteryResults.forEach((result, index) => {
@@ -656,10 +655,10 @@ export class DraftController {
             gameState.draftClass = prospects;
         }
 
-        // Generate draft order (runs lottery internally)
-        const draftOrder = this.generateDraftOrder();
+        // Generate draft order (silent = true skips lottery UI)
+        const draftOrder = this.generateDraftOrder(true);
 
-        // Set up draft state (executeDraft/processDraftPick/aiDraftPick read from this)
+        // Set up draft state (aiDraftPick reads from this)
         window.currentDraftState = {
             prospects: [...gameState.draftClass],
             draftOrder,
@@ -674,9 +673,6 @@ export class DraftController {
             state.currentPickIndex++;
         }
 
-        // Finalize: undrafted to FA, college grads, roster trim, mark complete
-        // finalizeDraft calls showDraftResults which sets up UI callbacks,
-        // so we do the finalization inline to skip UI
         gameState._draftComplete = true;
         gameState._draftStarted = true;
 
@@ -710,5 +706,13 @@ export class DraftController {
         delete window.currentDraftState;
 
         console.log(`[DRAFT] Complete silently: ${state.results.length} picks, ${graduates.length} college grads to FA`);
+
+        // Show draft results to T2/T3 users so they can see who was drafted
+        if (window._reactShowDraftResults) {
+            window._reactShowDraftResults({
+                results: gameState._draftResults,
+                getRatingColor: helpers.getRatingColor,
+            });
+        }
     }
 }
