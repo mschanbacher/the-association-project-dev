@@ -129,6 +129,8 @@ export class RosterController {
 
         const droppedPlayer = userTeam.roster[playerIndex];
         userTeam.roster.splice(playerIndex, 1);
+        // Create new array reference so React detects the mutation
+        userTeam.roster = [...userTeam.roster];
         helpers.applyDropPenalty(userTeam, droppedPlayer);
         gameState.freeAgents.push(droppedPlayer);
 
