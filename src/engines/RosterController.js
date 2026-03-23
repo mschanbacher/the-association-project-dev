@@ -135,8 +135,8 @@ export class RosterController {
         console.log(`Dropped ${droppedPlayer.name} (${helpers.formatCurrency(droppedPlayer.salary)}) from roster`);
 
         this.updateRosterDisplay();
-        helpers.displayFreeAgents();
         helpers.saveGameState();
+        if (window._notifyReact) window._notifyReact();
     }
 
     signPlayer(playerId) {
@@ -176,8 +176,8 @@ export class RosterController {
         });
 
         this.updateRosterDisplay();
-        helpers.displayFreeAgents();
         helpers.saveGameState();
+        if (window._notifyReact) window._notifyReact();
     }
 
     // ═══════════════════════════════════════════════════════════════════
