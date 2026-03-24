@@ -1242,37 +1242,8 @@ export class GameSimController {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // Promotion/Relegation Playoffs (startPlayoffs flow)
+    // Promotion/Relegation Playoffs (legacy helpers)
     // ═══════════════════════════════════════════════════════════════════
-
-    startPlayoffs(type) {
-        const { gameState, helpers } = this.ctx;
-        console.log('🎮 startPlayoffs called with type:', type);
-        // [LEGACY DOM] document.getElementById('seasonEndModal').classList.add('hidden');
-
-        const teams = helpers.getCurrentTeams();
-        const sortedTeams = helpers.sortTeamsByStandings(teams, gameState.schedule);
-
-        let playoffTeams, isPromotion, isDivisionPlayoff = false;
-
-        if (type === 'division-playoff') {
-            const userTeam = teams.find(t => t.id === gameState.userTeamId);
-            const divisionTeams = teams.filter(t => t.division === userTeam.division);
-            const divisionSorted = helpers.sortTeamsByStandings(divisionTeams, gameState.schedule);
-            playoffTeams = divisionSorted.slice(0, 4);
-            isPromotion = false;
-            isDivisionPlayoff = true;
-        } else if (type === 'promotion-playoff') {
-            playoffTeams = sortedTeams.slice(1, 4);
-            isPromotion = true;
-        } else {
-            playoffTeams = sortedTeams.slice(-3);
-            isPromotion = false;
-        }
-
-        const results = this.simulatePlayoffBracket(playoffTeams, isPromotion, isDivisionPlayoff);
-        this.showPlayoffResults(results, isPromotion, isDivisionPlayoff);
-    }
 
     simulatePlayoffBracket(teams, isPromotion, isDivisionPlayoff = false) {
         if (teams.length === 4) {
@@ -1362,22 +1333,6 @@ export class GameSimController {
             // results, isPromotion, isDivisionPlayoff, msg, userResult, userInvolved
         // });
         // [LEGACY DOM] document.getElementById('playoffModal').classList.remove('hidden');
-    }
-
-    viewPromRelPlayoffResults() {
-        const { results, isPromotion, isDivisionPlayoff } = window.currentPromRelResults;
- const playoffTitle = isDivisionPlayoff ? 'Division Playoffs' :
- (isPromotion ? 'Promotion Playoffs' : 'Relegation Playoffs');
-        if (window._reactShowPlayoff) {
-            window._reactShowPlayoff({
-                results, isPromotion, isDivisionPlayoff,
-                msg: null, userResult: 'not-involved', userInvolved: false
-            });
-            return;
-        }
-        // [LEGACY REMOVED] document.getElementById('playoffContent').innerHTML = UIRenderer.promRelPlayoffResults({
-            // results, isPromotion, isDivisionPlayoff, playoffTitle
-        // });
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -2823,66 +2778,6 @@ export class GameSimController {
         this._finishT3Playoffs();
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Simulate Other Tiers to Completion
-    // ═══════════════════════════════════════════════════════════════════
-
-    simulateOtherTiersToCompletion() {
-        const { gameState, helpers } = this.ctx;
-
-        if (gameState.currentTier !== 1) {
-            console.log('Simulating Tier 1 to completion...');
-            gameState.tier1Teams.forEach(t => { t.wins = 0; t.losses = 0; t.pointDiff = 0; });
-            const tier1Schedule = helpers.generateSchedule(gameState.tier1Teams, 82);
-            tier1Schedule.forEach(game => {
-                const h = gameState.tier1Teams.find(t => t.id === game.homeTeamId);
-                const a = gameState.tier1Teams.find(t => t.id === game.awayTeamId);
-                if (h && a) helpers.simulateGame(h, a);
-            });
-        }
-        if (gameState.currentTier !== 2) {
-            console.log('Simulating Tier 2 to completion...');
-            gameState.tier2Teams.forEach(t => { t.wins = 0; t.losses = 0; t.pointDiff = 0; });
-            const tier2Schedule = helpers.generateSchedule(gameState.tier2Teams, 60);
-            tier2Schedule.forEach(game => {
-                const h = gameState.tier2Teams.find(t => t.id === game.homeTeamId);
-                const a = gameState.tier2Teams.find(t => t.id === game.awayTeamId);
-                if (h && a) helpers.simulateGame(h, a);
-            });
-        }
-        if (gameState.currentTier !== 3) {
-            console.log('Simulating Tier 3 to completion...');
-            gameState.tier3Teams.forEach(t => { t.wins = 0; t.losses = 0; t.pointDiff = 0; });
-            const tier3Schedule = helpers.generateSchedule(gameState.tier3Teams, 40);
-            tier3Schedule.forEach(game => {
-                const h = gameState.tier3Teams.find(t => t.id === game.homeTeamId);
-                const a = gameState.tier3Teams.find(t => t.id === game.awayTeamId);
-                if (h && a) helpers.simulateGame(h, a);
-            });
-        }
-        console.log('✅ All other tiers simulated to completion');
-    }
-
-    simulateOtherTier() {
-        const { gameState, helpers } = this.ctx;
-
-        if (gameState.currentTier !== 1) {
-            gameState.tier1Teams.forEach(t => { t.wins = 0; t.losses = 0; t.pointDiff = 0; });
-            const s = helpers.generateSchedule(gameState.tier1Teams, 82);
-            s.forEach(g => { const h = gameState.tier1Teams.find(t => t.id === g.homeTeamId); const a = gameState.tier1Teams.find(t => t.id === g.awayTeamId); helpers.simulateGame(h, a); });
-        }
-        if (gameState.currentTier !== 2) {
-            gameState.tier2Teams.forEach(t => { t.wins = 0; t.losses = 0; t.pointDiff = 0; });
-            const s = helpers.generateSchedule(gameState.tier2Teams, 60);
-            s.forEach(g => { const h = gameState.tier2Teams.find(t => t.id === g.homeTeamId); const a = gameState.tier2Teams.find(t => t.id === g.awayTeamId); helpers.simulateGame(h, a); });
-        }
-        if (gameState.currentTier !== 3) {
-            gameState.tier3Teams.forEach(t => { t.wins = 0; t.losses = 0; t.pointDiff = 0; });
-            const s = helpers.generateSchedule(gameState.tier3Teams, 40);
-            s.forEach(g => { const h = gameState.tier3Teams.find(t => t.id === g.homeTeamId); const a = gameState.tier3Teams.find(t => t.id === g.awayTeamId); helpers.simulateGame(h, a); });
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════════
     // CALENDAR-BASED PLAYOFF SIMULATION
     // These methods work with playoffSchedule (generated by PlayoffEngine.generatePlayoffSchedule)
@@ -3911,38 +3806,6 @@ export class GameSimController {
 
     // ─── Helper: Get current playoff round ───────────────────────────────────────
 
-    _getCurrentPlayoffRound() {
-        const { gameState, engines } = this.ctx;
-        const schedule = gameState.playoffSchedule;
-        
-        if (!schedule) return null;
-        
-        // Find earliest round with incomplete series
-        const roundOrder = [
-            'Round1', 'DivSemi', 'DivFinal', 'MetroFinal',
-            'Regional', 'NatRound1', 'Sweet16',
-            'Round2', 'NatQuarter', 'Quarter',
-            'ConfFinals', 'NatSemi', 'Semi',
-            'ThirdPlace', 'Finals'
-        ];
-        
-        for (const round of roundOrder) {
-            const roundGames = schedule.games.filter(g => g.round === round);
-            if (roundGames.length === 0) continue;
-            
-            // Check if any series in this round is incomplete
-            const seriesIds = [...new Set(roundGames.map(g => g.seriesId))];
-            for (const seriesId of seriesIds) {
-                const state = engines.PlayoffEngine.getSeriesState(schedule, seriesId);
-                if (!state.complete && state.gamesPlayed >= 0) {
-                    return round;
-                }
-            }
-        }
-        
-        return null;
-    }
-
     /**
      * Get current playoff round for a specific tier.
      */
@@ -3981,26 +3844,6 @@ export class GameSimController {
         }
         
         return null;
-    }
-
-    /**
-     * Check if a specific round is complete (all series decided).
-     */
-    _isRoundComplete(round) {
-        const { gameState, engines } = this.ctx;
-        const schedule = gameState.playoffSchedule;
-        
-        if (!schedule) return true;
-        
-        const roundGames = schedule.games.filter(g => g.round === round);
-        const seriesIds = [...new Set(roundGames.map(g => g.seriesId))];
-        
-        for (const seriesId of seriesIds) {
-            const state = engines.PlayoffEngine.getSeriesState(schedule, seriesId);
-            if (!state.complete) return false;
-        }
-        
-        return true;
     }
 
     /**

@@ -327,66 +327,6 @@ class GameState {
         throw new Error('Invalid tier');
     }
     
-    /**
-     * Promote a team to a higher tier
-     */
-    promoteTeam(teamId, toTier) {
-        const team = this.getTeamById(teamId);
-        if (!team) throw new Error('Team not found');
-        
-        const fromTier = team.tier;
-        if (fromTier <= toTier) throw new Error('Can only promote to higher tier');
-        
-        // Remove from old tier
-        const fromArray = this.getTeamsByTier(fromTier);
-        const index = fromArray.findIndex(t => t.id === teamId);
-        if (index !== -1) fromArray.splice(index, 1);
-        
-        // Add to new tier
-        team.tier = toTier;
-        const toArray = this.getTeamsByTier(toTier);
-        toArray.push(team);
-        
-        // Track promotion to T1 for compensatory picks
-        if (toTier === 1) {
-            if (!this._promotedToT1.includes(teamId)) {
-                this._promotedToT1.push(teamId);
-            }
-        }
-        
-        console.log(`✅ ${team.name} promoted from Tier ${fromTier} to Tier ${toTier}`);
-    }
-    
-    /**
-     * Relegate a team to a lower tier
-     */
-    relegateTeam(teamId, toTier) {
-        const team = this.getTeamById(teamId);
-        if (!team) throw new Error('Team not found');
-        
-        const fromTier = team.tier;
-        if (fromTier >= toTier) throw new Error('Can only relegate to lower tier');
-        
-        // Remove from old tier
-        const fromArray = this.getTeamsByTier(fromTier);
-        const index = fromArray.findIndex(t => t.id === teamId);
-        if (index !== -1) fromArray.splice(index, 1);
-        
-        // Add to new tier
-        team.tier = toTier;
-        const toArray = this.getTeamsByTier(toTier);
-        toArray.push(team);
-        
-        // Track relegation from T1
-        if (fromTier === 1) {
-            if (!this._relegatedFromT1.includes(teamId)) {
-                this._relegatedFromT1.push(teamId);
-            }
-        }
-        
-        console.log(`⬇️ ${team.name} relegated from Tier ${fromTier} to Tier ${toTier}`);
-    }
-    
     // ============================================
     // SCHEDULE MANAGEMENT
     // ============================================
@@ -401,21 +341,6 @@ class GameState {
     }
     
     /**
-     * Get next unplayed game
-     */
-    getNextGame() {
-        return this._schedule.find(g => !g.played);
-    }
-    
-    /**
-     * Mark a game as played
-     */
-    markGamePlayed(game) {
-        game.played = true;
-        this._currentGame++;
-    }
-    
-    /**
      * Check if season is complete (all tiers' regular season games played)
      */
     isSeasonComplete() {
@@ -424,13 +349,6 @@ class GameState {
         const t2Done = !this._tier2Schedule || this._tier2Schedule.length === 0 || this._tier2Schedule.every(g => g.played);
         const t3Done = !this._tier3Schedule || this._tier3Schedule.length === 0 || this._tier3Schedule.every(g => g.played);
         return t1Done && t2Done && t3Done;
-    }
-    
-    /**
-     * Get remaining games
-     */
-    getRemainingGames() {
-        return this._schedule.filter(g => !g.played).length;
     }
     
     /**
@@ -565,94 +483,6 @@ class GameState {
         });
         
         return picks;
-    }
-    
-    // ============================================
-    // SEASON PROGRESSION
-    // ============================================
-    
-    /**
-     * Advance to the next season
-     */
-    advanceSeason() {
-        console.log(`\n🎯 Advancing from ${this._currentSeason}-${(this._currentSeason + 1) % 100} to ${this._currentSeason + 1}-${(this._currentSeason + 2) % 100}`);
-        
-        this._currentSeason++;
-        this._currentGame = 0;
-        
-        // Clear promotion/relegation tracking
-        this._promotedToT1 = [];
-        this._relegatedFromT1 = [];
-        
-        console.log(`✅ Season advanced to ${this._currentSeason}-${(this._currentSeason + 1) % 100}`);
-    }
-    
-    /**
-     * Record season in history
-     */
-    recordSeasonInHistory(rank, wins, losses, pointDiff) {
-        this._seasonHistory.push({
-            season: `${this._currentSeason}-${(this._currentSeason + 1) % 100}`,
-            tier: this._currentTier,
-            wins: wins,
-            losses: losses,
-            rank: rank,
-            pointDiff: pointDiff
-        });
-    }
-    
-    /**
-     * Record championship
-     */
-    recordChampionship(teamName, tier) {
-        this._championshipHistory.push({
-            season: `${this._currentSeason}-${(this._currentSeason + 1) % 100}`,
-            champion: teamName,
-            tier: tier
-        });
-    }
-    
-    // ============================================
-    // VALIDATION & INTEGRITY
-    // ============================================
-    
-    /**
-     * Validate game state integrity
-     */
-    validate() {
-        const issues = [];
-        
-        // Check tier sizes
-        if (this._tier1Teams.length !== 30) {
-            issues.push(`Tier 1 has ${this._tier1Teams.length} teams (expected 30)`);
-        }
-        
-        // Check user team exists
-        if (this._userTeamId === null) {
-            issues.push('No user team selected');
-        } else if (!this.getTeamById(this._userTeamId)) {
-            issues.push('User team ID is invalid');
-        }
-        
-        // Check schedules match teams
-        const currentSchedule = this.getCurrentSchedule();
-        currentSchedule.forEach(game => {
-            if (!this.getTeamById(game.homeTeamId)) {
-                issues.push(`Schedule references non-existent home team ${game.homeTeamId}`);
-            }
-            if (!this.getTeamById(game.awayTeamId)) {
-                issues.push(`Schedule references non-existent away team ${game.awayTeamId}`);
-            }
-        });
-        
-        if (issues.length > 0) {
-            console.warn('⚠️ GameState validation issues:');
-            issues.forEach(issue => console.warn(`  - ${issue}`));
-        } else {
-            console.log('✅ GameState validation passed');
-        }
-        
-        return issues.length === 0;
     }
     
     // ============================================
@@ -1045,40 +875,5 @@ class GameState {
         console.log(`📁 Game loaded: Season ${state._currentSeason}, ${state._tier1Teams.length + state._tier2Teams.length + state._tier3Teams.length} teams${isV2 ? ' (v2+ compressed)' : ''}`);
         
         return state;
-    }
-    
-    // ============================================
-    // UTILITY METHODS
-    // ============================================
-    
-    /**
-     * Get a summary of the game state
-     */
-    getSummary() {
-        const userTeam = this.getUserTeam();
-        return {
-            season: `${this._currentSeason}-${(this._currentSeason + 1) % 100}`,
-            tier: this._currentTier,
-            userTeam: userTeam ? userTeam.name : 'None',
-            gamesPlayed: this.getGamesPlayed(),
-            totalGames: this.getTotalGamesInSeason(),
-            teamsCount: this.getAllTeams().length,
-            freeAgentsCount: this._freeAgents.length
-        };
-    }
-    
-    /**
-     * Print debug info
-     */
-    debug() {
-        console.log('=== GAME STATE DEBUG ===');
-        console.log('Season:', `${this._currentSeason}-${(this._currentSeason + 1) % 100}`);
-        console.log('Tier:', this._currentTier);
-        console.log('Mode:', this._currentMode);
-        console.log('User Team:', this.getUserTeam()?.name || 'None');
-        console.log('Games:', `${this.getGamesPlayed()}/${this.getTotalGamesInSeason()}`);
-        console.log('Teams:', `T1: ${this._tier1Teams.length}, T2: ${this._tier2Teams.length}, T3: ${this._tier3Teams.length}`);
-        console.log('Free Agents:', this._freeAgents.length);
-        console.log('========================');
     }
 }

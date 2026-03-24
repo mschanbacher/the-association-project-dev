@@ -1,20 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════
-// GMMode — GM Mode game loop, simulation controls, and event routing
+// GMMode — Regular season simulation loop and event routing
 // ═══════════════════════════════════════════════════════════════════
-// Extracted in Phase 3B. Manages:
-//   • Game simulation controls (next game, day, week, finish season)
-//   • Observer pattern for game/playoff events
-//   • Button binding for simulation UI
-//   • Calendar-driven simulation with All-Star break detection
-//   • Injury/fatigue/trade proposal checks between games
+// Manages:
+//   - Game simulation controls (next game, day, week, finish season)
+//   - Calendar-driven simulation with All-Star break detection
+//   - Injury/fatigue/trade proposal checks between games
+//   - AI-to-AI trade processing during sim
 //
 // Dependencies passed via constructor deps object:
-//   updateUI, updateStandings, updateNextGames, showSeasonEnd,
-//   openRosterManagement, openTradeScreen, saveGameState,
-//   checkForAiTradeProposals, checkForInjuries, updateInjuries,
-//   processFatigueAfterGame, formatCurrency, getUserTeam,
-//   runAllStarWeekend, simulateOtherTiersProportionally,
-//   eventBus, GameEvents, CalendarEngine, GameEngine
+//   updateNextGames, showSeasonEnd, openRosterManagement,
+//   openTradeScreen, saveGameState, checkForAiTradeProposals,
+//   checkForInjuries, updateInjuries, processFatigueAfterGame,
+//   formatCurrency, getUserTeam, runAllStarWeekend,
+//   eventBus, GameEvents, CalendarEngine
 // ═══════════════════════════════════════════════════════════════════
 
 export class GMMode {
@@ -33,56 +31,6 @@ export class GMMode {
     /**
      * Setup observers to listen for simulation events
      */
-    setupObservers() {
-        this.sim.addObserver((event, data) => {
-            switch(event) {
-                case 'gameComplete':
-                    this.onGameComplete(data);
-                    break;
-                case 'playoffGameComplete':
-                    this.onPlayoffGameComplete(data);
-                    break;
-                case 'playoffSeriesComplete':
-                    this.onPlayoffSeriesComplete(data);
-                    break;
-            }
-        });
-    }
-    
-    /**
-     * Bind UI event handlers
-     */
-    bindEventHandlers() {
-        // Main simulation controls
-        const simNextBtn = document.getElementById('simNextBtn');
-        if (simNextBtn) simNextBtn.onclick = () => this.simulateNextGame();
-        
-        const simDayBtn = document.getElementById('simDayBtn');
-        if (simDayBtn) simDayBtn.onclick = () => this.simulateDay();
-        
-        const simWeekBtn = document.getElementById('simWeekBtn');
-        if (simWeekBtn) simWeekBtn.onclick = () => this.simulateWeek();
-        
-        const finishBtn = document.getElementById('finishBtn');
-        if (finishBtn) finishBtn.onclick = () => this.finishSeason();
-        
-        // Team management
-        const rosterBtn = document.getElementById('rosterBtn');
-        if (rosterBtn) rosterBtn.onclick = () => this.deps.openRosterManagement();
-        
-        const tradeBtn = document.getElementById('tradeBtn');
-        if (tradeBtn) tradeBtn.onclick = () => this.deps.openTradeScreen();
-        
-        // Save/Load
-        const saveBtn = document.getElementById('saveBtn');
-        if (saveBtn) saveBtn.onclick = () => this.saveGame();
-        
-        const loadBtn = document.getElementById('loadBtn');
-        if (loadBtn) loadBtn.onclick = () => this.loadGame();
-        
-        console.log('✅ GMMode event handlers bound');
-    }
-    
     // ============================================
     // SIMULATION CONTROLS
     // ============================================
@@ -584,18 +532,7 @@ export class GMMode {
         simTierGames(todaysGames.tier3, this.gameState.tier3Teams, silent || !todaysGames.tier3.some(g => g.homeTeamId === userTeamId || g.awayTeamId === userTeamId));
         
         // Check for AI-to-user trade proposals (runs during all sim modes)
-        // Note: only generates the proposal. Caller is responsible for showing the modal.
-        if (userTeamPlayedToday) {
-            this._generateUserTradeProposal();
-        }
-    }
-
-    /**
-     * Generate (but don't show) an AI-to-user trade proposal.
-     * Sets gameState.pendingTradeProposal if a viable one is found.
-     */
-    _generateUserTradeProposal() {
-        if (this.deps.checkForAiTradeProposals) {
+        if (userTeamPlayedToday && this.deps.checkForAiTradeProposals) {
             this.deps.checkForAiTradeProposals();
         }
     }
@@ -863,178 +800,16 @@ export class GMMode {
     }
     
     /**
-     * Simulate games in other tiers proportionally
-     * NOTE: With calendar system, this is handled by _simulateAllGamesOnDate()
-     * Kept as no-op for backward compatibility
-     */
-    simulateOtherTiersProportionally() {
-        // No-op: calendar system simulates all tiers on each date automatically
-    }
-    
-    // ============================================
-    // OBSERVER CALLBACKS
-    // ============================================
-    
-    /**
-     * Called when a game completes
-     */
-    onGameComplete(gameResult) {
-        // Could add notifications, stats tracking, etc.
-        // For now, just log
-        // console.log(`Game: ${gameResult.homeTeam.name} ${gameResult.homeScore} - ${gameResult.awayScore} ${gameResult.awayTeam.name}`);
-    }
-    
-    /**
-     * Called when a playoff game completes
-     */
-    onPlayoffGameComplete(gameResult) {
-        // console.log(`Playoff: ${gameResult.winner.name} wins`);
-    }
-    
-    /**
-     * Called when a playoff series completes
-     */
-    onPlayoffSeriesComplete(seriesResult) {
-        console.log(`Series: ${seriesResult.winner.name} defeats ${seriesResult.loser.name} ${seriesResult.seriesScore}`);
-    }
-    
     // ============================================
     // UI UPDATES
     // ============================================
     
     /**
-     * Update all UI elements
+     * Refresh UI after simulation. Legacy DOM code removed — React handles all rendering.
+     * Still called by GameSimController and others to signal state changes.
      */
     updateUI() {
-        this.updateInfoBar();
-        this.deps.updateStandings();
-        this.updateControls();
-        
-        // The standalone this.deps.updateUI() handles date, schedule, budget, etc.
-        // but we can't call it by name since this method shadows it.
-        // Instead, call those updates directly:
-        
-        // Update date display
-        const dateDisplay = document.getElementById('currentDateDisplay');
-        if (dateDisplay && this.gameState.currentDate) {
-            dateDisplay.textContent = this.deps.CalendarEngine.formatDateDisplay(this.gameState.currentDate);
-        }
-        
-        // Update calendar event
-        const calEventEl = document.getElementById('calendarEvent');
-        if (calEventEl && this.gameState.currentDate) {
-            const seasonDates = this.gameState.seasonDates || this.deps.CalendarEngine.getSeasonDates(this.gameState.seasonStartYear);
-            const calEvent = this.deps.CalendarEngine.getCalendarEvent(this.gameState.currentDate, seasonDates);
-            if (calEvent) {
-                calEventEl.textContent = calEvent;
-                calEventEl.style.display = 'block';
-            } else {
-                calEventEl.style.display = 'none';
-            }
-        }
-        
-        // Update budget display
-        const userTeam = this.deps.getUserTeam();
-        if (userTeam) {
-            const budgetDisplay = document.getElementById('budgetDisplay');
-            const budgetSubDisplay = document.getElementById('budgetSubDisplay');
-            if (budgetDisplay) {
-                if (typeof FinanceEngine !== 'undefined') FinanceEngine.ensureFinances(userTeam);
-                const capSpace = typeof getRemainingCap === 'function' ? getRemainingCap(userTeam) : 0;
-                const spLimit = typeof getEffectiveCap === 'function' ? getEffectiveCap(userTeam) : 0;
-                budgetDisplay.textContent = this.deps.formatCurrency(capSpace);
-                budgetDisplay.style.color = capSpace > 0 ? '#34a853' : '#ea4335';
-                if (budgetSubDisplay) budgetSubDisplay.textContent = `of ${this.deps.formatCurrency(spLimit)} ${userTeam.tier === 1 ? 'cap' : 'limit'}`;
-            }
-        }
-        
-        // Update upcoming schedule and next games
         if (this.deps.updateNextGames) this.deps.updateNextGames();
-    }
-    
-    /**
-     * Update info bar
-     */
-    updateInfoBar() {
-        const userTeam = this.deps.getUserTeam();
-        if (!userTeam) return;
-        
-        const season = `${this.gameState.currentSeason}-${(this.gameState.currentSeason + 1) % 100}`;
-        
-        // Use correct DOM element IDs from the HTML
-        const seasonEl = document.getElementById('currentSeason');
-        const teamEl = document.getElementById('userTeamName');
-        const recordEl = document.getElementById('userRecord');
-        const currentGameEl = document.getElementById('currentGame');
-        const totalGamesEl = document.getElementById('totalGames');
-        const rosterStrengthEl = document.getElementById('rosterStrength');
-        
-        // Safely update elements (check they exist first)
-        if (seasonEl) seasonEl.textContent = season;
-        if (teamEl) teamEl.textContent = userTeam.name;
-        if (recordEl) recordEl.textContent = `${userTeam.wins}-${userTeam.losses}`;
-        if (currentGameEl) currentGameEl.textContent = userTeam.wins + userTeam.losses;
-        if (totalGamesEl) totalGamesEl.textContent = this.gameState.getTotalGamesInSeason();
-        
-        // Calculate and display roster strength
-        if (rosterStrengthEl) {
-            const strength = this.deps.GameEngine.calculateTeamStrength(userTeam);
-            rosterStrengthEl.textContent = Math.round(strength);
-        }
-    }
-    
-    /**
-     * Update standings table
-     */
-    updateStandings() {
-        const teams = this.gameState.getCurrentTeams();
-        const sortedTeams = [...teams].sort((a, b) => {
-            if (b.wins !== a.wins) return b.wins - a.wins;
-            return b.pointDiff - a.pointDiff;
-        });
-        
-        const tbody = document.getElementById('standingsBody');
-        if (!tbody) return;
-        
-        const userTeam = this.deps.getUserTeam();
-        
-        tbody.innerHTML = sortedTeams.map((team, index) => {
-            const isUserTeam = team.id === userTeam?.id;
-            return `
-                <tr style="${isUserTeam ? 'background: rgba(52, 168, 83, 0.2); font-weight: bold;' : ''}">
-                    <td>${index + 1}</td>
-                    <td>${team.name}</td>
-                    <td>${team.division}</td>
-                    <td>${team.wins}</td>
-                    <td>${team.losses}</td>
-                    <td>${team.pointDiff > 0 ? '+' : ''}${team.pointDiff}</td>
-                </tr>
-            `;
-        }).join('');
-    }
-    
-    /**
-     * Update control buttons state
-     */
-    updateControls() {
-        const seasonComplete = this.gameState.isSeasonComplete();
-        const inOffseason = this.gameState.offseasonPhase && this.gameState.offseasonPhase !== 'none';
-        
-        const simNextBtn = document.getElementById('simNextBtn');
-        const simDayBtn = document.getElementById('simDayBtn');
-        const simWeekBtn = document.getElementById('simWeekBtn');
-        const finishBtn = document.getElementById('finishBtn');
-        
-        if (simNextBtn) simNextBtn.disabled = seasonComplete;
-        if (simDayBtn) simDayBtn.disabled = seasonComplete;
-        if (simWeekBtn) simWeekBtn.disabled = seasonComplete;
-        // Finish Season stays enabled during offseason — routes to resumeOffseason()
-        if (finishBtn) {
-            finishBtn.disabled = seasonComplete && !inOffseason;
- finishBtn.textContent = inOffseason ? 'Continue Offseason' : 'Finish Season';
-        }
-        const watchBtn = document.getElementById('watchNextBtn');
-        if (watchBtn) watchBtn.disabled = seasonComplete;
     }
     
     /**
@@ -1266,49 +1041,4 @@ export class GMMode {
         });
     }
     
-    /**
-     * Save game with UI feedback
-     */
-    saveGame() {
-        this.deps.saveGameState();
-        
-        // Show notification
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(52, 168, 83, 0.9);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            z-index: 10000;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        `;
- notification.textContent = 'Game Saved!';
-        document.body.appendChild(notification);
-        
-        setTimeout(() => notification.remove(), 2000);
-    }
-    
-    /**
-     * Load game
-     */
-    loadGame() {
-        try {
-            const saveData = localStorage.getItem('gbslSaveData');
-            if (!saveData) {
-                alert('No saved game found!');
-                return;
-            }
-            
-            // This will trigger a page reload with loaded state
-            // Handled in initialization code
-            location.reload();
-        } catch (error) {
-            console.error('Load failed:', error);
-            alert('Failed to load game: ' + error.message);
-        }
-    }
 }
