@@ -39,7 +39,6 @@
                         balanceTier2Divisions: () => DivisionManager.balanceTier2(gameState.tier2Teams),
                         balanceTier3Divisions: () => DivisionManager.balanceTier3(gameState.tier3Teams),
                         sortTeamsByStandings,
-                        simulatePlayoffBracket: (...args) => getGameSimController().simulatePlayoffBracket(...args),
                         applyParachutePayment: (...args) => SalaryCapEngine.applyParachutePayment(...args),
                         applyPromotionBonus: (...args) => SalaryCapEngine.applyPromotionBonus(...args),
                         getMarketValue,
@@ -231,8 +230,7 @@
                     pw.gameNum++;
                     gsc._showPlayoffSeriesStatus();
                 };
-                // NOTE: window.watchPlayoffGame is set later (line ~1956) to the calendar-based version
-                // The modal-era v1 is only reachable via startPlayoffSeriesWatch chain
+                // NOTE: window.watchPlayoffGame is set later to the calendar-based version
                 window.simPlayoffSeries = () => gsc.simRestOfPlayoffSeries();
                 window.simRestOfPlayoffSeries = () => gsc.simRestOfPlayoffSeries();
                 window.viewPlayoffBracket = () => gsc.openBracketViewer();
@@ -244,26 +242,6 @@
                     if (pw.higherWins >= gamesToWin || pw.lowerWins >= gamesToWin) return;
                     gsc.simOnePlayoffGame();
                 };
-
-                // T1 Championship
-                window.initBracketForHub = (action) => gsc.initBracketForHub(action);
-                window.simChampionshipRound = () => gsc.continueAfterChampionshipRound();
-                window.simAllChampionshipRounds = () => gsc.simAllChampionshipRounds();
-                window.skipChampionshipPlayoffs = () => gsc.skipChampionshipPlayoffs();
-                window.advanceFromChampionship = () => gsc.continueAfterChampionshipRound();
-
-                // T2
-                window.continueT2AfterDivSemis = () => gsc.continueT2AfterDivisionSemis();
-                window.continueT2AfterDivFinal = () => gsc.continueT2AfterDivisionFinal();
-                window.simT2PlayoffRound = () => gsc.continueT2AfterNationalRound();
-                window.simAllT2Rounds = () => gsc.simAllT2Rounds();
-                window.skipT2Playoffs = () => gsc._finishT2Playoffs();
-                window.advanceFromT2Playoffs = () => gsc._finishT2Playoffs();
-
-                // T3
-                window.simT3PlayoffRound = () => gsc.continueT2AfterNationalRound();
-                window.simAllT3Rounds = () => gsc.simAllT2Rounds();
-                window.skipT3Playoffs = () => gsc._finishT2Playoffs();
             }
             return _gameSimController;
         }
@@ -1905,16 +1883,9 @@
         window.closeSeasonEnd = (...args) => getGameSimController().closeSeasonEnd(...args);
         window.closeTradeScreen = (...args) => getTradeController().closeTradeScreen(...args);
         window.confirmOffseasonDecisions = (...args) => getOffseasonController().confirmOffseasonDecisions(...args);
-        window.continueAfterChampionshipRound = (...args) => getGameSimController().continueAfterChampionshipRound(...args);
         window.closeBracketViewer = () => { if (window._reactCloseBracket) window._reactCloseBracket(); document.getElementById('bracketViewerModal').classList.add('hidden'); };
         window.openBracketViewer = () => getGameSimController().openBracketViewer();
         window.showPlayoffBoxScore = (seriesKey, gameIdx) => getGameSimController().showPlayoffBoxScore(seriesKey, gameIdx);
-        window.continueT2AfterDivisionFinal = (...args) => getGameSimController().continueT2AfterDivisionFinal(...args);
-        window.continueT2AfterDivisionSemis = (...args) => getGameSimController().continueT2AfterDivisionSemis(...args);
-        window.continueT2AfterNationalRound = (...args) => getGameSimController().continueT2AfterNationalRound(...args);
-        window.continueT3AfterMetroFinal = (...args) => getGameSimController().continueT3AfterMetroFinal(...args);
-        window.continueT3AfterNationalRound = (...args) => getGameSimController().continueT3AfterNationalRound(...args);
-        window.continueT3AfterRegionalRound = (...args) => getGameSimController().continueT3AfterRegionalRound(...args);
         window.continueAfterPostseason = (...args) => getOffseasonController().continueAfterPostseason(...args);
         window.dismissTransitionBriefing = (...args) => getFinanceController().dismissTransitionBriefing(...args);
         window.dropPlayer = (...args) => getRosterController().dropPlayer(...args);
@@ -1941,19 +1912,12 @@
         window.showUserDraftPicks = (...args) => getDraftController().showUserDraftPicks(...args);
         window.signPlayer = (...args) => getRosterController().signPlayer(...args);
         window.signFreeAgent = (...args) => getRosterController().signPlayer(...args);
-        window.simAllChampionshipRounds = (...args) => getGameSimController().simAllChampionshipRounds(...args);
-        window.initBracketForHub = (...args) => getGameSimController().initBracketForHub(...args);
-        window.simAllT2Rounds = (...args) => getGameSimController().simAllT2Rounds(...args);
-        window.simAllT3Rounds = (...args) => getGameSimController().simAllT3Rounds(...args);
         window.simRestOfPlayoffSeries = (...args) => getGameSimController().simRestOfPlayoffSeries(...args);
         // Calendar-based playoff sim methods — routed to PlayoffSimController
         window.simPlayoffDay = () => getPlayoffSimController().simPlayoffDay();
         window.simUserPlayoffSeries = () => getPlayoffSimController().simUserPlayoffSeries();
         window.simPlayoffRound = () => getPlayoffSimController().simPlayoffRound();
         window.simToChampionship = () => getPlayoffSimController().simToChampionship();
-        window.skipChampionshipPlayoffs = (...args) => getGameSimController().skipChampionshipPlayoffs(...args);
-        window.skipT2Playoffs = (...args) => getGameSimController().skipT2Playoffs(...args);
-        window.skipT3Playoffs = (...args) => getGameSimController().skipT3Playoffs(...args);
         window.watchPlayoffGame = () => getGameSimController().watchCalendarPlayoffGame();
         window.skipCollegeGradFA = (...args) => getDraftController().skipCollegeGradFA(...args);
         window.submitCollegeGradOffers = (...args) => getDraftController().submitCollegeGradOffers(...args);

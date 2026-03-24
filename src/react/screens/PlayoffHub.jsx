@@ -661,12 +661,7 @@ export function PlayoffHub({ data, onClose }) {
   
   const handleSimToChampionship = useCallback(() => {
     console.log('🎮 Sim to Championship clicked');
-    // Prefer new calendar-based sim, only fall back to legacy if it doesn't exist
-    if (window.simToChampionship) {
-      window.simToChampionship();
-    } else if (window.simAllChampionshipRounds) {
-      window.simAllChampionshipRounds();
-    }
+    window.simToChampionship?.();
     setTimeout(() => refresh?.(), 100);
   }, [refresh]);
 

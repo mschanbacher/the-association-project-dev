@@ -272,11 +272,6 @@ export class PlayoffSimController {
         
         if (!schedule) {
             console.error('❌ simToChampionship: No playoff schedule found');
-            // Fallback to legacy path on GameSimController
-            const gsc = this._gameSimController;
-            if (gsc && gsc.simAllChampionshipRounds) {
-                gsc.simAllChampionshipRounds();
-            }
             return;
         }
         

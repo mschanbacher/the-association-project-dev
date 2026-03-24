@@ -321,69 +321,9 @@ export class OffseasonController {
             });
         } else {
             console.error('❌ PlayoffHub not available - window._reactShowPlayoffHub not registered');
-            // Fallback: run old simulation path
-            console.warn('⚠️ Falling back to legacy playoff simulation...');
-            const postseasonResults = engines.PlayoffEngine.simulateFullPostseason(gameState);
-            gameState.postseasonResults = postseasonResults;
-            this._legacyPlayoffFlow(action, postseasonResults);
-        }
-    }
-
-    /**
-     * Legacy playoff modal chain — kept intact while PlayoffHub is built.
-     * Called by advanceToNextSeason() when _usePlayoffHub is false,
-     * and as a safety fallback if the hub component isn't mounted.
-     * DO NOT modify this method during PlayoffHub development.
-     */
-    _legacyPlayoffFlow(action, postseasonResults) {
-        const { gameState, engines, helpers } = this.ctx;
-
-        // If user is in T1 championship playoffs, enter interactive round-by-round flow
-        if (action === 'championship') {
-            console.log('🏆 User qualifies for T1 Championship — entering interactive playoff flow...');
-            const gameSim = helpers.getGameSimController();
-            gameSim.runTier1ChampionshipPlayoffs();
-            return;
-        }
-
-        // If user is in T2 division playoffs, enter interactive T2 playoff flow
-        if (action === 't2-championship') {
-            console.log('🏆 User qualifies for T2 Division Playoffs — entering interactive playoff flow...');
-            const gameSim = helpers.getGameSimController();
-            gameSim.runTier2DivisionPlayoffs();
-            return;
-        }
-
-        // If user is in T3 metro playoffs, enter interactive T3 playoff flow
-        if (action === 't3-championship') {
-            console.log('🏆 User qualifies for T3 Metro Playoffs — entering interactive playoff flow...');
-            const gameSim = helpers.getGameSimController();
-            gameSim.runTier3MetroPlayoffs();
-            return;
-        }
-
-        // Otherwise show static postseason results summary
-        if (window._reactShowChampionship) {
-            // Wire the continue button callback
-            window.advanceFromPostseason = () => this.continueAfterPostseason();
-
-            window._reactShowChampionship({
-                mode: 'postseason',
-                t1Champion: postseasonResults.t1?.champion || null,
-                t2Champion: postseasonResults.t2?.champion || null,
-                t3Champion: postseasonResults.t3?.champion || null,
-                t1Finals: postseasonResults.t1?.rounds?.[3]?.[0] || null,
-                promotedToT1: postseasonResults.promoted?.toT1 || [],
-                promotedToT2: postseasonResults.promoted?.toT2 || [],
-                relegatedFromT1: postseasonResults.relegated?.fromT1 || [],
-                relegatedFromT2: postseasonResults.relegated?.fromT2 || [],
-                t1Relegation: postseasonResults.t1Relegation || null,
-                t2Relegation: postseasonResults.t2Relegation || null,
-            });
-        } else {
-            // [LEGACY REMOVED] const html = engines.PlayoffEngine.generatePostseasonHTML(postseasonResults, gameState.userTeamId);
-            // [LEGACY REMOVED] document.getElementById('championshipPlayoffContent').innerHTML = UIRenderer.postseasonContinue({ resultsHTML: html });
-            // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
+            // No legacy fallback — skip directly to offseason
+            console.warn('⚠️ Skipping playoffs, proceeding to offseason...');
+            this.continueAfterPostseason();
         }
     }
 
@@ -395,8 +335,6 @@ export class OffseasonController {
         const { gameState, eventBus, GameEvents, engines, helpers } = this.ctx;
         const P = OffseasonController.PHASES;
 
-        if (window._reactCloseChampionship) window._reactCloseChampionship();
-        // Close the PlayoffHub screen — we're now entering offseason flow
         if (window._reactClosePlayoffHub) window._reactClosePlayoffHub();
 
         // Open OffseasonHub — this will stay open throughout the entire offseason
