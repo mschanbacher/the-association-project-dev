@@ -20,17 +20,8 @@ export class GMMode {
         this.gameState = gameState;
         this.sim = simulationController;
         this.deps = deps;
-        this.setupObservers();
-        this.bindEventHandlers();
     }
     
-    // ============================================
-    // INITIALIZATION
-    // ============================================
-    
-    /**
-     * Setup observers to listen for simulation events
-     */
     // ============================================
     // SIMULATION CONTROLS
     // ============================================
