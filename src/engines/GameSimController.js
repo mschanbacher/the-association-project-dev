@@ -718,54 +718,9 @@ export class GameSimController {
         // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.remove('hidden');
     }
 
-    watchPlayoffGame() {
-        const { gameState, helpers, engines } = this.ctx;
-        const pw = this._playoffWatch;
-        if (!pw) return;
-
-        const { GamePipeline } = engines;
-        const isHigherHome = pw.homePattern[pw.gameNum];
-        const homeTeam = isHigherHome ? pw.higherSeed : pw.lowerSeed;
-        const awayTeam = isHigherHome ? pw.lowerSeed : pw.higherSeed;
-
-        // Hide the playoff modal while watching
-        if (window._reactCloseChampionship) window._reactCloseChampionship();
-        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
-
-        this._watchHomeTeam = homeTeam;
-        this._watchAwayTeam = awayTeam;
-        this._watchHomeName = homeTeam.name;
-        this._watchAwayName = awayTeam.name;
-        this._watchDate = null; // No calendar date for playoffs
-        this._isPlayoffWatch = true;
-
-        this._watchGame = GamePipeline.create(homeTeam, awayTeam, {
-            isPlayoffs: true,
-            tier: gameState.currentTier
-        });
-
-        // [LEGACY REMOVED] const playoffLayoutHtml = UIRenderer.watchGameLayout({
-            // homeName: this._watchHomeName, awayName: this._watchAwayName,
-            // playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`
-        // });
-        if (window._reactShowWatchGame) {
-            window._reactShowWatchGame({
-                homeName: this._watchHomeName,
-                awayName: this._watchAwayName,
-                homeTeamFullName: this._watchHomeTeam?.name,
-                awayTeamFullName: this._watchAwayTeam?.name,
-                playoffContext: `Game ${pw.gameNum + 1} — Series ${pw.higherWins}-${pw.lowerWins}`,
-            });
-        } else {
-            // [LEGACY DOM] document.getElementById('watchGameContent').innerHTML = playoffLayoutHtml;
-            // [LEGACY DOM] document.getElementById('watchGameModal').classList.remove('hidden');
-        }
-
-        this._watchPaused = false;
-        this._watchSpeed = 1;
-        this.watchGameSetSpeed(1);
-        this._startWatchTimer();
-    }
+    // NOTE: watchPlayoffGame v1 (modal-era) removed — was unreachable.
+    // The hub-era chain uses startPlayoffSeriesWatch which renders buttons
+    // calling window.watchPlayoffGame, now pointing to watchCalendarPlayoffGame.
 
     /**
      * Close the watch game modal after a playoff game.
@@ -802,23 +757,9 @@ export class GameSimController {
         }
 
         // Build box score data matching regular season format
-        const mapStats = (stats) => (stats || [])
-            .filter(p => p.minutesPlayed > 0)
-            .sort((a, b) => b.minutesPlayed - a.minutesPlayed)
-            .map(p => ({
-                name: p.playerName || p.name || 'Unknown', pos: p.position || '',
-                min: p.minutesPlayed || 0, pts: p.points || 0,
-                reb: p.rebounds || 0, ast: p.assists || 0,
-                stl: p.steals || 0, blk: p.blocks || 0, to: p.turnovers || 0,
-                pf: p.fouls || 0, starter: p.gamesStarted > 0,
-                fgm: p.fieldGoalsMade || 0, fga: p.fieldGoalsAttempted || 0,
-                tpm: p.threePointersMade || 0, tpa: p.threePointersAttempted || 0,
-                ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0, pm: p.plusMinus || 0
-            }));
-
         const boxScore = {
-            home: { city: homeTeam.city || '', name: homeTeam.name, score: result.homeScore, players: mapStats(result.homePlayerStats) },
-            away: { city: awayTeam.city || '', name: awayTeam.name, score: result.awayScore, players: mapStats(result.awayPlayerStats) },
+            home: { city: homeTeam.city || '', name: homeTeam.name, score: result.homeScore, players: PlayoffSimController.mapStats(result.homePlayerStats) },
+            away: { city: awayTeam.city || '', name: awayTeam.name, score: result.awayScore, players: PlayoffSimController.mapStats(result.awayPlayerStats) },
             quarterScores: result.quarterScores || null
         };
 
@@ -940,22 +881,9 @@ export class GameSimController {
 
             // Store box score for user's series
             if (userInSeries && gameResult.homePlayerStats && gameResult.awayPlayerStats) {
-                const mapStats = (stats) => (stats || [])
-                    .filter(p => p.minutesPlayed > 0)
-                    .sort((a, b) => b.minutesPlayed - a.minutesPlayed)
-                    .map(p => ({
-                        name: p.playerName || p.name || 'Unknown', pos: p.position || '',
-                        min: p.minutesPlayed || 0, pts: p.points || 0,
-                        reb: p.rebounds || 0, ast: p.assists || 0,
-                        stl: p.steals || 0, blk: p.blocks || 0, to: p.turnovers || 0,
-                        pf: p.fouls || 0, starter: p.gamesStarted > 0,
-                        fgm: p.fieldGoalsMade || 0, fga: p.fieldGoalsAttempted || 0,
-                        tpm: p.threePointersMade || 0, tpa: p.threePointersAttempted || 0,
-                        ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0, pm: p.plusMinus || 0
-                    }));
                 gameEntry.boxScore = {
-                    home: { city: homeTeam.city || '', name: homeTeam.name, score: gameResult.homeScore, players: mapStats(gameResult.homePlayerStats) },
-                    away: { city: awayTeam.city || '', name: awayTeam.name, score: gameResult.awayScore, players: mapStats(gameResult.awayPlayerStats) },
+                    home: { city: homeTeam.city || '', name: homeTeam.name, score: gameResult.homeScore, players: PlayoffSimController.mapStats(gameResult.homePlayerStats) },
+                    away: { city: awayTeam.city || '', name: awayTeam.name, score: gameResult.awayScore, players: PlayoffSimController.mapStats(gameResult.awayPlayerStats) },
                     quarterScores: gameResult.quarterScores || null
                 };
             }
@@ -1000,22 +928,9 @@ export class GameSimController {
         };
 
         if (userInSeries && gameResult.homePlayerStats && gameResult.awayPlayerStats) {
-            const mapStats = (stats) => (stats || [])
-                .filter(p => p.minutesPlayed > 0)
-                .sort((a, b) => b.minutesPlayed - a.minutesPlayed)
-                .map(p => ({
-                    name: p.playerName || p.name || 'Unknown', pos: p.position || '',
-                    min: p.minutesPlayed || 0, pts: p.points || 0,
-                    reb: p.rebounds || 0, ast: p.assists || 0,
-                    stl: p.steals || 0, blk: p.blocks || 0, to: p.turnovers || 0,
-                    pf: p.fouls || 0, starter: p.gamesStarted > 0,
-                    fgm: p.fieldGoalsMade || 0, fga: p.fieldGoalsAttempted || 0,
-                    tpm: p.threePointersMade || 0, tpa: p.threePointersAttempted || 0,
-                    ftm: p.freeThrowsMade || 0, fta: p.freeThrowsAttempted || 0, pm: p.plusMinus || 0
-                }));
             gameEntry.boxScore = {
-                home: { city: homeTeam.city || '', name: homeTeam.name, score: gameResult.homeScore, players: mapStats(gameResult.homePlayerStats) },
-                away: { city: awayTeam.city || '', name: awayTeam.name, score: gameResult.awayScore, players: mapStats(gameResult.awayPlayerStats) },
+                home: { city: homeTeam.city || '', name: homeTeam.name, score: gameResult.homeScore, players: PlayoffSimController.mapStats(gameResult.homePlayerStats) },
+                away: { city: awayTeam.city || '', name: awayTeam.name, score: gameResult.awayScore, players: PlayoffSimController.mapStats(gameResult.awayPlayerStats) },
                 quarterScores: gameResult.quarterScores || null
             };
         }

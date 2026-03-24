@@ -105,14 +105,19 @@ export class OffseasonController {
                 this.ctx.helpers.getGameSimController().showSeasonEnd();
                 break;
             case P.POSTSEASON:
-                // If using the new hub and it's registered, resume into it.
-                // Otherwise fall through to the legacy path (continueAfterPostseason).
-                if (this.ctx.gameState._usePlayoffHub && window._reactShowPlayoffHub) {
+                // Resume into PlayoffHub if registered, otherwise continue to promo/rel.
+                if (window._reactShowPlayoffHub) {
+                    const gs = this.ctx.gameState;
                     window._reactShowPlayoffHub({
-                        action: this.ctx.gameState.userPlayoffResult || 'stay',
-                        postseasonResults: this.ctx.gameState.postseasonResults,
-                        userTier: this.ctx.gameState.currentTier,
-                        userTeamId: this.ctx.gameState.userTeamId,
+                        action: gs.userPlayoffResult || 'stay',
+                        userTier: gs.currentTier,
+                        userTeamId: gs.userTeamId,
+                        userInPlayoffs: gs.userInPlayoffs,
+                        userSeriesId: gs.userSeriesId,
+                        playoffData: gs.playoffData,
+                        playoffSchedule: gs.playoffSchedule,
+                        currentDate: gs.currentDate,
+                        postseasonResults: gs.postseasonResults,
                         onComplete: () => this.continueAfterPostseason(),
                     });
                 } else {
