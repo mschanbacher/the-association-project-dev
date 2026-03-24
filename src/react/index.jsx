@@ -39,6 +39,7 @@ import {
   // Controllers
   SimulationController,
   GameSimController,
+  PlayoffSimController,
   OffseasonController,
   DashboardController,
   RosterController,
@@ -86,6 +87,7 @@ Object.assign(window, {
   // Controllers
   SimulationController,
   GameSimController,
+  PlayoffSimController,
   OffseasonController,
   DashboardController,
   RosterController,

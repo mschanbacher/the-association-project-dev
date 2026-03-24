@@ -31,7 +31,7 @@ New sessions should start by reading this file before making any changes.
 - Playoff brackets generated for all 3 tiers, stored in `gameState.playoffData`
 - PlayoffHub opens via `window._reactShowPlayoffHub()`
 - **Critical constraint**: `_showPlayoffSeriesStatus()` must call `window._reactPlayoffHubRefresh()`, never any modal opener
-- PlayoffHub still needs a stable rebuild session (recurring regressions from context compaction)
+- PlayoffHub.jsx is stable (1,900 lines). Prior context-compaction regressions have been resolved. Calendar-era methods being extracted to PlayoffSimController (see docs/PHASE2-PLAN.md).
 
 ### Promo/Rel (OffseasonController.continueAfterPostseason)
 - Executes after PlayoffHub's `onComplete` callback fires
@@ -185,7 +185,7 @@ These flags are all cleared implicitly when `continueToSeasonSetup()` increments
 
 6. **Compliance at Training Camp gate**: The "Continue to Season Setup" button in Training Camp triggers `checkRosterComplianceAndContinue()`. Red warning banner if non-compliant (with "Check Compliance" button), green success banner with "Start Season" button when ready.
 
-7. **PlayoffHub approved mockup**: Single-screen hub with left sidebar (series card, arc win probability gauge, Game/Watch/Series buttons, Sim to Championship, game log) and full bracket tree always visible in main area. No modals. Needs fresh-session rebuild.
+7. **PlayoffHub design**: Single-screen hub with left sidebar (series card, arc win probability gauge, Game/Watch/Series buttons, Sim to Championship, game log) and full bracket tree always visible in main area. No modals. Currently stable at 1,900 lines; calendar-era simulation logic being extracted to PlayoffSimController.
 
 8. **College grads flow to FA at draft time**: College graduates are no longer a standalone phase. They are generated in `finalizeDraft()` and added directly to `gameState.freeAgents`. Available to any tier as camp invites or FA signings. The `collegeFA` date in CalendarEngine is kept for backward compatibility but no longer triggers an event.
 
@@ -206,7 +206,7 @@ These flags are all cleared implicitly when `continueToSeasonSetup()` increments
 | Preseason Games | Design phase | 4 exhibition games during camp, reuse WatchGameModal, results influence development |
 | Awards presentation | Not started | Deferred from SeasonEndModal. Planned for future OffseasonHub iteration |
 | Promo/rel info display | Not started | Deferred from SeasonEndModal. Planned for OffseasonHub |
-| PlayoffHub stable build | Needs rebuild | Approved mockup exists (session 8). Start from static mockup in fresh session |
+| PlayoffHub extraction | In progress | Calendar-era sim methods moving to PlayoffSimController. UI stable, no rebuild needed. See docs/PHASE2-PLAN.md |
 | Persistent college pool | Hook ready | `gameState.getNextPlayerId()` ensures stable IDs. Future: `gameState.collegePool` array with multi-year tracking |
 | League-wide news system | Not started | Data infrastructure exists via `tradeHistory`. High-leverage next feature |
 | Hall of Fame | Not started | Requires accumulated historical data. IndexedDB storage ready |

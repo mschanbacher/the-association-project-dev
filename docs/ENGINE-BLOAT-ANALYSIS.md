@@ -62,9 +62,7 @@ There are two `watchPlayoffGame()` methods (lines 720 and 3177). The first is th
 
 **Phase 1 (safe, do now)**: Remove the 6 dead methods (~144 lines). Remove the duplicate `watchPlayoffGame` at line 3177 if confirmed unused.
 
-**Phase 2 (PlayoffHub rebuild session)**: Extract the calendar-based playoff sim block (lines 2826–4260) into `PlayoffSimController.js`. This is the natural split point — these methods all share context (`playoffSchedule`, bracket population, round tracking) and are only called from PlayoffHub. The modal-era methods (635–1058) stay in GameSimController since they handle the watch/sim UX.
-
-**Do NOT attempt Phase 2 without a fresh session starting from a static mockup.** PlayoffHub regressions from context compaction are documented in the alignment doc.
+**Phase 2 (PlayoffSimController extraction)**: Extract the calendar-based playoff sim block (lines 2782–4100) into `PlayoffSimController.js`. This is the natural split point — these methods all share context (`playoffSchedule`, bracket population, round tracking) and are only called from PlayoffHub. The modal-era methods (635–1058) stay in GameSimController since they handle the watch/sim UX. PlayoffHub.jsx is stable and does NOT need a rebuild — only game-init.js wiring changes. Full plan in `docs/PHASE2-PLAN.md`.
 
 
 ## MEDIUM: GMMode.js (1,314 lines)
@@ -152,7 +150,7 @@ Priority order:
 
 ### Phase 2: GameSimController Split (dedicated session)
 
-Extract calendar-based playoff sim (lines 2826–4260) into `PlayoffSimController.js`. Must be done alongside PlayoffHub rebuild. Start from static mockup per alignment doc guidelines.
+Extract calendar-based playoff sim (lines 2782–4100) into `PlayoffSimController.js`. PlayoffHub.jsx is stable and unchanged — only game-init.js wiring updates needed. Full plan in `docs/PHASE2-PLAN.md`.
 
 ### Phase 3: GMMode Rename (low priority)
 

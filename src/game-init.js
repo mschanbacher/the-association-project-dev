@@ -13,7 +13,7 @@
                 TradeEngine, DraftEngine, ChemistryEngine, InjuryEngine,
                 FatigueEngine, GMMode, ScoutingEngine, OwnerEngine,
                 OffseasonController, TradeController, DraftController,
-                GameSimController, FinanceController, RosterController,
+                GameSimController, PlayoffSimController, FinanceController, RosterController,
                 FreeAgencyController, DashboardController, CoachManagementController,
                 SaveLoadController, TrainingCampEngine, UIHelpers, UIRenderer } = window;
 
@@ -231,7 +231,8 @@
                     pw.gameNum++;
                     gsc._showPlayoffSeriesStatus();
                 };
-                window.watchPlayoffGame = () => gsc.watchPlayoffGame();
+                // NOTE: window.watchPlayoffGame is set later (line ~1956) to the calendar-based version
+                // The modal-era v1 is only reachable via startPlayoffSeriesWatch chain
                 window.simPlayoffSeries = () => gsc.simRestOfPlayoffSeries();
                 window.simRestOfPlayoffSeries = () => gsc.simRestOfPlayoffSeries();
                 window.viewPlayoffBracket = () => gsc.openBracketViewer();
@@ -265,6 +266,27 @@
                 window.skipT3Playoffs = () => gsc._finishT2Playoffs();
             }
             return _gameSimController;
+        }
+
+        // ─── PlayoffSimController (lazy init) ───
+        let _playoffSimController = null;
+        function getPlayoffSimController() {
+            if (!_playoffSimController) {
+                _playoffSimController = new window.PlayoffSimController({
+                    gameState, eventBus, GameEvents,
+                    engines: { PlayoffEngine, StatEngine },
+                    helpers: {
+                        getUserTeam, saveGameState,
+                        applyFatigueAutoRest: (team, isPlayoffs) => FatigueEngine.applyAutoRest(team, isPlayoffs),
+                        getSimulationController: () => simulationController
+                    }
+                });
+                // Cross-wire with GameSimController
+                const gsc = getGameSimController();
+                _playoffSimController._gameSimController = gsc;
+                gsc._playoffSimController = _playoffSimController;
+            }
+            return _playoffSimController;
         }
 
         // ─── FinanceController (lazy init) ───
@@ -1924,15 +1946,15 @@
         window.simAllT2Rounds = (...args) => getGameSimController().simAllT2Rounds(...args);
         window.simAllT3Rounds = (...args) => getGameSimController().simAllT3Rounds(...args);
         window.simRestOfPlayoffSeries = (...args) => getGameSimController().simRestOfPlayoffSeries(...args);
-        // New calendar-based playoff sim methods
-        window.simPlayoffDay = (...args) => getGameSimController().simPlayoffDay(...args);
-        window.simUserPlayoffSeries = (...args) => getGameSimController().simUserPlayoffSeries(...args);
-        window.simPlayoffRound = (...args) => getGameSimController().simPlayoffRound(...args);
-        window.simToChampionship = (...args) => getGameSimController().simToChampionship(...args);
+        // Calendar-based playoff sim methods — routed to PlayoffSimController
+        window.simPlayoffDay = () => getPlayoffSimController().simPlayoffDay();
+        window.simUserPlayoffSeries = () => getPlayoffSimController().simUserPlayoffSeries();
+        window.simPlayoffRound = () => getPlayoffSimController().simPlayoffRound();
+        window.simToChampionship = () => getPlayoffSimController().simToChampionship();
         window.skipChampionshipPlayoffs = (...args) => getGameSimController().skipChampionshipPlayoffs(...args);
         window.skipT2Playoffs = (...args) => getGameSimController().skipT2Playoffs(...args);
         window.skipT3Playoffs = (...args) => getGameSimController().skipT3Playoffs(...args);
-        window.watchPlayoffGame = (...args) => getGameSimController().watchPlayoffGame(...args);
+        window.watchPlayoffGame = () => getGameSimController().watchCalendarPlayoffGame();
         window.skipCollegeGradFA = (...args) => getDraftController().skipCollegeGradFA(...args);
         window.submitCollegeGradOffers = (...args) => getDraftController().submitCollegeGradOffers(...args);
         window.switchScoutTab = (...args) => getRosterController().switchScoutTab(...args);

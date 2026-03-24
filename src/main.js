@@ -41,6 +41,7 @@ export * as BasketballMath from './engines/BasketballMath.js';
 // These orchestrate game flow and wire engines to UI
 export { SimulationController } from './engines/SimulationController.js';
 export { GameSimController } from './engines/GameSimController.js';
+export { PlayoffSimController } from './engines/PlayoffSimController.js';
 export { OffseasonController } from './engines/OffseasonController.js';
 export { DashboardController } from './engines/DashboardController.js';
 export { RosterController } from './engines/RosterController.js';
