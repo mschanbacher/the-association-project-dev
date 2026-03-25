@@ -1919,7 +1919,6 @@
 
         // ─── Local functions called from HTML ───
         window.closeAllStarModal = closeAllStarModal;
-        window.closeCoachModal = () => getCoachManagementController().close();
         window.closeRosterManagementDynamic = closeRosterManagementDynamic;
         window.continueFreeAgency = (...args) => getFreeAgencyController().continue(...args);
         window.filterFreeAgents = filterFreeAgents;
@@ -1951,8 +1950,6 @@
         window.showBoxScore = showBoxScore;
         window.CalendarEngine = CalendarEngine;
         window.showCalendarDayDetail = showCalendarDayDetail;
-        window.showCoachMarket = () => getCoachManagementController().showMarket();
-        window.showCoachTab = (tab) => getCoachManagementController().showTab(tab);
         window.skipFreeAgency = (...args) => getFreeAgencyController().skip(...args);
         window.sortFreeAgents = sortFreeAgents;
         window.submitFreeAgencyOffers = (...args) => getFreeAgencyController().submitOffers(...args);

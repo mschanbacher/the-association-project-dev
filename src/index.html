@@ -8,20 +8,15 @@
 </head>
 <body>
     <!-- Legacy modal ID stubs — kept for fallback getElementById calls, all hidden -->
-    <!-- 26 zero-reference stubs removed 2026-03-25: seasonEndContent, playoffContent,
-         collegeGradSubtitle/CapInfo/Tally, cg*(6), scoutTab*(4), aiProposal*(4),
-         championshipPlayoff*(2), postGame*(2), expiringContractsList -->
     <div id="legacy-modal-stubs" style="display: none !important; position: absolute; width: 0; height: 0; overflow: hidden;">
-      <!-- Team selection (4 refs) -->
       <div id="teamSelectionModal"></div>
       <div id="tier1Teams"></div>
       <div id="tier2Teams"></div>
       <div id="tier3Teams"></div>
-      <!-- Season end (6 refs) -->
       <div id="seasonEndModal"></div>
-      <!-- Playoff (1 ref in OffseasonController) -->
+      <div id="seasonEndContent"></div>
       <div id="playoffModal"></div>
-      <!-- Roster (6 refs) -->
+      <div id="playoffContent"></div>
       <div id="rosterModal"></div>
       <div id="positionBreakdown"></div>
       <div id="rosterCount"></div>
@@ -30,10 +25,8 @@
       <div id="positionFilter"></div>
       <div id="tierFilter"></div>
       <div id="freeAgentsList"></div>
-      <!-- Development (3 refs) -->
       <div id="developmentModal"></div>
       <div id="developmentSummary"></div>
-      <!-- Free Agency (4+ refs) -->
       <div id="freeAgencyModal"></div>
       <div id="faCapSpace"></div>
       <div id="faOfferTally"></div>
@@ -49,29 +42,44 @@
       <div id="submitOffersBtn"></div>
       <div id="freeAgencyResultsModal"></div>
       <div id="freeAgencyResultsContent"></div>
-      <!-- Finance (3 refs) -->
       <div id="financeDashboardModal"></div>
       <div id="financeDashboardCloseBtn"></div>
       <div id="financeDashboardContent"></div>
       <div id="financialTransitionModal"></div>
       <div id="financialTransitionContent"></div>
-      <!-- College Grad FA (1 ref in DraftController — needs migration) -->
       <div id="collegeGradFAModal"></div>
-      <!-- Scouting (2 refs) -->
+      <div id="collegeGradSubtitle"></div>
+      <div id="collegeGradCapInfo"></div>
+      <div id="collegeGradTally"></div>
+      <div id="cgOfferCount"></div>
+      <div id="cgOfferTotal"></div>
+      <div id="cgOfferRemaining"></div>
+      <div id="cgPositionFilter"></div>
+      <div id="cgSortBy"></div>
+      <div id="collegeGradList"></div>
+      <div id="cgSubmitBtn"></div>
+      <div id="cgSelectedCount"></div>
       <div id="scoutingModal"></div>
+      <div id="scoutTabScanner"></div>
+      <div id="scoutTabPipeline"></div>
+      <div id="scoutTabWatchlist"></div>
       <div id="watchlistCount"></div>
+      <div id="scoutTabNeeds"></div>
       <div id="scoutTabContent"></div>
-      <!-- Draft (2+ refs) -->
+      <div id="aiProposalTeam"></div>
+      <div id="aiProposalYouGive"></div>
+      <div id="aiProposalYouReceive"></div>
+      <div id="aiProposalSummary"></div>
       <div id="draftResultsModal"></div>
       <div id="draftRound1Btn"></div>
       <div id="draftCompBtn"></div>
       <div id="draftRound2Btn"></div>
       <div id="userPicksBtn"></div>
       <div id="draftResultsContent"></div>
-      <!-- Bracket viewer (2 refs) -->
+      <div id="championshipPlayoffModal"></div>
+      <div id="championshipPlayoffContent"></div>
       <div id="bracketViewerModal"></div>
       <div id="bracketViewerContent"></div>
-      <!-- Lottery / Draft pick (2 refs) -->
       <div id="lotteryModal"></div>
       <div id="lotteryContent"></div>
       <div id="userDraftPickModal"></div>
@@ -80,39 +88,29 @@
       <div id="draftSortBy"></div>
       <div id="draftProspectsList"></div>
       <div id="draftYourRoster"></div>
-      <!-- Game container (active React root) -->
       <div id="gameContainer"></div>
-      <!-- Watch game (3 refs) -->
       <div id="watchGameModal"></div>
       <div id="watchGameContent"></div>
-      <!-- Box score (1 ref) -->
+      <div id="postGameModal"></div>
+      <div id="postGameContent"></div>
       <div id="boxScoreModal"></div>
       <div id="boxScoreContent"></div>
-      <!-- Franchise history (1 ref) -->
       <div id="franchiseHistoryModal"></div>
       <div id="franchiseHistoryContent"></div>
-      <!-- Compliance (3 refs) -->
       <div id="complianceModal"></div>
       <div id="complianceModalContent"></div>
-      <!-- Injury (3 refs) -->
       <div id="injuryModal"></div>
       <div id="injuryDetails"></div>
       <div id="injuryOptions"></div>
       <div id="injuryConfirmBtn"></div>
-      <!-- Coach (2 refs) -->
-      <div id="coachModal"></div>
-      <div id="coachModalContent"></div>
-      <!-- Calendar (1 ref) -->
       <div id="calendarModal"></div>
       <div id="calendarContent"></div>
-      <!-- All-Star (2 refs) -->
       <div id="allStarModal"></div>
       <div id="allStarContent"></div>
-      <!-- Contract decisions (1 ref) -->
       <div id="contractDecisionsModal"></div>
       <div id="contractDecisionsSummary"></div>
+      <div id="expiringContractsList"></div>
       <div id="contractDecisionsConfirmBtn"></div>
-      <!-- Game menu (2 refs) -->
       <div id="gameMenuModal"></div>
     </div>
     
