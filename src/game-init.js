@@ -1614,12 +1614,6 @@
         // ─── OWNER MODE MODAL ───
         // ─── OWNER MODE INTERACTION FUNCTIONS ───
         
-        function updateTicketPriceEffect(pct) {
-            const el = document.getElementById('ticketPriceEffect');
-            if (!el) return;
-            el.innerHTML = UIRenderer.ticketPriceEffect({ pct });
-        }
-        
         // ─── OWNER MODE TOGGLE ───
         // Step 5: Continue to Season Setup
         // Make draft functions globally accessible
@@ -1873,7 +1867,6 @@
         window.openBracketViewer = () => getGameSimController().openBracketViewer();
         window.showPlayoffBoxScore = (seriesKey, gameIdx) => getGameSimController().showPlayoffBoxScore(seriesKey, gameIdx);
         window.continueAfterPostseason = (...args) => getOffseasonController().continueAfterPostseason(...args);
-        window.dismissTransitionBriefing = (...args) => getFinanceController().dismissTransitionBriefing(...args);
         window.dropPlayer = (...args) => getRosterController().dropPlayer(...args);
         window.filterCollegeGrads = (...args) => getDraftController().filterCollegeGrads(...args);
         window.filterDraftProspects = (...args) => getDraftController().filterDraftProspects(...args);
@@ -1909,7 +1902,6 @@
         window.updateOwnerSpendingRatio = (...args) => getFinanceController().updateOwnerSpendingRatio(...args);
         window.updateSpendingRatio = (...args) => getFinanceController().updateSpendingRatio(...args);
         window.updateTicketPrice = (...args) => getFinanceController().updateTicketPrice(...args);
-        window.updateTransitionSpending = (...args) => getFinanceController().updateTransitionSpending(...args);
         window.upgradeArena = (...args) => getFinanceController().upgradeArena(...args);
         window.watchGameClose = (...args) => getGameSimController().watchGameClose(...args);
         window.watchGameSetSpeed = (...args) => getGameSimController().watchGameSetSpeed(...args);

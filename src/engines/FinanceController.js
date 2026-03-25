@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // FinanceController.js — Finance dashboard, owner mode, and financial management
+// UI rendered by React FinanceDashboardModal, OwnerModeModal, FinancialTransitionModal.
+// This controller provides data assembly and handles business logic mutations.
 // ═══════════════════════════════════════════════════════════════════════════════
-
-import { UIRenderer } from './UIRenderer.js';
 
 export class FinanceController {
     constructor(ctx) {
@@ -15,8 +15,6 @@ export class FinanceController {
 
     openFinanceDashboard() {
         const { gameState, helpers, engines } = this.ctx;
-        const modal = document.getElementById('financeDashboardModal');
-        const content = document.getElementById('financeDashboardContent');
         const team = helpers.getUserTeam();
         if (!team) return;
 
@@ -31,12 +29,6 @@ export class FinanceController {
  const stabilityLabel = stabilityLabels[summary.stability] || 'Stable';
 
         const barPct = (val) => Math.max(3, (val / totalRev) * 100);
-
-        const ratioWarning = summary.spendingRatio >= 0.85
- ? '<span style="color: #ea4335; font-size: 0.85em;"> High risk — limited financial cushion</span>'
-            : summary.spendingRatio >= 0.80
- ? '<span style="color: #fbbc04; font-size: 0.85em;"> Aggressive spending</span>'
-                : '';
 
         const isHardCap = summary.isHardCap;
         const capLabel = isHardCap ? 'Salary Cap (League-wide)' : 'Spending Limit (Revenue-based)';
@@ -101,33 +93,7 @@ export class FinanceController {
                 ticketPct: Math.round((team.finances.ticketPriceMultiplier || 1.0) * 100),
                 marketingBudget: team.finances.marketingBudget,
             });
-            return;
         }
-
-        // [LEGACY REMOVED] content.innerHTML = UIRenderer.financeDashboard({
-            // formatCurrency: helpers.formatCurrency, totalRev, trendHtml, capLabel,
-            // spendingLimit: summary.spendingLimit, capSpace: summary.capSpace,
-            // stabilityColor, stabilityLabel, usagePct: summary.usagePct,
-            // currentSalary: summary.currentSalary, salaryFloor: summary.salaryFloor,
-            // capExplain, rev: r, barPct, tier: team.tier,
-            // fanbase: summary.fanbase, fanLabel, fanMultiple, tierAvgFanbase,
-            // revVsAvgColor, revVsAvgLabel, tierAvgRevenue,
- // marketLabel: summary.marketSize >= 1.2 ? '️ Major' : summary.marketSize >= 1.0 ? '️ Mid-size' : summary.marketSize >= 0.8 ? ' Small' : '️ Tiny',
-            // marketSize: summary.marketSize,
-            // metroPopStr: summary.metroPopulation ? ` · ${summary.metroPopulation >= 1 ? summary.metroPopulation.toFixed(1) + 'M' : Math.round(summary.metroPopulation * 1000) + 'K'} metro pop.` : '',
-            // isHardCap, spendingRatio: summary.spendingRatio, ratioWarning,
-            // lp, seasonsInCurrentTier: team.finances.seasonsInCurrentTier || 0,
-            // ownerMode: team.finances.ownerMode,
-            // arenaCapacity: team.finances.arena.capacity, arenaCondition: team.finances.arena.condition,
-            // sponsorCount: team.finances.sponsorships.length,
-            // sponsorRevenue: team.finances.sponsorships.reduce((s, d) => s + d.annualValue, 0),
-            // ticketPct: Math.round((team.finances.ticketPriceMultiplier || 1.0) * 100),
-            // marketingBudget: team.finances.marketingBudget
-        // });
-
-        modal.classList.remove('hidden');
-        const closeBtn = document.getElementById('financeDashboardCloseBtn');
-        if (closeBtn) closeBtn.style.display = '';
     }
 
     updateSpendingRatio(value) {
@@ -137,15 +103,6 @@ export class FinanceController {
 
         const ratio = parseInt(value) / 100;
         team.finances.spendingRatio = ratio;
-
-        const newLimit = engines.FinanceEngine.getSpendingLimit(team);
-        document.getElementById('spendingRatioDisplay').textContent = value + '%';
-        document.getElementById('spendingLimitDisplay').textContent = helpers.formatCurrency(newLimit);
-
-        const display = document.getElementById('spendingRatioDisplay');
-        if (ratio >= 0.85) display.style.color = '#ea4335';
-        else if (ratio >= 0.80) display.style.color = '#fbbc04';
-        else display.style.color = '#34a853';
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -198,18 +155,7 @@ export class FinanceController {
                 revFor5Pct,
                 formatCurrency: helpers.formatCurrency,
             });
-            return;
         }
-
-        // Legacy fallback
-        const content = document.getElementById('financeDashboardContent');
-        content.innerHTML = html;
-
-        document.getElementById('financeDashboardModal').classList.remove('hidden');
-        const closeBtn = document.getElementById('financeDashboardCloseBtn');
-        if (closeBtn) closeBtn.style.display = 'none';
-
-        updateTicketPriceEffect(Math.round((f.ticketPriceMultiplier || 1.0) * 100));
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -268,10 +214,6 @@ export class FinanceController {
         const team = this.ctx.helpers.getUserTeam();
         if (!team || !team.finances) return;
         team.finances.ticketPriceMultiplier = parseInt(value) / 100;
-        // Legacy DOM updates
-        const dispEl = document.getElementById('ticketPriceDisplay');
-        if (dispEl) dispEl.textContent = value + '%';
-        if (typeof updateTicketPriceEffect === 'function') updateTicketPriceEffect(parseInt(value));
     }
 
     setMarketingBudget(amount) {
@@ -295,12 +237,6 @@ export class FinanceController {
         if (window._ownerSpendingLimitUpdate) {
             window._ownerSpendingLimitUpdate(newLimit);
         }
-
-        // Legacy DOM updates
-        const dispEl = document.getElementById('ownerSpendingDisplay');
-        if (dispEl) dispEl.textContent = value + '%';
-        const limEl = document.getElementById('ownerLimitDisplay');
-        if (limEl) limEl.textContent = helpers.formatCurrency(newLimit);
     }
 
     toggleOwnerMode() {
@@ -317,37 +253,17 @@ export class FinanceController {
     // ═══════════════════════════════════════════════════════════════════
 
     updateTransitionSpending(value) {
+        // Legacy — React FinancialTransitionModal handles spending slider via onSpendingChange
         const { helpers, engines } = this.ctx;
         const team = helpers.getUserTeam();
         if (!team || !team.finances) return;
-
-        const ratio = parseInt(value) / 100;
-        team.finances.spendingRatio = ratio;
-
-        const newLimit = engines.FinanceEngine.getSpendingLimit(team);
-        const totalSalary = helpers.calculateTeamSalary(team);
-        const newCapSpace = newLimit - totalSalary;
-
-        document.getElementById('transitionSpendingPct').textContent = value + '%';
-        document.getElementById('transitionSpendingLimit').textContent = helpers.formatCurrency(newLimit);
-
-        const capEl = document.getElementById('transitionCapSpace');
-        capEl.textContent = helpers.formatCurrency(newCapSpace);
-        capEl.style.color = newCapSpace >= 0 ? '#34a853' : '#ea4335';
+        team.finances.spendingRatio = parseInt(value) / 100;
     }
 
     dismissTransitionBriefing() {
         const { helpers } = this.ctx;
-        document.getElementById('financialTransitionModal').classList.add('hidden');
         helpers.saveGameState();
         console.log('Proceeding to draft/development after transition briefing...');
         helpers.proceedToDraftOrDevelopment();
     }
-}
-
-// Module-level helper (called from within the class without `this`)
-function updateTicketPriceEffect(pct) {
-    const el = document.getElementById('ticketPriceEffect');
-    if (!el) return;
-    // [LEGACY REMOVED] el.innerHTML = UIRenderer.ticketPriceEffect({ pct });
 }
