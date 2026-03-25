@@ -3,8 +3,6 @@
 // Manages user-initiated trades and AI trade proposals
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { UIRenderer } from './UIRenderer.js';
-
 export class TradeController {
     /**
      * @param {Object} ctx - Context with all dependencies
@@ -34,19 +32,14 @@ export class TradeController {
         const { gameState, helpers } = this.ctx;
         const userTeam = helpers.getUserTeam();
 
-        // Update position breakdown
-        const tradeBreakdownDiv = document.getElementById('tradePositionBreakdown');
-        if (tradeBreakdownDiv && userTeam) {
-            tradeBreakdownDiv.innerHTML = helpers.generatePositionBreakdownHTML(userTeam.roster, "Your Current Roster");
-        }
-
         const maxGames = gameState.currentTier === 1 ? 82 : gameState.currentTier === 2 ? 60 : 40;
         const tradeDeadline = Math.floor(maxGames * 0.75);
         const seasonComplete = gameState.schedule && gameState.schedule.every(g => g.played);
         const userGamesPlayed = userTeam ? (userTeam.wins + userTeam.losses) : 0;
 
         if (userGamesPlayed >= tradeDeadline && !seasonComplete) {
-            alert(`Trade deadline has passed! (Game ${userGamesPlayed}/${maxGames}, deadline: ${tradeDeadline})\n\nTrades are not allowed until after the playoffs.\n\nYou can trade during the off-season!`);
+            // React TradeScreen shows its own "past deadline" state
+            // but guard here in case called from legacy path
             return;
         }
 
@@ -58,56 +51,17 @@ export class TradeController {
             userReceivesPicks: []
         };
 
-        const teams = helpers.getCurrentTeams().filter(t => t.id !== gameState.userTeamId);
-        const dropdown = document.getElementById('tradePartnerSelect');
-        dropdown.innerHTML = '<option value="" style="background: #1a1a1a; color: white;">-- Select Team --</option>' +
-            teams.map(t => `<option value="${t.id}" style="background: #1a1a1a; color: white;">${t.name}</option>`).join('');
-
-        document.getElementById('tradeInterface').style.display = 'none';
-        document.getElementById('noTradePartner').style.display = 'block';
         if (window._reactOpenTrade) {
             window._reactOpenTrade();
-        } else {
-            document.getElementById('tradeModal').classList.remove('hidden');
         }
     }
 
     closeTradeScreen() {
         if (window._reactCloseTrade) window._reactCloseTrade();
-        document.getElementById('tradeModal').classList.add('hidden');
-        
-        // If we came from roster management, return there
-        if (window.returnToRosterManagement) {
-            window.returnToRosterManagement = false;
-            if (window._reactShowRoster && window._buildRosterData) {
-                window._reactShowRoster(window._buildRosterData('game'));
-            } else {
-                document.getElementById('rosterModal').classList.remove('hidden');
-            }
-        }
     }
 
     loadTradePartner() {
-        const { helpers } = this.ctx;
-        const teamId = parseInt(document.getElementById('tradePartnerSelect').value);
-        if (isNaN(teamId)) {
-            document.getElementById('tradeInterface').style.display = 'none';
-            document.getElementById('noTradePartner').style.display = 'block';
-            return;
-        }
-
-        this.currentTrade.aiTeamId = teamId;
-        this.currentTrade.userGives = [];
-        this.currentTrade.userReceives = [];
-        this.currentTrade.userGivesPicks = [];
-        this.currentTrade.userReceivesPicks = [];
-
-        document.getElementById('tradeInterface').style.display = 'block';
-        document.getElementById('noTradePartner').style.display = 'none';
-
-        this.displayTradeRosters();
-        this.displayTradePicks();
-        this.updateTradeSummary();
+        // Legacy — React TradeScreen manages partner selection via local state
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -115,96 +69,20 @@ export class TradeController {
     // ═══════════════════════════════════════════════════════════════════
 
     displayTradeRosters() {
-        const { helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        const aiTeam = helpers.getTeamById(this.currentTrade.aiTeamId);
-        helpers.ensureRosterExists(userTeam);
-        helpers.ensureRosterExists(aiTeam);
-
-        document.getElementById('yourTradeRoster').innerHTML = userTeam.roster
-            .sort((a, b) => b.rating - a.rating)
-            // [LEGACY REMOVED] .map(player => UIRenderer.tradeRosterRow({
-                // player, isSelected: this.currentTrade.userGives.includes(player.id),
-                // side: 'user', ratingColor: helpers.getRatingColor(player.rating), formatCurrency: helpers.formatCurrency
-            // })).join('');
-
-        document.getElementById('aiTradeRoster').innerHTML = aiTeam.roster
-            .sort((a, b) => b.rating - a.rating)
-            // [LEGACY REMOVED] .map(player => UIRenderer.tradeRosterRow({
-                // player, isSelected: this.currentTrade.userReceives.includes(player.id),
-                // side: 'ai', ratingColor: helpers.getRatingColor(player.rating), formatCurrency: helpers.formatCurrency
-            // })).join('');
+        // Legacy — React TradeScreen RosterColumn handles roster display
     }
 
     displayTradePicks() {
-        const { gameState, helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        const aiTeam = helpers.getTeamById(this.currentTrade.aiTeamId);
-
-        if (userTeam.tier !== 1) {
-            document.getElementById('yourTradePicksHeader').style.display = 'none';
-            document.getElementById('yourTradePicks').style.display = 'none';
-            document.getElementById('aiTradePicksHeader').style.display = 'none';
-            document.getElementById('aiTradePicks').style.display = 'none';
-            this.currentTrade.userGivesPicks = [];
-            this.currentTrade.userReceivesPicks = [];
-            return;
-        }
-
-        document.getElementById('yourTradePicksHeader').style.display = '';
-        document.getElementById('yourTradePicks').style.display = '';
-        document.getElementById('aiTradePicksHeader').style.display = '';
-        document.getElementById('aiTradePicks').style.display = '';
-
-        helpers.initializeDraftPickOwnership();
-        const currentYear = gameState.currentSeason;
-
-        const buildPickRows = (teamId, side, selectedPicks) => {
-            let html = '';
-            for (let year = currentYear; year <= currentYear + 5; year++) {
-                [1, 2].forEach(round => {
-                    const owner = helpers.getPickOwner(teamId, year, round);
-                    if (owner === teamId) {
-                        const isSelected = selectedPicks.some(p => p.originalTeamId === teamId && p.year === year && p.round === round);
-                        const violatesRule = helpers.violatesStepienRule(teamId, year, round);
-                        // [LEGACY REMOVED] html += UIRenderer.tradePickRow({
-                            // teamId, year, round, isSelected, side,
-                            // pickValue: helpers.calculatePickValue(year, round), violatesRule
-                        // });
-                    } else {
-                        const ownerTeam = helpers.getTeamById(owner);
-                        // [LEGACY REMOVED] html += UIRenderer.tradePickOwedRow({ year, round, ownerName: ownerTeam ? ownerTeam.name : 'Unknown' });
-                    }
-                });
-            }
-            return html || '<div style="text-align: center; opacity: 0.6; padding: 20px;">No picks available to trade</div>';
-        };
-
-        document.getElementById('yourTradePicks').innerHTML = buildPickRows(userTeam.id, 'user', this.currentTrade.userGivesPicks);
-        document.getElementById('aiTradePicks').innerHTML = buildPickRows(aiTeam.id, 'ai', this.currentTrade.userReceivesPicks);
+        // Legacy — React TradeScreen PicksColumn handles pick display
     }
 
 
     toggleUserTradePlayer(playerId) {
-        const index = this.currentTrade.userGives.indexOf(playerId);
-        if (index === -1) {
-            this.currentTrade.userGives.push(playerId);
-        } else {
-            this.currentTrade.userGives.splice(index, 1);
-        }
-        this.displayTradeRosters();
-        this.updateTradeSummary();
+        // Legacy — React TradeScreen manages player selection via local state
     }
 
     toggleAiTradePlayer(playerId) {
-        const index = this.currentTrade.userReceives.indexOf(playerId);
-        if (index === -1) {
-            this.currentTrade.userReceives.push(playerId);
-        } else {
-            this.currentTrade.userReceives.splice(index, 1);
-        }
-        this.displayTradeRosters();
-        this.updateTradeSummary();
+        // Legacy — React TradeScreen manages player selection via local state
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -212,70 +90,7 @@ export class TradeController {
     // ═══════════════════════════════════════════════════════════════════
 
     updateTradeSummary() {
-        const { helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        const aiTeam = helpers.getTeamById(this.currentTrade.aiTeamId);
-
-        // Update position breakdown with hypothetical roster
-        const tradeBreakdownDiv = document.getElementById('tradePositionBreakdown');
-        if (tradeBreakdownDiv && userTeam) {
-            let hypotheticalRoster = [...userTeam.roster];
-
-            if (this.currentTrade.userGives && this.currentTrade.userGives.length > 0) {
-                hypotheticalRoster = hypotheticalRoster.filter(p =>
-                    !this.currentTrade.userGives.includes(p.id)
-                );
-            }
-
-            if (this.currentTrade.userReceives && this.currentTrade.userReceives.length > 0 && aiTeam) {
-                const receivedPlayers = this.currentTrade.userReceives
-                    .map(id => aiTeam.roster.find(p => p.id === id))
-                    .filter(p => p);
-                hypotheticalRoster = [...hypotheticalRoster, ...receivedPlayers];
-            }
-
-            tradeBreakdownDiv.innerHTML = helpers.generatePositionBreakdownHTML(hypotheticalRoster, "Roster After Trade");
-        }
-
-        // Calculate player values
-        let userGivesValue = 0, userGivesSalary = 0;
-        this.currentTrade.userGives.forEach(playerId => {
-            const player = userTeam.roster.find(p => p.id === playerId);
-            if (player) { userGivesValue += player.rating; userGivesSalary += player.salary; }
-        });
-
-        let userReceivesValue = 0, userReceivesSalary = 0;
-        this.currentTrade.userReceives.forEach(playerId => {
-            const player = aiTeam.roster.find(p => p.id === playerId);
-            if (player) { userReceivesValue += player.rating; userReceivesSalary += player.salary; }
-        });
-
-        // Add draft pick values
-        this.currentTrade.userGivesPicks.forEach(pick => {
-            userGivesValue += helpers.calculatePickValue(pick.year, pick.round);
-        });
-        this.currentTrade.userReceivesPicks.forEach(pick => {
-            userReceivesValue += helpers.calculatePickValue(pick.year, pick.round);
-        });
-
-        const netValue = userReceivesValue - userGivesValue;
-        const salaryDiff = Math.abs(userReceivesSalary - userGivesSalary);
-        const salaryMatch = salaryDiff <= 2000000;
-
-        document.getElementById('tradeYourValue').textContent = Math.round(userGivesValue);
-        document.getElementById('tradeAiValue').textContent = Math.round(userReceivesValue);
-        document.getElementById('tradeNetValue').textContent = netValue > 0 ? `+${Math.round(netValue)}` : Math.round(netValue);
-        document.getElementById('tradeNetValue').style.color = netValue > 0 ? '#34a853' : netValue < 0 ? '#ea4335' : '#fbbc04';
-
-        const summaryDiv = document.getElementById('tradeSummary');
-        const existingSalaryInfo = summaryDiv.querySelector('.salary-match-info');
-        if (existingSalaryInfo) existingSalaryInfo.remove();
-
-        if (this.currentTrade.userGives.length > 0 && this.currentTrade.userReceives.length > 0) {
-            // [LEGACY REMOVED] summaryDiv.insertAdjacentHTML('beforeend', UIRenderer.tradeSalarySummary({
-                // userGivesSalary, userReceivesSalary, salaryDiff, salaryMatch, formatCurrency: helpers.formatCurrency
-            // }));
-        }
+        // Legacy — React TradeScreen TradeSummary component handles value display
     }
 
     evaluateTrade() {
@@ -312,49 +127,8 @@ export class TradeController {
     // ═══════════════════════════════════════════════════════════════════
 
     proposeTrade() {
-        const { helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        const aiTeam = helpers.getTeamById(this.currentTrade.aiTeamId);
-
-        // Draft picks are T1-only
-        if (userTeam.tier !== 1) {
-            if (this.currentTrade.userGivesPicks.length > 0 || this.currentTrade.userReceivesPicks.length > 0) {
-                console.warn('⚠️ Draft picks stripped from T' + userTeam.tier + ' trade — picks are T1 only.');
-            }
-            this.currentTrade.userGivesPicks = [];
-            this.currentTrade.userReceivesPicks = [];
-        }
-
-        const userGivesAnything = this.currentTrade.userGives.length > 0 || this.currentTrade.userGivesPicks.length > 0;
-        const userReceivesAnything = this.currentTrade.userReceives.length > 0 || this.currentTrade.userReceivesPicks.length > 0;
-
-        if (!userGivesAnything || !userReceivesAnything) {
-            alert('You must select at least one player or draft pick on each side of the trade.');
-            return;
-        }
-
-        const userRosterAfter = userTeam.roster.length - this.currentTrade.userGives.length + this.currentTrade.userReceives.length;
-        const aiRosterAfter = aiTeam.roster.length - this.currentTrade.userReceives.length + this.currentTrade.userGives.length;
-
-        if (userRosterAfter < 12 || userRosterAfter > 15) {
-            alert(`Invalid trade: Your roster would have ${userRosterAfter} players. Must be between 12-15.`);
-            return;
-        }
-
-        if (aiRosterAfter < 12 || aiRosterAfter > 15) {
-            alert(`Invalid trade: ${aiTeam.name} would have ${aiRosterAfter} players. Must be between 12-15.`);
-            return;
-        }
-
-        const result = this.evaluateTrade();
-
-        if (result.accepted) {
-            this.executeTrade();
- alert(`Trade Accepted!\n\n${result.reason}`);
-            this.closeTradeScreen();
-        } else {
- alert(`Trade Declined\n\n${aiTeam.name} says: "${result.reason}"`);
-        }
+        // Legacy — React TradeScreen handles trade proposal, evaluation,
+        // and result display directly via handlePropose()
     }
 
     executeTrade() {
@@ -528,7 +302,6 @@ export class TradeController {
         }
 
         if (window._reactCloseAiTrade) window._reactCloseAiTrade();
-        document.getElementById('aiTradeProposalModal').classList.add('hidden');
         helpers.updateUI();
 
         // Resume whatever sim mode was running when the proposal interrupted
@@ -558,7 +331,6 @@ export class TradeController {
 
         gameState.pendingTradeProposal = null;
         if (window._reactCloseAiTrade) window._reactCloseAiTrade();
-        document.getElementById('aiTradeProposalModal').classList.add('hidden');
 
         // Resume whatever sim mode was running when the proposal interrupted
         if (window._resumeAfterAiTrade) {

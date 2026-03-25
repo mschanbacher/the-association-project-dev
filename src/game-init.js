@@ -1384,26 +1384,13 @@
             container.style.display = 'block';
         }
         
-        // ===== TRADE SYSTEM =====
+        // ===== HELPER FUNCTIONS =====
         
-        let currentTrade = {
-            aiTeamId: null,
-            userGives: [],  // Array of player IDs
-            userReceives: [], // Array of player IDs
-            userGivesPicks: [], // Array of {originalTeamId, year, round}
-            userReceivesPicks: [] // Array of {originalTeamId, year, round}
-        };
-
-        // Make pick toggle functions globally accessible
         function getTeamById(teamId) {
             return [...gameState.tier1Teams, ...gameState.tier2Teams, ...gameState.tier3Teams]
                 .find(t => t.id === teamId);
         }
         
-        // Make trade functions globally accessible
-        // ===== AI TRADE PROPOSALS (PHASE 3) =====
-        
-        // Make AI trade functions globally accessible
         // ═══════════════════════════════════════════════════════════════════
         // INJURY MODAL UI
         // ═══════════════════════════════════════════════════════════════════
@@ -1881,7 +1868,6 @@
         window.closeLotteryModal = (...args) => getDraftController().closeLotteryModal(...args);
         window.closeScoutingModal = (...args) => getRosterController().closeScoutingModal(...args);
         window.closeSeasonEnd = (...args) => getGameSimController().closeSeasonEnd(...args);
-        window.closeTradeScreen = (...args) => getTradeController().closeTradeScreen(...args);
         window.confirmOffseasonDecisions = (...args) => getOffseasonController().confirmOffseasonDecisions(...args);
         window.closeBracketViewer = () => { if (window._reactCloseBracket) window._reactCloseBracket(); document.getElementById('bracketViewerModal').classList.add('hidden'); };
         window.openBracketViewer = () => getGameSimController().openBracketViewer();
@@ -1892,14 +1878,10 @@
         window.filterCollegeGrads = (...args) => getDraftController().filterCollegeGrads(...args);
         window.filterDraftProspects = (...args) => getDraftController().filterDraftProspects(...args);
         window.filterPipeline = (...args) => getRosterController().filterPipeline(...args);
-        window.loadTradePartner = (...args) => getTradeController().loadTradePartner(...args);
         window.makeContractDecision = (...args) => getOffseasonController().makeContractDecision(...args);
         window.openFinanceDashboard = (...args) => getFinanceController().openFinanceDashboard(...args);
         window.openScoutingModal = (...args) => getRosterController().openScoutingModal(...args);
-        window.proposeTrade = (...args) => getTradeController().proposeTrade(...args);
         window.rejectAiTradeProposal = (...args) => getTradeController().rejectAiTradeProposal(...args);
-        window.toggleAiTradePlayer = (...args) => getTradeController().toggleAiTradePlayer(...args);
-        window.toggleUserTradePlayer = (...args) => getTradeController().toggleUserTradePlayer(...args);
         window.releaseExpiredPlayer = (...args) => getOffseasonController().releaseExpiredPlayer(...args);
         window.removeFromWatchList = (...args) => getRosterController().removeFromWatchList(...args);
         window.renderScannerTab = (...args) => getRosterController()._renderScannerTab(...args);
