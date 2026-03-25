@@ -131,17 +131,7 @@ export class DashboardController {
             document.getElementById('autoZoneLegendText').textContent = 'Auto-Relegation';
         }
 
-        // ── Sim button states ──
-        const seasonComplete = gameState.isSeasonComplete();
-        const inOffseason = gameState.offseasonPhase && gameState.offseasonPhase !== 'none';
-        const simNextBtn = document.getElementById('simNextBtn');
-        const simDayBtn = document.getElementById('simDayBtn');
-        const simWeekBtn = document.getElementById('simWeekBtn');
-        const finishBtn = document.getElementById('finishBtn');
-        if (simNextBtn) simNextBtn.disabled = seasonComplete;
-        if (simDayBtn) simDayBtn.disabled = seasonComplete;
-        if (simWeekBtn) simWeekBtn.disabled = seasonComplete;
-        if (finishBtn) finishBtn.disabled = seasonComplete && !inOffseason;
+        // Sim button states managed by React SimControls component
 
         // ── Sub-panels ──
         this.refreshStandings();

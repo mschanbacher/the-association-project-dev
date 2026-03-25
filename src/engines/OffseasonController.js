@@ -1352,11 +1352,7 @@ export class OffseasonController {
 
         helpers.saveGameState();
 
-        // Re-enable sim buttons (legacy DOM may not exist when React UI is active)
-        for (const id of ['simNextBtn', 'simDayBtn', 'simWeekBtn', 'finishBtn']) {
-            const el = document.getElementById(id);
-            if (el) el.disabled = false;
-        }
+        // Sim button states managed by React SimControls component
 
         console.log('✅ Step 5 complete: New season ready!');
         console.log('Current game:', gameState.currentGame);
