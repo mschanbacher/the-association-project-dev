@@ -78,17 +78,6 @@ export class EventBus {
     }
 
     /**
-     * Remove all listeners for an event (or all events if no arg)
-     */
-    offAll(event) {
-        if (event) {
-            this._listeners.delete(event);
-        } else {
-            this._listeners.clear();
-        }
-    }
-
-    /**
      * Emit an event, calling all matching listeners
      * @param {string} event - Event name
      * @param {*} data - Payload passed to listeners
@@ -146,26 +135,6 @@ export class EventBus {
         return results;
     }
 
-    // ─── Flow Control ───────────────────────────────────────────────
-
-    /**
-     * Pause event processing (events are queued)
-     */
-    pause() {
-        this._paused = true;
-    }
-
-    /**
-     * Resume and flush queued events
-     */
-    resume() {
-        this._paused = false;
-        const queued = [...this._queue];
-        this._queue = [];
-        for (const { event, data } of queued) {
-            this.emit(event, data);
-        }
-    }
 
     // ─── Debugging ──────────────────────────────────────────────────
 
@@ -179,27 +148,6 @@ export class EventBus {
     /**
      * Print event history to console
      */
-    debugHistory(n = 20) {
-        console.log('📜 EventBus History (last ' + n + '):');
-        const history = this.getHistory(n);
-        for (const entry of history) {
-            const time = new Date(entry.timestamp).toLocaleTimeString();
-            console.log(`  ${time} | ${entry.event} (${entry.listenerCount} listeners)`);
-        }
-    }
-
-    /**
-     * List all registered listeners
-     */
-    debugListeners() {
-        console.log('👂 EventBus Listeners:');
-        for (const [event, listeners] of this._listeners) {
-            console.log(`  ${event}: ${listeners.length} listener(s)`);
-            for (const l of listeners) {
-                console.log(`    #${l.id} priority:${l.priority}${l.once ? ' (once)' : ''}`);
-            }
-        }
-    }
 
     // ─── Internal ───────────────────────────────────────────────────
 

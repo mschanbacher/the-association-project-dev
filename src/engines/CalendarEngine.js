@@ -120,15 +120,6 @@ export class CalendarEngine {
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
     }
-    
-    /**
-     * Get the day of week name
-     */
-    static getDayOfWeek(dateStr) {
-        const d = new Date(dateStr + 'T12:00:00');
-        return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getDay()];
-    }
-    
     /**
      * Check if a date falls within the All-Star break
      */
@@ -1026,17 +1017,7 @@ export class CalendarEngine {
         
         return nextGame ? nextGame.date : null;
     }
-    
-    /**
-     * Check if all regular season games are complete
-     */
-    static isRegularSeasonComplete(gameState) {
-        const t1Done = !gameState.tier1Schedule || gameState.tier1Schedule.every(g => g.played);
-        const t2Done = !gameState.tier2Schedule || gameState.tier2Schedule.every(g => g.played);
-        const t3Done = !gameState.tier3Schedule || gameState.tier3Schedule.every(g => g.played);
-        return t1Done && t2Done && t3Done;
-    }
-    
+
     /**
      * Get a calendar event description for the current date (All-Star, Trade Deadline, etc.)
      */

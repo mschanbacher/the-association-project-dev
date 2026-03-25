@@ -1118,33 +1118,7 @@ export class PlayoffEngine {
         
         return games;
     }
-    
-    /**
-     * Update a series with the winning team from a previous round
-     * Called when a series completes to populate the next round's matchups
-     */
-    static populateNextRoundSeries(playoffSchedule, completedSeriesId, winner, loser) {
-        // Find games that depend on this series result
-        // The seriesId naming convention helps us find the next round
-        // e.g., t1-r1-east-1v8 winner goes to t1-r2-east-1
-        
-        const games = playoffSchedule.games;
-        
-        // Determine which next-round series this feeds into based on bracket logic
-        // This is bracket-specific and will need custom logic per tier/round
-        // For now, we'll implement a generic version that can be extended
-        
-        const [tier, round, ...rest] = completedSeriesId.split('-');
-        
-        // Find placeholder games in the next round that need this winner
-        for (const game of games) {
-            if (game.placeholder && game.tier === parseInt(tier.replace('t', '')) && !game.homeTeamId) {
-                // Logic to match winner to correct next-round series goes here
-                // This will be implemented more fully when we wire up the sim flow
-            }
-        }
-    }
-    
+
     /**
      * Get the current state of a series (wins for each team, games played, etc.)
      */

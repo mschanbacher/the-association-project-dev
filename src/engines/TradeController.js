@@ -184,47 +184,6 @@ export class TradeController {
         document.getElementById('aiTradePicks').innerHTML = buildPickRows(aiTeam.id, 'ai', this.currentTrade.userReceivesPicks);
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Toggle Selections
-    // ═══════════════════════════════════════════════════════════════════
-
-    toggleUserTradePick(originalTeamId, year, round) {
-        originalTeamId = typeof originalTeamId === 'string' ? parseInt(originalTeamId) : originalTeamId;
-        year = typeof year === 'string' ? parseInt(year) : year;
-        round = typeof round === 'string' ? parseInt(round) : round;
-
-        const index = this.currentTrade.userGivesPicks.findIndex(p =>
-            p.originalTeamId === originalTeamId && p.year === year && p.round === round
-        );
-
-        if (index === -1) {
-            this.currentTrade.userGivesPicks.push({ originalTeamId, year, round });
-        } else {
-            this.currentTrade.userGivesPicks.splice(index, 1);
-        }
-
-        this.displayTradePicks();
-        this.updateTradeSummary();
-    }
-
-    toggleAiTradePick(originalTeamId, year, round) {
-        originalTeamId = typeof originalTeamId === 'string' ? parseInt(originalTeamId) : originalTeamId;
-        year = typeof year === 'string' ? parseInt(year) : year;
-        round = typeof round === 'string' ? parseInt(round) : round;
-
-        const index = this.currentTrade.userReceivesPicks.findIndex(p =>
-            p.originalTeamId === originalTeamId && p.year === year && p.round === round
-        );
-
-        if (index === -1) {
-            this.currentTrade.userReceivesPicks.push({ originalTeamId, year, round });
-        } else {
-            this.currentTrade.userReceivesPicks.splice(index, 1);
-        }
-
-        this.displayTradePicks();
-        this.updateTradeSummary();
-    }
 
     toggleUserTradePlayer(playerId) {
         const index = this.currentTrade.userGives.indexOf(playerId);

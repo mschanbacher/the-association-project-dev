@@ -67,15 +67,6 @@ export class SalaryCapEngine {
     }
 
     /**
-     * Get salary floor for a specific team (revenue-aware via FinanceEngine)
-     * @param {Object} team
-     * @returns {number}
-     */
-    static getTeamSalaryFloor(team) {
-        return FinanceEngine.getSalaryFloor(team);
-    }
-
-    /**
      * Get EFFECTIVE SPENDING LIMIT for a team
      * T1: Hard cap ($100M)
      * T2/T3: Revenue-based spending limit from FinanceEngine

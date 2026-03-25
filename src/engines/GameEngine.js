@@ -107,25 +107,6 @@ export const GameEngine = {
         return blendedStrength;
     },
 
-    /**
-     * Calculate chemistry bonus for a team
-     * @param {Object} team - Team object
-     * @param {boolean} isPlayoffs - Whether this is a playoff game
-     * @returns {number} Chemistry bonus to apply
-     */
-    getChemistryBonus(team, isPlayoffs = false) {
-        const teamChemistry = this.calculateTeamChemistry(team);
-        // Formula: (chemistry - 75) / 25 * 5 = ±5 at extremes
-        // 100 chemistry = +5, 75 = 0, 50 = -5
-        let bonus = ((teamChemistry - 75) / 25) * 5;
-        
-        // Double impact in playoffs
-        if (isPlayoffs) {
-            bonus *= 2;
-        }
-        
-        return bonus;
-    },
 
     /**
      * Calculate team chemistry from roster
@@ -270,63 +251,4 @@ export const GameEngine = {
         return changes;
     },
 
-    /**
-     * Calculate player development (PURE function)
-     * @param {Object} player - Player object
-     * @param {number} gamesPlayed - Games played this season
-     * @param {number} maxGames - Max games in season
-     * @returns {number} Rating change
-     */
-    calculatePlayerDevelopment(player, gamesPlayed, maxGames) {
-        const age = player.age;
-        const playingTimeRatio = gamesPlayed / maxGames; // 0.0 to 1.0
-        
-        // Base development potential by age
-        let baseDevelopment = 0;
-        
-        if (age <= 21) {
-            // Very young: High potential (+2 to +5)
-            baseDevelopment = 2 + Math.random() * 3;
-        } else if (age <= 24) {
-            // Young: Good potential (+1 to +3)
-            baseDevelopment = 1 + Math.random() * 2;
-        } else if (age <= 27) {
-            // Prime: Slight growth (0 to +2)
-            baseDevelopment = Math.random() * 2;
-        } else if (age <= 29) {
-            // Late prime: Stable (-1 to +1)
-            baseDevelopment = -1 + Math.random() * 2;
-        } else if (age <= 32) {
-            // Declining: Small decline (-2 to 0)
-            baseDevelopment = -2 + Math.random() * 2;
-        } else if (age <= 35) {
-            // Late career: Moderate decline (-3 to -1)
-            baseDevelopment = -3 + Math.random() * 2;
-        } else {
-            // Very old: Steep decline (-5 to -2)
-            baseDevelopment = -5 + Math.random() * 3;
-        }
-        
-        // Playing time modifier
-        let playingTimeModifier = 1.0;
-        
-        if (playingTimeRatio >= 0.8) {
-            playingTimeModifier = 1.0; // Starter
-        } else if (playingTimeRatio >= 0.5) {
-            playingTimeModifier = 0.75; // Rotation player
-        } else if (playingTimeRatio >= 0.2) {
-            playingTimeModifier = 0.5; // Bench player
-        } else {
-            playingTimeModifier = 0.25; // Rarely played
-        }
-        
-        // Apply playing time modifier
-        let finalChange = baseDevelopment * playingTimeModifier;
-        
-        // Add small random variance (-0.5 to +0.5)
-        finalChange += (Math.random() - 0.5);
-        
-        // Round to integer
-        return Math.round(finalChange);
-    }
 };

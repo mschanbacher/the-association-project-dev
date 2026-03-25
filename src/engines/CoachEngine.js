@@ -260,21 +260,6 @@ export class CoachEngine {
     }
 
     static serializeCoach(coach) { return coach ? { ...coach } : null; }
-    static deserializeCoach(data) {
-        if (!data) return null;
-        const defaults = { pace:50, threePointTendency:50, defensiveIntensity:50, ballMovement:50, benchUsage:50, playerDevelopment:50, adaptability:50 };
-        return {
-            id: data.id || CoachEngine._nextCoachId++, name: data.name || 'Unknown Coach',
-            age: data.age || 50, experience: data.experience || 5, archetype: data.archetype || 'Balanced Tactician',
-            overall: data.overall || 50, traits: data.traits || defaults,
-            salary: data.salary || 500000, contractYears: data.contractYears || 1,
-            originalContractLength: data.originalContractLength || data.contractYears || 1,
-            careerWins: data.careerWins || 0, careerLosses: data.careerLosses || 0,
-            championships: data.championships || 0, seasonsCoached: data.seasonsCoached || 0,
-            teamId: data.teamId || null, tier: data.tier || 1, satisfaction: data.satisfaction || 75,
-            seasonWins: data.seasonWins || 0, seasonLosses: data.seasonLosses || 0
-        };
-    }
 
     static advanceCoachSeason(coach) {
         if (!coach) return 'none';

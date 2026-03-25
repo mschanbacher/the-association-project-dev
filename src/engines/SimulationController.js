@@ -120,16 +120,6 @@ export class SimulationController {
         changes.messages.forEach(msg => console.log(msg));
     }
 
-    /**
-     * Update games played for team's roster
-     * LEGACY: Now handled by accumulatePlayerStats via StatEngine.
-     * Kept as no-op for any external callers.
-     * @param {Object} team - Team object
-     */
-    updatePlayerGamesPlayed(team) {
-        // No-op: Player games played now tracked via window.StatEngine.accumulateStats()
-        // in accumulatePlayerStats() above. Kept for backward compatibility.
-    }
 
     /**
      * Simulate a playoff game (doesn't update team records, just returns result)
@@ -208,14 +198,6 @@ export class SimulationController {
      */
     addObserver(callback) {
         this.observers.push(callback);
-    }
-
-    /**
-     * Remove an observer
-     * @param {Function} callback - Callback to remove
-     */
-    removeObserver(callback) {
-        this.observers = this.observers.filter(obs => obs !== callback);
     }
 
     /**

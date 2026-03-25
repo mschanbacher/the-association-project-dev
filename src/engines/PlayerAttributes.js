@@ -398,24 +398,6 @@ export class PlayerAttributes {
     }
 
     /**
-     * Get a text grade for an attribute value
-     */
-    static getAttrGrade(value) {
-        if (value >= 90) return 'A+';
-        if (value >= 85) return 'A';
-        if (value >= 80) return 'A-';
-        if (value >= 75) return 'B+';
-        if (value >= 70) return 'B';
-        if (value >= 65) return 'B-';
-        if (value >= 60) return 'C+';
-        if (value >= 55) return 'C';
-        if (value >= 50) return 'C-';
-        if (value >= 45) return 'D+';
-        if (value >= 40) return 'D';
-        return 'F';
-    }
-
-    /**
      * Gaussian random within a range (centered)
      */
     static _gaussianInRange(min, max) {

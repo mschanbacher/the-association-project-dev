@@ -37,43 +37,6 @@ export class PlayerDevelopmentEngine {
     // ─────────────────────────────────────────────────────────────
 
     /**
-     * Calculate rating change based on age, playing time, and randomness
-     * @param {Object} player
-     * @param {number} gamesPlayed
-     * @param {number} maxGames
-     * @returns {number} Integer rating change
-     */
-    static calculateRatingChange(player, gamesPlayed, maxGames) {
-        const age = player.age;
-        const playingTimeRatio = gamesPlayed / maxGames;
-
-        // Base development potential by age
-        let baseDevelopment = 0;
-
-        if (age <= 21)      baseDevelopment = 2 + Math.random() * 3;   // +2 to +5
-        else if (age <= 24) baseDevelopment = 1 + Math.random() * 2;   // +1 to +3
-        else if (age <= 27) baseDevelopment = Math.random() * 2;       // 0 to +2
-        else if (age <= 29) baseDevelopment = -1 + Math.random() * 2;  // -1 to +1
-        else if (age <= 32) baseDevelopment = -2 + Math.random() * 2;  // -2 to 0
-        else if (age <= 35) baseDevelopment = -3 + Math.random() * 2;  // -3 to -1
-        else                baseDevelopment = -5 + Math.random() * 3;  // -5 to -2
-
-        // Playing time modifier
-        let playingTimeModifier = 0.25;
-        for (const tier of PlayerDevelopmentEngine.PLAYING_TIME_TIERS) {
-            if (playingTimeRatio >= tier.threshold) {
-                playingTimeModifier = tier.modifier;
-                break;
-            }
-        }
-
-        let finalChange = baseDevelopment * playingTimeModifier;
-        finalChange += (Math.random() - 0.5); // Small random variance
-
-        return Math.round(finalChange);
-    }
-
-    /**
      * Get playing time modifier for a given ratio
      * @param {number} playingTimeRatio - 0.0 to 1.0
      * @returns {number}

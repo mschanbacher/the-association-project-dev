@@ -43,94 +43,6 @@ export class FatigueEngine {
 
     static TOTAL_MINUTES = 240; // 5 positions × 48 minutes
 
-    // ─────────────────────────────────────────────────────────────
-    // MINUTES DISTRIBUTION
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Distribute playing time for a team based on rotation depth
-     * Sets player.minutesThisGame for all roster players.
-     * @param {Object} team
-     * @param {boolean} isPlayoffs
-     */
-    static distributeMinutes(team, isPlayoffs = false) {
-        if (!team.roster) return;
-
-        // Get available players (not injured-out, not resting)
-        const availablePlayers = team.roster.filter(p => p.injuryStatus !== 'out' && !p.resting);
-
-        // Reset minutes for all players
-        team.roster.forEach(p => p.minutesThisGame = 0);
-
-        if (availablePlayers.length === 0) {
-            console.warn(`${team.name} has no available players!`);
-            return;
-        }
-
-        // STEP 1: Select starters by position (best available at each position)
-        const positions = ['PG', 'SG', 'SF', 'PF', 'C'];
-        const starters = [];
-        const usedPlayers = new Set();
-
-        positions.forEach(pos => {
-            const positionPlayers = availablePlayers
-                .filter(p => p.position === pos && !usedPlayers.has(p.id))
-                .sort((a, b) => b.rating - a.rating);
-
-            if (positionPlayers.length > 0) {
-                starters.push(positionPlayers[0]);
-                usedPlayers.add(positionPlayers[0].id);
-            } else {
-                // No one at this position — use best remaining
-                const versatile = availablePlayers
-                    .filter(p => !usedPlayers.has(p.id))
-                    .sort((a, b) => b.rating - a.rating)[0];
-
-                if (versatile) {
-                    starters.push(versatile);
-                    usedPlayers.add(versatile.id);
-                }
-            }
-        });
-
-        // STEP 2: Fill bench with remaining players by rating
-        const bench = availablePlayers
-            .filter(p => !usedPlayers.has(p.id))
-            .sort((a, b) => b.rating - a.rating);
-
-        const rotation = [...starters, ...bench];
-
-        // Assign minutes
-        let minutesAssigned = 0;
-        rotation.forEach((player, index) => {
-            if (index >= FatigueEngine.MINUTES_DISTRIBUTION.length) {
-                player.minutesThisGame = 0;
-                return;
-            }
-
-            const dist = FatigueEngine.MINUTES_DISTRIBUTION[index];
-            const minutes = Math.floor(dist.min + Math.random() * (dist.max - dist.min + 1));
-            player.minutesThisGame = minutes;
-            minutesAssigned += minutes;
-        });
-
-        // Adjust to hit exactly 240 minutes
-        const minutesDiff = FatigueEngine.TOTAL_MINUTES - minutesAssigned;
-        if (minutesDiff !== 0 && rotation.length > 0) {
-            const rotationPlayers = rotation.slice(0, Math.min(8, rotation.length));
-            let remaining = minutesDiff;
-
-            for (let i = 0; i < rotationPlayers.length && remaining !== 0; i++) {
-                if (remaining > 0) {
-                    rotationPlayers[i].minutesThisGame += 1;
-                    remaining -= 1;
-                } else if (rotationPlayers[i].minutesThisGame > 0) {
-                    rotationPlayers[i].minutesThisGame -= 1;
-                    remaining += 1;
-                }
-            }
-        }
-    }
 
     // ─────────────────────────────────────────────────────────────
     // FATIGUE ACCUMULATION & RECOVERY
@@ -172,15 +84,6 @@ export class FatigueEngine {
         player.gamesRested = 0;
     }
 
-    /**
-     * Legacy function — calls minutes-based version with 30-minute default
-     * @param {Object} player
-     * @param {boolean} isPlayoffs
-     * @param {boolean} isBackToBack
-     */
-    static accumulateFatigue(player, isPlayoffs = false, isBackToBack = false) {
-        FatigueEngine.accumulateFatigueByMinutes(player, 30, isPlayoffs, isBackToBack);
-    }
 
     /**
      * Recover fatigue for a player who sat out a game
