@@ -353,21 +353,11 @@ export class GMMode {
     
     /**
      * Show a brief day message (off day, calendar event, etc.)
+     * Currently a no-op — the legacy nextGamesContainer div was removed.
+     * TODO: Replace with React toast/notification system.
      */
     _showDayMessage(message, dateStr) {
-        const displayDate = this.deps.CalendarEngine.formatDateDisplay(dateStr);
-        // Use a simple alert-style notification (can be upgraded to a toast later)
-        const container = document.getElementById('nextGamesContainer');
-        if (container) {
-            const msgHtml = `
-                <div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.05); 
-                            border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.15);">
-                    <div style="font-size: 1.3em; margin-bottom: 5px;">${message}</div>
-                    <div style="opacity: 0.7; font-size: 0.9em;">${displayDate}</div>
-                </div>
-            `;
-            container.innerHTML = msgHtml + container.innerHTML;
-        }
+        // No-op: legacy DOM target removed. Callers preserved for future toast system.
     }
     
     /**
