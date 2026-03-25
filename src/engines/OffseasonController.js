@@ -195,8 +195,6 @@ export class OffseasonController {
         });
 
         // Close any open modals
-        document.getElementById('seasonEndModal')?.classList.add('hidden');
-        document.getElementById('playoffModal')?.classList.add('hidden');
         if (window._reactCloseSeasonEnd) window._reactCloseSeasonEnd();
 
         gameState.userPlayoffResult = action;
@@ -347,7 +345,6 @@ export class OffseasonController {
             });
         }
 
-        // [LEGACY DOM] document.getElementById('championshipPlayoffModal').classList.add('hidden');
         this.setPhase(P.PROMO_REL);
 
         // ═══ CAPTURE SEASON HISTORY SNAPSHOT ═══
@@ -612,10 +609,6 @@ export class OffseasonController {
             window._reactShowFinancialTransition(briefingData);
             return;
         }
-
-        // [LEGACY REMOVED] document.getElementById('financialTransitionContent').innerHTML = UIRenderer.financialTransitionBriefing(briefingData);
-
-        document.getElementById('financialTransitionModal').classList.remove('hidden');
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -871,12 +864,10 @@ export class OffseasonController {
             // allRetirementsCount: allRetirements.length
         // });
 
-        // [LEGACY DOM] document.getElementById('developmentSummary').innerHTML = html;
-        // [LEGACY DOM] document.getElementById('developmentModal').classList.remove('hidden');
+        // Development summary now rendered by React DevelopmentModal via _reactShowDevelopment
     }
 
     closeDevelopmentSummary() {
-        // [LEGACY DOM] document.getElementById('developmentModal').classList.add('hidden');
         this.startFreeAgencyPeriod();
     }
 
@@ -1010,14 +1001,6 @@ export class OffseasonController {
         const availableCap = cap - (currentSalary - expiredSalary + resignedSalary);
         const remainingRoster = userTeam.roster.length - expiredContracts.length +
             Object.values(state.decisions).filter(d => d === 'resign').length;
-
-        // [LEGACY REMOVED] document.getElementById('contractDecisionsSummary').innerHTML = UIRenderer.contractDecisionsSummary({
-            // expiredCount: expiredContracts.length,
-            // availableCap,
-            // rosterCount: { value: remainingRoster, label: 'Remaining Roster' },
-            // formatCurrency: helpers.formatCurrency,
-            // capColor: availableCap < 0 ? '#ea4335' : '#34a853'
-        // });
     }
 
     updateContractDecisionsButton() {
@@ -1203,10 +1186,7 @@ export class OffseasonController {
             return;
         }
 
-        // [LEGACY REMOVED] document.getElementById('complianceModalContent').innerHTML = UIRenderer.rosterComplianceModal({
-            // isOverCap, isUnderMinimum, isOverMaximum, totalSalary, salaryCap, rosterSize, tier, formatCurrency: helpers.formatCurrency
-        // });
-        // [LEGACY DOM] document.getElementById('complianceModal').classList.remove('hidden');
+        // Compliance modal now rendered by React ComplianceModal via _reactShowCompliance
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -1253,10 +1233,8 @@ export class OffseasonController {
         console.log(`   Spending Limit: ${helpers.formatCurrency(engines.FinanceEngine.getSpendingLimit(team))}`);
         console.log('═══════════════════════════════════════════════════════');
 
-        // Close modal (React or legacy)
+        // Close modal
         if (window._reactCloseOwnerMode) window._reactCloseOwnerMode();
-        const legacyModal = document.getElementById('financeDashboardModal');
-        if (legacyModal) legacyModal.classList.add('hidden');
 
         helpers.saveGameState();
         this.continueToSeasonSetup();

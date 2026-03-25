@@ -45,17 +45,11 @@ export class DraftController {
             return;
         }
 
-        // [LEGACY REMOVED] const html = UIRenderer.lotteryResults({
-            // lotteryResults: lotteryData.lotteryResults,
-            // userTeamId: userTeam.id
-        // });
-        // [LEGACY DOM] document.getElementById('lotteryContent').innerHTML = html;
-        // [LEGACY DOM] document.getElementById('lotteryModal').classList.remove('hidden');
+        // Lottery results now rendered by React LotteryModal via _reactShowLottery
     }
 
     closeLotteryModal() {
         if (window._reactCloseLottery) window._reactCloseLottery();
-        // [LEGACY DOM] document.getElementById('lotteryModal').classList.add('hidden');
         if (window.pendingDraftData) {
             this.startDraftAfterLottery();
         }
@@ -266,57 +260,18 @@ export class DraftController {
             });
             return;
         }
-
-        document.getElementById('userPickNumber').textContent = `Pick #${pick.pick} (${roundText})`;
-        this.displayDraftProspects();
-        this.displayUserRosterInDraft();
-        document.getElementById('userDraftPickModal').classList.remove('hidden');
     }
 
     displayDraftProspects() {
-        const state = window.currentDraftState;
-        const { helpers, engines } = this.ctx;
-        let prospects = [...state.prospects];
-
-        const positionFilter = document.getElementById('draftPositionFilter').value;
-        if (positionFilter !== 'ALL') {
-            prospects = prospects.filter(p => p.position === positionFilter);
-        }
-
-        const sortBy = document.getElementById('draftSortBy').value;
-        if (sortBy === 'rating') prospects.sort((a, b) => b.rating - a.rating);
-        else if (sortBy === 'age') prospects.sort((a, b) => a.age - b.age);
-        else if (sortBy === 'position') prospects.sort((a, b) => a.position.localeCompare(b.position));
-
-        let html = '';
-        if (prospects.length === 0) {
-            html = '<p style="text-align: center; opacity: 0.7; padding: 40px;">No prospects match your filters</p>';
-        } else {
-            prospects.forEach(prospect => {
-                // [LEGACY REMOVED] html += UIRenderer.draftProspectCard({ prospect, getRatingColor: helpers.getRatingColor, PlayerAttributes: engines.PlayerAttributes });
-            });
-        }
-
-        document.getElementById('draftProspectsList').innerHTML = html;
+        // No-op: React UserDraftPickModal handles prospect list rendering and filtering.
     }
 
     displayUserRosterInDraft() {
-        const { helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        helpers.ensureRosterExists(userTeam);
-
-        const positionCounts = { 'PG': 0, 'SG': 0, 'SF': 0, 'PF': 0, 'C': 0 };
-        userTeam.roster.forEach(p => positionCounts[p.position]++);
-
-        const topPlayers = [...userTeam.roster].sort((a, b) => b.rating - a.rating).slice(0, 10);
-
-        // [LEGACY REMOVED] document.getElementById('draftYourRoster').innerHTML = UIRenderer.draftUserRoster({
-            // positionCounts, topPlayers, totalRosterSize: userTeam.roster.length, getRatingColor: helpers.getRatingColor
-        // });
+        // No-op: React UserDraftPickModal handles roster display.
     }
 
     filterDraftProspects() {
-        this.displayDraftProspects();
+        // No-op: React UserDraftPickModal handles filtering.
     }
 
     selectDraftProspect(prospectId) {
@@ -350,7 +305,6 @@ export class DraftController {
         });
 
         if (window._reactCloseDraftPick) window._reactCloseDraftPick();
-        document.getElementById('userDraftPickModal').classList.add('hidden');
         state.currentPickIndex++;
         setTimeout(() => this.processDraftPick(), 100);
     }
@@ -427,49 +381,17 @@ export class DraftController {
         }
 
         this.showDraftRound(1);
-        // [LEGACY DOM] document.getElementById('draftResultsModal').classList.remove('hidden');
     }
 
     showDraftRound(round) {
-        const { helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        let roundResults, roundTitle;
-
-        if (round === 'Comp') {
-            roundResults = this.currentDraftResults.filter(r => r.round === 'Comp');
-            roundTitle = 'Compensatory Round (Promoted Teams)';
-        } else {
-            roundResults = this.currentDraftResults.filter(r => r.round === round);
-            roundTitle = `Round ${round} Results`;
-        }
-
-        document.getElementById('draftRound1Btn').style.background = round === 1 ? 'linear-gradient(135deg, #34a853 0%, #2e7d32 100%)' : '';
-        document.getElementById('draftCompBtn').style.background = round === 'Comp' ? 'linear-gradient(135deg, #34a853 0%, #2e7d32 100%)' : '';
-        document.getElementById('draftRound2Btn').style.background = round === 2 ? 'linear-gradient(135deg, #34a853 0%, #2e7d32 100%)' : '';
-        document.getElementById('userPicksBtn').style.background = 'linear-gradient(135deg, #fbbc04 0%, #f9a825 100%)';
-
-        // [LEGACY REMOVED] document.getElementById('draftResultsContent').innerHTML = UIRenderer.draftRoundResults({
-            // roundResults, roundTitle, userTeamId: userTeam.id, getRatingColor: helpers.getRatingColor
-        // });
+        // No-op: React DraftResultsModal handles round tab switching via activeTab state.
     }
 
     showUserDraftPicks() {
-        const { helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        const userPicks = this.currentDraftResults.filter(r => r.teamId === userTeam.id);
-
-        document.getElementById('draftRound1Btn').style.background = '';
-        document.getElementById('draftCompBtn').style.background = '';
-        document.getElementById('draftRound2Btn').style.background = '';
-        document.getElementById('userPicksBtn').style.background = 'linear-gradient(135deg, #667eea 0%, #5568d3 100%)';
-
-        // [LEGACY REMOVED] document.getElementById('draftResultsContent').innerHTML = UIRenderer.userDraftPicks({
-            // picks: userPicks, teamName: userTeam.name, getRatingColor: helpers.getRatingColor
-        // });
+        // No-op: React DraftResultsModal handles user picks tab via activeTab state.
     }
 
     closeDraftResults() {
-        // [LEGACY DOM] document.getElementById('draftResultsModal').classList.add('hidden');
         this.currentDraftResults = [];
         console.log('Draft complete, generating college graduates...');
         this.startCollegeGraduateFA();
@@ -602,9 +524,6 @@ export class DraftController {
         gameState._collegeFAComplete = true;
 
         if (window._reactCloseCG) window._reactCloseCG();
-        // Legacy DOM - may not exist
-        const modal = document.getElementById('collegeGradFAModal');
-        if (modal) modal.classList.add('hidden');
 
         const remaining = gameState.collegeGraduates || [];
         console.log(`🤖 AI signing remaining ${remaining.length} college graduates...`);
