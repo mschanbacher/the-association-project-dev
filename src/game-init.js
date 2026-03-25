@@ -330,12 +330,7 @@
         function getDashboardController() {
             if (!_dashboardController) {
                 _dashboardController = new DashboardController({
-                    gameState,
-                    engines: {
-                        CalendarEngine, LeagueManager, SalaryCapEngine, FinanceEngine,
-                        CoachEngine, UIHelpers, UIRenderer
-                    },
-                    helpers: { getCurrentTeams, getUserTeam, getRankSuffix }
+                    gameState
                 });
             }
             return _dashboardController;
@@ -1611,8 +1606,8 @@
                 console.log('Initializing GMMode...');
                 gmMode = new GMMode(gameState, simulationController, {
                     updateUI: () => getDashboardController().refresh(),
-                    updateStandings: () => getDashboardController().refreshStandings(),
-                    updateNextGames: () => getDashboardController().refreshSchedule(),
+                    updateStandings: () => getDashboardController().refresh(),
+                    updateNextGames: () => getDashboardController().refresh(),
                     showSeasonEnd: () => getGameSimController().showSeasonEnd(),
                     openRosterManagement, openTradeScreen: () => {
                         if (window._reactOpenTrade) window._reactOpenTrade();
@@ -1824,7 +1819,6 @@
         window.calculateTeamSalary = calculateTeamSalary;
         window.determineContractLength = determineContractLength;
         window.generateSalary = generateSalary;
-        window.openFranchiseHistory = () => getDashboardController().openFranchiseHistory();
         window.openRosterManagement = openRosterManagement;
         window._buildRosterData = _buildRosterData;
         window.openRosterManagementFromCompliance = openRosterManagementFromCompliance;
@@ -1844,8 +1838,6 @@
         window.showCalendarDayDetail = showCalendarDayDetail;
         window.skipFreeAgency = (...args) => getFreeAgencyController().skip(...args);
         window.togglePlayerAttributes = togglePlayerAttributes;
-        window.toggleStandingsView = (view) => getDashboardController().toggleView(view);
-        window.viewTierStandings = (tier) => getDashboardController().viewTier(tier);
 
         // Note: SimBenchmark is defined separately outside _initGame
 

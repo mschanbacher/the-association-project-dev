@@ -1,6 +1,6 @@
 # The Association Project — Legacy DOM Migration Plan
 
-Last updated: 2026-03-25 (after Sessions A/B/C/D/E — Trade, Coach, Finance, Roster, FA migrated)
+Last updated: 2026-03-25 (after Sessions A–F — Trade, Coach, Finance, Roster, FA, Contracts migrated)
 
 This document is the single source of truth for migrating remaining legacy DOM
 code to React. Each controller section documents current state, what needs to
@@ -18,14 +18,14 @@ pick up where the last one left off.
 | TradeController.js | 0 | **Clean** — Session A (2026-03-25) |
 | CoachManagementController.js | 0 | **Clean** — Session B (2026-03-25) |
 | FinanceController.js | 0 | **Clean** — Session C (2026-03-25) |
-| OffseasonController.js | 9 | 9 in contract decisions flow (active, needs migration) |
+| OffseasonController.js | 0 | **Clean** — Session F (2026-03-25) |
 | DashboardController.js | 36 | Entire controller is legacy — React DashboardScreen exists |
 | game-init.js | 39 | Bridge file — cleans up as controllers migrate |
 | FreeAgencyController.js | 0 | **Clean** — Session E (2026-03-25) |
 | RosterController.js | 0 | **Clean** — Session D (2026-03-25) |
 
-**Total remaining:** ~85 getElementById calls across 3 files (excluding clean files).
-**Removed so far:** 107 getElementById calls (32 Trade + 8 Coach + 17 Finance + 23 Roster + 27 FA), 53 index.html stubs, 24 dead window globals.
+**Total remaining:** ~75 getElementById calls across 2 files (excluding clean files).
+**Removed so far:** 116 getElementById calls (32 Trade + 8 Coach + 17 Finance + 23 Roster + 27 FA + 9 Contracts), 57 index.html stubs, 27 dead window globals.
 
 
 ## Migration Pattern
@@ -201,36 +201,27 @@ vite.config.js). Root index.html is a reference copy.
 - 624 → 226 lines, net -398 lines
 
 
-### Session F: OffseasonController.js contract decisions (9 calls)
+### Session F: OffseasonController.js contract decisions (9 calls) — COMPLETE
 
-**Current state:**
-The 9 remaining calls are all in the expired contract decisions flow:
-`resignExpiredPlayer()`, `releaseExpiredPlayer()`,
-`_removeExpiredDecision()`, `updateContractDecisionsSummary()`,
-`updateContractDecisionsButton()`, `confirmContractDecisions()`.
+**Completed:** 2026-03-25. 9 → 0 getElementById calls.
 
-These methods build dynamic HTML for contract cards (resign/release buttons,
-status indicators) and manage decision state via DOM reads.
-
-**React component:** ContractDecisionsModal.jsx (151 lines) exists and is
-registered in App.jsx. OffseasonHub.jsx intercepts
-`_reactShowContractDecisions`. However, the controller never calls
-`_reactShowContractDecisions` — it appears the React modal may receive data
-from OffseasonHub's interception but the controller's resign/release
-callbacks still target DOM.
-
-**What to do:**
-1. Check if ContractDecisionsModal.jsx handles resign/release interactions
-2. If not, extend it to handle the full flow
-3. Rewire controller to update React state instead of DOM
-4. Remove stubs: `contractDecisionsModal`, `contractDecisionsSummary`,
-   `contractDecisionsConfirmBtn` (3 stubs)
-
-**Estimated effort:** Small-medium. 9 calls, well-scoped feature.
-
-**Test:** Reach contract expiration date in offseason. Resign and release
-players. Confirm decisions. Verify players move correctly (re-signed stay,
-released go to FA pool).
+**What was done:**
+- Removed 7 dead methods: resignExpiredPlayer (1 call), releaseExpiredPlayer
+  (1 call), _removeExpiredDecision, _checkAllExpiredDecisionsMade (1 call),
+  makeContractDecision (4 calls), updateAvailableCapDisplay,
+  updateContractDecisionsButton (1 call)
+- Removed confirmContractDecisions (1 call) — used contractDecisionsState
+  which was never populated (expiringPlayers always empty)
+- Removed contractDecisionsState from constructor (dead state)
+- The entire old interactive resign/release flow was replaced by automated
+  runContractExpiration() which batch-processes all teams. React
+  ContractsScreen in OffseasonHub provides the UI shell (already complete).
+- game-init.js: removed 3 dead globals (makeContractDecision,
+  releaseExpiredPlayer, resignExpiredPlayer)
+- index.html: 4 stubs removed from src/ (contractDecisionsModal,
+  contractDecisionsSummary, expiringContractsList, contractDecisionsConfirmBtn),
+  3 from root (no expiringContractsList in root)
+- 2047 → 1873 lines, net -174 lines
 
 
 ### Session G: DashboardController.js (36 calls) — INVESTIGATION + MIGRATION
@@ -310,7 +301,7 @@ removed entirely. Current remaining stubs grouped by migration session:
 | C (Finance) | financeDashboardModal, financeDashboardCloseBtn, financeDashboardContent, financialTransitionModal, financialTransitionContent | 5 | **DONE** |
 | D (Roster) | rosterModal, positionBreakdown, rosterCount, capStatus, currentRoster, positionFilter, tierFilter, freeAgentsList, scoutingModal, watchlistCount, scoutTabContent + scoutTabScanner, scoutTabPipeline, scoutTabWatchlist, scoutTabNeeds | 15 | **DONE** |
 | E (FA) | freeAgencyModal, faCapSpace, faOfferTally, faOfferCount, faOfferTotal, faOfferRemaining, faCurrentRoster, faPositionFilter, freeAgencyPlayersList, selectedOffersPanel, offerCount, offersList, submitOffersBtn, freeAgencyResultsModal, freeAgencyResultsContent | 15 | **DONE** |
-| F (Contracts) | contractDecisionsModal, contractDecisionsSummary, contractDecisionsConfirmBtn | 3 |
+| F (Contracts) | contractDecisionsModal, contractDecisionsSummary, contractDecisionsConfirmBtn + expiringContractsList (bonus) | 4 | **DONE** |
 | G (Dashboard) | TBD after investigation | ? |
 | Keep | gameContainer (active React root), teamSelectionModal + tier*Teams (4, new game flow), seasonEndModal, playoffModal, developmentModal + developmentSummary, watchGameModal + watchGameContent, boxScoreModal + boxScoreContent, franchiseHistoryModal + franchiseHistoryContent, complianceModal + complianceModalContent, injuryModal + injuryDetails + injuryOptions + injuryConfirmBtn, calendarModal + calendarContent, allStarModal + allStarContent, collegeGradFAModal, bracketViewerModal + bracketViewerContent, lotteryModal + lotteryContent, userDraftPickModal + userPickNumber + draftPositionFilter + draftSortBy + draftProspectsList + draftYourRoster, draftResultsModal + draftRound1Btn + draftCompBtn + draftRound2Btn + userPicksBtn + draftResultsContent, gameMenuModal | ~34 |
 
