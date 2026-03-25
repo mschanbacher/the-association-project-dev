@@ -1,6 +1,6 @@
 # The Association Project — Legacy DOM Migration Plan
 
-Last updated: 2026-03-25 (legacy DOM audit session)
+Last updated: 2026-03-25 (after Sessions A/B/C — Trade, Coach, Finance migrated)
 
 This document is the single source of truth for migrating remaining legacy DOM
 code to React. Each controller section documents current state, what needs to
@@ -15,16 +15,17 @@ pick up where the last one left off.
 | GameSimController.js | 0 | **Clean** — fully migrated |
 | DraftController.js | 0 | **Clean** — fully migrated |
 | GMMode.js | 1 | **Clean** — 1 remaining is working self-contained overlay |
+| TradeController.js | 0 | **Clean** — Session A (2026-03-25) |
+| CoachManagementController.js | 0 | **Clean** — Session B (2026-03-25) |
+| FinanceController.js | 0 | **Clean** — Session C (2026-03-25) |
 | OffseasonController.js | 9 | 9 in contract decisions flow (active, needs migration) |
 | DashboardController.js | 36 | Entire controller is legacy — React DashboardScreen exists |
-| game-init.js | 49 | Bridge file — cleans up as controllers migrate |
-| TradeController.js | 32 | React TradeScreen renders — controller DOM is wasted work |
+| game-init.js | 48 | Bridge file — cleans up as controllers migrate |
 | FreeAgencyController.js | 27 | React FreeAgencyModal exists — controller still drives old UI |
 | RosterController.js | 23 | React RosterScreen exists — some stubs already removed |
-| FinanceController.js | 17 | React FinancesScreen exists — controller still drives old UI |
-| CoachManagementController.js | 8 | React CoachScreen exists — controller still drives old UI |
 
-**Total remaining:** ~202 getElementById calls across 8 files (excluding clean files).
+**Total remaining:** ~144 getElementById calls across 5 files (excluding clean files).
+**Removed so far:** 57 getElementById calls (32 Trade + 8 Coach + 17 Finance), 23 index.html stubs, 11 dead window globals.
 
 
 ## Migration Pattern
@@ -50,127 +51,72 @@ Every controller migration follows the same pattern:
 
 Ordered by: risk (low first), dependency chain, and bang-for-buck.
 
-### Session A: TradeController.js (32 calls) — WASTED WORK REMOVAL
+### Session A: TradeController.js (32 calls) — COMPLETE
 
-**Why first:** TradeScreen.jsx (772 lines) already renders the full trade UI
-with local React state. The controller's DOM calls target hidden stubs and do
-nothing visible. This is the most impactful cleanup because the user is
-already seeing the React version — the legacy code is just wasted CPU cycles.
+**Completed:** 2026-03-25. 32 → 0 getElementById calls.
 
-**Current state:**
-- `openTradeScreen()`: Populates `tradePartnerSelect` dropdown, position
-  breakdown, shows/hides `tradeInterface` / `noTradePartner` — all targeting
-  hidden stubs. Then calls `window._reactOpenTrade()` which opens the React
-  TradeScreen that manages its own partner selection and roster display.
-- `selectTradePartner()`, `updateTradeInterface()`, `executeTrade()`: Build
-  HTML for roster lists, pick lists, trade summary, value bars — all into
-  hidden stubs. The React TradeScreen has its own versions of all of these.
-- `showAiTradeProposal()`: Opens `aiTradeProposalModal` stub. React
-  `AiTradeProposalModal` (exported from TradeScreen.jsx) handles this.
-
-**What to do:**
-1. Gut `openTradeScreen()` to just the trade deadline check + `_reactOpenTrade()` call
-2. Gut `selectTradePartner()`, `updateTradeInterface()` — these are only
-   called from legacy onclick handlers in the hidden stubs
-3. Verify `executeTrade()` logic (roster mutations, history, events) is
-   preserved — only remove the DOM update parts, keep the engine calls
-4. Verify `showAiTradeProposal()` routes to React modal
-5. Remove stubs from index.html: `tradeModal`, `tradePositionBreakdown`,
-   `tradePartnerSelect`, `tradeInterface`, `yourTradeRoster`,
-   `yourTradePicksHeader`, `yourTradePicks`, `aiTradeRoster`,
-   `aiTradePicksHeader`, `aiTradePicks`, `tradeSummary`, `tradeYourValue`,
-   `tradeAiValue`, `tradeNetValue`, `noTradePartner`,
-   `aiTradeProposalModal` (16 stubs)
-
-**React component:** TradeScreen.jsx (772 lines) — fully self-contained with
-local state for partner selection, player/pick lists, trade evaluation.
-Delegates to `TradeEngine.evaluateTrade()` for AI decisions. Also exports
-`AiTradeProposalModal`.
-
-**Dependencies:** TradeEngine.js (pure logic, no DOM — untouched).
-
-**Estimated effort:** Small-medium. Mostly deleting code. The React component
-already works.
-
-**Risk:** Low. The DOM code is invisible. Removing it changes nothing visible.
-
-**Test:** Open trade screen from sidebar. Select partner. Add players/picks.
-Propose trade. Verify AI counter-offers work. Check AI-to-AI trade proposals
-still appear during sim.
+**What was done:**
+- Gutted all DOM methods: openTradeScreen (kept deadline check + React call),
+  closeTradeScreen, loadTradePartner, displayTradeRosters, displayTradePicks,
+  toggleUserTradePlayer, toggleAiTradePlayer, updateTradeSummary, proposeTrade
+- Stripped 2 getElementById from acceptAiTradeProposal/rejectAiTradeProposal
+- Removed UIRenderer import
+- Preserved: executeTrade (roster mutations, history, events), evaluateTrade,
+  checkForAiTradeProposals, generateAiTradeProposal, showAiTradeProposal,
+  acceptAiTradeProposal, rejectAiTradeProposal
+- game-init.js: removed 5 dead globals (closeTradeScreen, loadTradePartner,
+  proposeTrade, toggleAiTradePlayer, toggleUserTradePlayer), removed dead
+  currentTrade state object
+- Kept 4 globals called by React: acceptAiTradeProposal, rejectAiTradeProposal,
+  executeTrade, openTradeScreenFromRoster
+- index.html: 16 stubs removed
+- 617 → 348 lines, net -279 lines
 
 
-### Session B: CoachManagementController.js (8 calls) — SMALLEST MIGRATION
+### Session B: CoachManagementController.js (8 calls) — COMPLETE
 
-**Why second:** Only 8 calls. CoachScreen.jsx (289 lines) and CoachModal.jsx
-exist. Small scope makes this a good proof-of-concept for the "rewire
-controller" pattern.
+**Completed:** 2026-03-25. 8 → 0 getElementById calls.
 
-**Current state:**
-- `showCoachModal()`: Builds entire coach management page via
-  `UIRenderer.coachManagementPage()`, writes to `coachModalContent`, shows
-  `coachModal`. React `CoachModal` is registered in App.jsx via
-  `_reactShowCoach`.
-- `showCoachMarket()`: Builds coach market list via
-  `UIRenderer.coachMarketContainer()`, writes to `coachMarketContainer`.
-- Tab switching: `freeAgentCoachTab`, `poachCoachTab`,
-  `freeAgentCoachList`, `poachCoachList` — tab visibility toggling.
-
-**What to do:**
-1. Check if `_reactShowCoach` is called from the controller or only from
-   game-init wiring
-2. If the React modal already receives the right data, gut the DOM code
-3. If the React modal is incomplete, extend it to handle coach market,
-   hiring, tab switching
-4. Remove stubs: `coachModal`, `coachModalContent` (2 stubs)
-
-**React component:** CoachScreen.jsx (289 lines) — sidebar screen.
-CoachModal.jsx — registered in App.jsx. Need to verify which one the user
-actually sees and whether it covers hiring/firing/market.
-
-**Dependencies:** CoachEngine.js (pure logic, no DOM).
-
-**Estimated effort:** Small. 8 calls, small controller (257 lines).
-
-**Test:** Open coach screen from sidebar. View current coach. Open coach
-market. Hire/fire a coach. Verify coach displays update on dashboard.
+**What was done:**
+- Gutted: open() legacy fallback (kept React data-building path), close(),
+  showMarket(), showTab(), _buildCurrentCoachHTML(), _buildCoachListHTML()
+- Removed UIRenderer dependency from constructor
+- Preserved: open() React path (data assembly + _reactShowCoach call),
+  hire() (poach/FA logic, coach assignment, events, save),
+  fire() (severance, events, save), marketPool lazy generation
+- game-init.js: removed 3 dead globals (closeCoachModal, showCoachMarket,
+  showCoachTab)
+- Kept 3 globals: fireCoach, hireCoach, openCoachManagement
+- index.html: 2 stubs removed (coachModal, coachModalContent)
+- 257 → 172 lines, net -97 lines
 
 
-### Session C: FinanceController.js (17 calls) — MEDIUM MIGRATION
+### Session C: FinanceController.js (17 calls) — COMPLETE
 
-**Current state:**
-- `showFinanceDashboard()`: Builds finance dashboard content via
-  `UIRenderer.financeDashboard()`, writes to `financeDashboardContent`, shows
-  `financeDashboardModal`, wires close button. React `FinanceDashboardModal`
-  is registered in App.jsx via `_reactShowFinanceDashboard`.
-- Spending slider: `spendingRatioDisplay`, `spendingLimitDisplay` — live
-  updates as user drags slider. These are dynamically created DOM elements
-  inside the modal, not index.html stubs.
-- Ticket pricing: `ticketPriceDisplay`, `ticketPriceEffect` — same pattern.
-- Financial transition: `financialTransitionModal`,
-  `transitionSpendingPct`, `transitionSpendingLimit`, `transitionCapSpace` —
-  the transition modal during promo/rel. React `FinancialTransitionModal`
-  exists and is registered.
-- Owner mode displays: `ownerSpendingDisplay`, `ownerLimitDisplay`.
+**Completed:** 2026-03-25. 17 → 0 getElementById calls.
 
-**What to do:**
-1. Verify FinancesScreen.jsx (634 lines) handles all dashboard functionality
-2. Verify FinancialTransitionModal handles promo/rel briefing
-3. Gut the DOM code, keep the engine calls (FinanceEngine, SalaryCapEngine)
-4. Remove stubs: `financeDashboardModal`, `financeDashboardCloseBtn`,
-   `financeDashboardContent`, `financialTransitionModal`,
-   `financialTransitionContent` (5 stubs)
+**What was done:**
+- Gutted openFinanceDashboard() legacy fallback (kept React data assembly path)
+- Gutted showOwnerModeModal() legacy fallback (kept React path)
+- Stripped DOM lines from updateSpendingRatio(), updateTicketPrice(),
+  updateOwnerSpendingRatio() — kept state mutations in all three
+- Stripped DOM lines from updateTransitionSpending(), dismissTransitionBriefing()
+- Removed dead updateTicketPriceEffect() module function
+- Removed UIRenderer import
+- Preserved: acceptSponsor(), upgradeArena(), setMarketingBudget(),
+  toggleOwnerMode(), all data assembly in open methods
+- game-init.js: removed dismissTransitionBriefing, updateTransitionSpending
+  globals (zero React callers), removed duplicate updateTicketPriceEffect()
+- Kept 8 globals: openFinanceDashboard, updateSpendingRatio, updateTicketPrice,
+  setMarketingBudget, updateOwnerSpendingRatio, toggleOwnerMode, acceptSponsor,
+  upgradeArena
+- index.html: 5 stubs removed (financeDashboardModal, financeDashboardCloseBtn,
+  financeDashboardContent, financialTransitionModal, financialTransitionContent)
+- 354 → 269 lines, net -107 lines
 
-**React components:** FinancesScreen.jsx (634 lines) — sidebar screen with
-spending sliders, ticket pricing, sponsor management. FinanceDashboardModal.jsx,
-FinancialTransitionModal.jsx, OwnerModeModal.jsx — all registered in App.jsx.
-
-**Dependencies:** FinanceEngine.js, SalaryCapEngine.js (pure logic, no DOM).
-
-**Estimated effort:** Medium. Need to verify React components cover all
-interactive elements (sliders, real-time displays).
-
-**Test:** Open finances from sidebar. Adjust spending slider. Change ticket
-prices. Accept/decline sponsor offers. Complete offseason promo/rel transition.
+**Note:** Both src/index.html (Vite build entry) and root index.html must be
+kept in sync. src/index.html is what Vite builds from (root is `src/` per
+vite.config.js). Root index.html is a reference copy.
 
 
 ### Session D: RosterController.js (23 calls) — MEDIUM MIGRATION
@@ -366,11 +312,11 @@ After all controllers are migrated, game-init.js should be left with only:
 After all migrations complete, the `legacy-modal-stubs` container can be
 removed entirely. Current remaining stubs grouped by migration session:
 
-| Session | Stubs to remove | Count |
-|---------|----------------|------:|
-| A (Trade) | tradeModal, tradePositionBreakdown, tradePartnerSelect, tradeInterface, yourTradeRoster, yourTradePicksHeader, yourTradePicks, aiTradeRoster, aiTradePicksHeader, aiTradePicks, tradeSummary, tradeYourValue, tradeAiValue, tradeNetValue, noTradePartner, aiTradeProposalModal | 16 |
-| B (Coach) | coachModal, coachModalContent | 2 |
-| C (Finance) | financeDashboardModal, financeDashboardCloseBtn, financeDashboardContent, financialTransitionModal, financialTransitionContent | 5 |
+| Session | Stubs to remove | Count | Status |
+|---------|----------------|------:|--------|
+| A (Trade) | tradeModal, tradePositionBreakdown, tradePartnerSelect, tradeInterface, yourTradeRoster, yourTradePicksHeader, yourTradePicks, aiTradeRoster, aiTradePicksHeader, aiTradePicks, tradeSummary, tradeYourValue, tradeAiValue, tradeNetValue, noTradePartner, aiTradeProposalModal | 16 | **DONE** |
+| B (Coach) | coachModal, coachModalContent | 2 | **DONE** |
+| C (Finance) | financeDashboardModal, financeDashboardCloseBtn, financeDashboardContent, financialTransitionModal, financialTransitionContent | 5 | **DONE** |
 | D (Roster) | rosterModal, positionBreakdown, rosterCount, capStatus, currentRoster, positionFilter, tierFilter, freeAgentsList, scoutingModal, watchlistCount, scoutTabContent | 11 |
 | E (FA) | freeAgencyModal, faCapSpace, faOfferTally, faOfferCount, faOfferTotal, faOfferRemaining, faCurrentRoster, faPositionFilter, freeAgencyPlayersList, selectedOffersPanel, offerCount, offersList, submitOffersBtn, freeAgencyResultsModal, freeAgencyResultsContent | 15 |
 | F (Contracts) | contractDecisionsModal, contractDecisionsSummary, contractDecisionsConfirmBtn | 3 |
