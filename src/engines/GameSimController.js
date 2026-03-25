@@ -153,9 +153,6 @@ export class GameSimController {
                 awayTeamFullName: this._watchAwayTeam?.name,
                 userIsHome,
             });
-        } else {
-            // [LEGACY DOM] document.getElementById('watchGameContent').innerHTML = layoutHtml;
-            // [LEGACY DOM] document.getElementById('watchGameModal').classList.remove('hidden');
         }
 
         this._watchPaused = false;
@@ -207,7 +204,7 @@ export class GameSimController {
     }
 
     _renderWatchEvents(events) {
-        const container = window._wgRefs?.plays || document.getElementById('wg-plays');
+        const container = window._wgRefs?.plays;
         if (!container) return;
         for (const event of events) {
             const html = UIRenderer.watchGamePlayEntry(event);
@@ -227,15 +224,15 @@ export class GameSimController {
         const state = this._watchGame.getState();
         const refs = window._wgRefs;
 
-        const homeEl = refs?.homeScore || document.getElementById('wg-home-score');
-        const awayEl = refs?.awayScore || document.getElementById('wg-away-score');
+        const homeEl = refs?.homeScore;
+        const awayEl = refs?.awayScore;
         if (homeEl) homeEl.textContent = state.homeScore;
         if (awayEl) awayEl.textContent = state.awayScore;
 
-        const clockEl = refs?.clock || document.getElementById('wg-clock');
+        const clockEl = refs?.clock;
         if (clockEl) clockEl.textContent = state.clock.display;
 
-        const qEl = refs?.quarterScores || document.getElementById('wg-quarter-scores');
+        const qEl = refs?.quarterScores;
         if (qEl && state.quarterScores) {
             const qs = state.quarterScores;
             let qText = '';
@@ -246,7 +243,7 @@ export class GameSimController {
             qEl.textContent = qText.trim();
         }
 
-        const mEl = refs?.momentum || document.getElementById('wg-momentum');
+        const mEl = refs?.momentum;
         if (mEl) {
             const normalized = state.momentum / 10;
             if (normalized >= 0) {
@@ -261,7 +258,7 @@ export class GameSimController {
             }
         }
 
-        const leadersEl = refs?.leaders || document.getElementById('wg-leaders');
+        const leadersEl = refs?.leaders;
         if (leadersEl && (this._watchSpeed <= 3 || Math.random() < 0.1)) {
             const result = this._watchGame.getResult();
             leadersEl.innerHTML = UIRenderer.watchGameLeaders(
@@ -323,12 +320,6 @@ export class GameSimController {
                 awayScore: result.awayScore,
                 homeScore: result.homeScore,
             });
-        } else {
- const text = `<span style="color: ${userWon ? '#4ecdc4' : '#ff6b6b'};">${userWon ? 'VICTORY' : 'DEFEAT'}</span> — FINAL${result.isOvertime ? ' (OT)' : ''}: ${result.awayScore} - ${result.homeScore}`;
-            const finalEl = document.getElementById('wg-final-text');
-            if (finalEl) finalEl.innerHTML = text;
-            const goEl = document.getElementById('wg-gameover');
-            if (goEl) goEl.style.display = 'block';
         }
     }
 
@@ -337,14 +328,6 @@ export class GameSimController {
 
         if (window._wgRefs?.setSpeed) {
             window._wgRefs.setSpeed(speed);
-        } else {
-            ['1', '3', '10', 'max'].forEach(s => {
-                const btn = document.getElementById(`wg-speed-${s}`);
-                if (btn) btn.style.background = 'rgba(255,255,255,0.1)';
-            });
-            const key = speed === 999 ? 'max' : String(speed);
-            const activeBtn = document.getElementById(`wg-speed-${key}`);
-            if (activeBtn) activeBtn.style.background = 'rgba(102,126,234,0.6)';
         }
 
         if (!this._watchPaused && this._watchGame && !this._watchGame.isComplete) {
@@ -357,12 +340,6 @@ export class GameSimController {
 
         if (window._wgRefs?.setPaused) {
             window._wgRefs.setPaused(this._watchPaused);
-        } else {
-            const btn = document.getElementById('wg-pause');
-            if (btn) {
-                btn.textContent = this._watchPaused ? '▶ Play' : '⏸ Pause';
-                btn.style.background = this._watchPaused ? 'rgba(78,205,196,0.3)' : 'rgba(255,255,255,0.1)';
-            }
         }
 
         if (!this._watchPaused && this._watchGame && !this._watchGame.isComplete) {
@@ -477,7 +454,6 @@ export class GameSimController {
         gameState.currentDate = engines.CalendarEngine.addDays(this._watchDate, 1);
 
         if (window._reactCloseWatchGame) window._reactCloseWatchGame();
-        // [LEGACY DOM] document.getElementById('watchGameModal').classList.add('hidden');
         this._watchGame = null;
 
         gmMode._showPostGameIfUserPlayed(this._watchDate);
@@ -538,8 +514,6 @@ export class GameSimController {
         } else {
             html = '<div style="padding:40px;text-align:center;opacity:0.7;">No active playoff bracket</div>';
         }
-        // [LEGACY DOM] document.getElementById('bracketViewerContent').innerHTML = html;
-        // [LEGACY DOM] document.getElementById('bracketViewerModal').classList.remove('hidden');
     }
 
     /**
@@ -748,7 +722,6 @@ export class GameSimController {
         pw.gameNum++;
 
         if (window._reactCloseWatchGame) window._reactCloseWatchGame();
-        // [LEGACY DOM] document.getElementById('watchGameModal').classList.add('hidden');
         this._watchGame = null;
         this._isPlayoffWatch = false;
 
@@ -948,16 +921,6 @@ export class GameSimController {
         // Mark offseason phase
         gameState.offseasonPhase = 'season_ended';
 
-        // Disable sim buttons (legacy DOM — may not exist when React UI is active)
-        const simNextBtn = document.getElementById('simNextBtn');
-        const simDayBtn = document.getElementById('simDayBtn');
-        const simWeekBtn = document.getElementById('simWeekBtn');
-        const finishBtn = document.getElementById('finishBtn');
-        if (simNextBtn) simNextBtn.disabled = true;
-        if (simDayBtn) simDayBtn.disabled = true;
-        if (simWeekBtn) simWeekBtn.disabled = true;
-        if (finishBtn) finishBtn.disabled = true;
-
         const userTeam = helpers.getUserTeam();
         if (!userTeam) {
             console.error('🚨 showSeasonEnd: userTeam not found anywhere!');
@@ -1113,14 +1076,9 @@ export class GameSimController {
     }
 
     closeSeasonEnd() {
-        const el = document.getElementById('seasonEndModal');
-        if (el) el.classList.add('hidden');
-        // Keep sim buttons disabled - season is over (legacy DOM may not exist)
-        const s = id => document.getElementById(id);
-        if (s('simNextBtn')) s('simNextBtn').disabled = true;
-        if (s('simDayBtn')) s('simDayBtn').disabled = true;
-        if (s('simWeekBtn')) s('simWeekBtn').disabled = true;
-        if (s('finishBtn')) s('finishBtn').disabled = false;
+        // React SeasonEndModal handles its own close via _reactCloseSeasonEnd.
+        // Sim buttons are managed by React SimControls component.
+        // This method is kept as a no-op for the _seasonEndStayCallback path.
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
