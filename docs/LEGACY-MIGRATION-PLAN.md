@@ -1,6 +1,6 @@
 # The Association Project — Legacy DOM Migration Plan
 
-Last updated: 2026-03-25 (after Sessions A/B/C/D — Trade, Coach, Finance, Roster migrated)
+Last updated: 2026-03-25 (after Sessions A/B/C/D/E — Trade, Coach, Finance, Roster, FA migrated)
 
 This document is the single source of truth for migrating remaining legacy DOM
 code to React. Each controller section documents current state, what needs to
@@ -21,11 +21,11 @@ pick up where the last one left off.
 | OffseasonController.js | 9 | 9 in contract decisions flow (active, needs migration) |
 | DashboardController.js | 36 | Entire controller is legacy — React DashboardScreen exists |
 | game-init.js | 39 | Bridge file — cleans up as controllers migrate |
-| FreeAgencyController.js | 27 | React FreeAgencyModal exists — controller still drives old UI |
+| FreeAgencyController.js | 0 | **Clean** — Session E (2026-03-25) |
 | RosterController.js | 0 | **Clean** — Session D (2026-03-25) |
 
-**Total remaining:** ~112 getElementById calls across 4 files (excluding clean files).
-**Removed so far:** 80 getElementById calls (32 Trade + 8 Coach + 17 Finance + 23 Roster), 38 index.html stubs, 21 dead window globals.
+**Total remaining:** ~85 getElementById calls across 3 files (excluding clean files).
+**Removed so far:** 107 getElementById calls (32 Trade + 8 Coach + 17 Finance + 23 Roster + 27 FA), 53 index.html stubs, 24 dead window globals.
 
 
 ## Migration Pattern
@@ -163,53 +163,42 @@ vite.config.js). Root index.html is a reference copy.
 - game-init.js: 1955 → 1858 lines, net -97 lines; 48 → 39 getElementById
 
 
-### Session E: FreeAgencyController.js (27 calls) — MEDIUM-LARGE MIGRATION
+### Session E: FreeAgencyController.js (27 calls) — COMPLETE
 
-**Current state:**
-- `showFreeAgencyModal()`: Builds entire FA interface — cap space display,
-  roster sidebar, position filter, player list with checkboxes, offer panel
-  with salary/years inputs, submit button. Writes to ~12 DOM elements. React
-  `FreeAgencyModal.jsx` (500 lines) is registered in App.jsx via
-  `_reactShowFA`.
-- `updateFreeAgencyFilters()`: Reads `faPositionFilter` select value,
-  rebuilds player list. Dynamic DOM elements (checkboxes, inputs).
-- `toggleFreeAgentSelection()`, `updateSelectedOffers()`: Manages offer
-  state via DOM checkbox/input reads. Creates offer panel HTML.
-- `submitFreeAgencyOffers()`: Reads salary/years from DOM inputs, processes
-  offers.
+**Completed:** 2026-03-25. 27 → 0 getElementById calls.
 
-**What to do:**
-1. **Critical check:** Determine if FreeAgencyModal.jsx (500 lines) is a
-   complete replacement or a partial shell. If partial, extend it before
-   removing controller DOM code.
-2. If complete: verify it handles filtering, offer selection, salary/years
-   input, submission, results display.
-3. OffseasonHub.jsx intercepts `_reactShowFA` and renders FA inline during
-   offseason. Verify both paths work (modal during season if applicable,
-   inline during offseason).
-4. Remove stubs: `freeAgencyModal`, `faCapSpace`, `faOfferTally`,
-   `faOfferCount`, `faOfferTotal`, `faOfferRemaining`, `faCurrentRoster`,
-   `faPositionFilter`, `freeAgencyPlayersList`, `selectedOffersPanel`,
-   `offerCount`, `offersList`, `submitOffersBtn`, `freeAgencyResultsModal`,
-   `freeAgencyResultsContent` (15 stubs)
-
-**React components:** FreeAgencyModal.jsx (500 lines) — registered in App.jsx.
-OffseasonHub.jsx intercepts `_reactShowFA` for inline rendering.
-
-**Dependencies:** FreeAgencyController.js drives the FA logic (enrichment,
-AI signing). The React component needs to call back into the controller for
-`submitFreeAgencyOffers()` and `continueFreeAgency()`.
-
-**Estimated effort:** Medium-large. This is the feature most likely to have
-the "two paths fighting" bug you've noticed. The controller builds DOM,
-React renders its own UI, and they can get out of sync. Needs careful
-verification that the React modal handles all interaction.
-
-**Risk:** Medium. Free agency is a critical game flow. Test thoroughly.
-
-**Test:** Enter free agency during offseason. Filter by position. Select
-players. Set salary/years offers. Submit offers. View results. Return to
-dashboard. Verify AI signing phase runs correctly after.
+**What was done:**
+- Gutted show() legacy fallback (6 calls: faCapSpace, faCurrentRoster,
+  freeAgencyPlayersList, submitOffersBtn, freeAgencyModal) — kept React
+  enrichment path with _reactShowFA
+- Removed _buildRosterSidebar() — dead UIRenderer calls
+- Removed _buildPlayerList() — dead UIRenderer calls, dangling html ref
+- Removed filterByPosition() — 2 calls (faPositionFilter, fa_${id})
+- Removed toggleSelection() — 1 call (fa_${id})
+- Removed _updateTally() — 5 calls (faOfferTally, faOfferCount,
+  faOfferTotal, faOfferRemaining)
+- Removed _updateOffers() — 4 calls (offerCount, selectedOffersPanel,
+  submitOffersBtn, offersList)
+- Removed submitOffers() — 4 calls (offer_salary_${id}, offer_years_${id},
+  freeAgencyModal) — React uses _faSubmitOffers callback instead
+- Removed _process() — duplicate of _processAndShowReactResults()
+- Removed _showResults() — 2 calls (freeAgencyResultsContent,
+  freeAgencyResultsModal), both already commented out
+- Cleaned skip() — removed freeAgencyModal DOM call (1 call)
+- Removed UIRenderer from constructor context
+- Preserved: show() React enrichment path, _isOnWatchList(), skip(),
+  _processAndShowReactResults() (AI offers, decisions, signings, React
+  results display), continue() (mark complete, AI signing, save)
+- game-init.js: removed 3 dead globals (filterFreeAgentsByPosition,
+  submitFreeAgencyOffers, toggleFreeAgentSelection)
+- game-init.js: removed UIRenderer from FreeAgencyController context
+- Kept 2 globals: continueFreeAgency, skipFreeAgency
+- index.html: 15 stubs removed per file (freeAgencyModal, faCapSpace,
+  faOfferTally, faOfferCount, faOfferTotal, faOfferRemaining,
+  faCurrentRoster, faPositionFilter, freeAgencyPlayersList,
+  selectedOffersPanel, offerCount, offersList, submitOffersBtn,
+  freeAgencyResultsModal, freeAgencyResultsContent)
+- 624 → 226 lines, net -398 lines
 
 
 ### Session F: OffseasonController.js contract decisions (9 calls)
@@ -320,7 +309,7 @@ removed entirely. Current remaining stubs grouped by migration session:
 | B (Coach) | coachModal, coachModalContent | 2 | **DONE** |
 | C (Finance) | financeDashboardModal, financeDashboardCloseBtn, financeDashboardContent, financialTransitionModal, financialTransitionContent | 5 | **DONE** |
 | D (Roster) | rosterModal, positionBreakdown, rosterCount, capStatus, currentRoster, positionFilter, tierFilter, freeAgentsList, scoutingModal, watchlistCount, scoutTabContent + scoutTabScanner, scoutTabPipeline, scoutTabWatchlist, scoutTabNeeds | 15 | **DONE** |
-| E (FA) | freeAgencyModal, faCapSpace, faOfferTally, faOfferCount, faOfferTotal, faOfferRemaining, faCurrentRoster, faPositionFilter, freeAgencyPlayersList, selectedOffersPanel, offerCount, offersList, submitOffersBtn, freeAgencyResultsModal, freeAgencyResultsContent | 15 |
+| E (FA) | freeAgencyModal, faCapSpace, faOfferTally, faOfferCount, faOfferTotal, faOfferRemaining, faCurrentRoster, faPositionFilter, freeAgencyPlayersList, selectedOffersPanel, offerCount, offersList, submitOffersBtn, freeAgencyResultsModal, freeAgencyResultsContent | 15 | **DONE** |
 | F (Contracts) | contractDecisionsModal, contractDecisionsSummary, contractDecisionsConfirmBtn | 3 |
 | G (Dashboard) | TBD after investigation | ? |
 | Keep | gameContainer (active React root), teamSelectionModal + tier*Teams (4, new game flow), seasonEndModal, playoffModal, developmentModal + developmentSummary, watchGameModal + watchGameContent, boxScoreModal + boxScoreContent, franchiseHistoryModal + franchiseHistoryContent, complianceModal + complianceModalContent, injuryModal + injuryDetails + injuryOptions + injuryConfirmBtn, calendarModal + calendarContent, allStarModal + allStarContent, collegeGradFAModal, bracketViewerModal + bracketViewerContent, lotteryModal + lotteryContent, userDraftPickModal + userPickNumber + draftPositionFilter + draftSortBy + draftProspectsList + draftYourRoster, draftResultsModal + draftRound1Btn + draftCompBtn + draftRound2Btn + userPicksBtn + draftResultsContent, gameMenuModal | ~34 |

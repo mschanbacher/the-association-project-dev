@@ -37,11 +37,6 @@ export class OffseasonController {
     constructor(ctx) {
         this.ctx = ctx;
         this.playerDevelopmentInProgress = false;
-        this.contractDecisionsState = {
-            expiringPlayers: [],
-            developmentLog: [],
-            decisions: {}
-        };
         this.coachMarketPool = [];
     }
 
@@ -872,182 +867,13 @@ export class OffseasonController {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // Expired Contract Decisions (old flow — kept for compatibility)
     // ═══════════════════════════════════════════════════════════════════
-
-    resignExpiredPlayer(playerId) {
-        const { gameState, helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        const player = userTeam.roster.find(p => p.id === playerId);
-        if (!player) { console.error('Player not found:', playerId); return; }
-
-        player.contractYears = helpers.determineContractLength(player.age, player.rating);
-        player.originalContractLength = player.contractYears;
-        player.contractExpired = false;
-
-        const oldSalary = player.salary;
-        player.salary = helpers.generateSalary(player.rating, userTeam.tier);
-        player.tier = userTeam.tier;
-        delete player.preRelegationSalary;
-
-        const salaryChange = player.salary - oldSalary;
-        const changeLabel = salaryChange < 0 ? `↓ ${helpers.formatCurrency(Math.abs(salaryChange))}` : salaryChange > 0 ? `↑ ${helpers.formatCurrency(salaryChange)}` : 'unchanged';
-        console.log(`✅ Re-signed ${player.name} for ${player.contractYears} year(s) at ${helpers.formatCurrency(player.salary)} (${changeLabel})`);
-
-        this._removeExpiredDecision(playerId);
-
-        const element = document.getElementById(`expired_${playerId}`);
-        if (element) {
-            element.style.opacity = '0.5';
-            // [LEGACY REMOVED] element.innerHTML = UIRenderer.expiredContractDecisionResult({
-                // playerName: player.name, decision: 'resign',
-                // contractYears: player.contractYears, salary: player.salary, formatCurrency: helpers.formatCurrency
-            // });
-        }
-
-        this._checkAllExpiredDecisionsMade();
-    }
-
-    releaseExpiredPlayer(playerId) {
-        const { gameState, helpers } = this.ctx;
-        const userTeam = helpers.getUserTeam();
-        const player = userTeam.roster.find(p => p.id === playerId);
-        if (!player) { console.error('Player not found:', playerId); return; }
-
-        const index = userTeam.roster.findIndex(p => p.id === playerId);
-        if (index !== -1) userTeam.roster.splice(index, 1);
-
-        player.previousTeamId = userTeam.id;
-        player.contractYears = helpers.determineContractLength(player.age, player.rating);
-        player.originalContractLength = player.contractYears;
-        player.contractExpired = false;
-        gameState.freeAgents.push(player);
-
-        console.log(`❌ Released ${player.name} to free agency`);
-
-        this._removeExpiredDecision(playerId);
-
-        const element = document.getElementById(`expired_${playerId}`);
-        if (element) {
-            element.style.opacity = '0.5';
-            // [LEGACY REMOVED] element.innerHTML = UIRenderer.expiredContractDecisionResult({
-                // playerName: player.name, decision: 'release',
-                // contractYears: 0, salary: 0, formatCurrency: helpers.formatCurrency
-            // });
-        }
-
-        this._checkAllExpiredDecisionsMade();
-    }
-
-    _removeExpiredDecision(playerId) {
-        const { gameState } = this.ctx;
-        if (gameState.pendingExpiredDecisions) {
-            const index = gameState.pendingExpiredDecisions.indexOf(playerId);
-            if (index !== -1) gameState.pendingExpiredDecisions.splice(index, 1);
-        }
-    }
-
-    _checkAllExpiredDecisionsMade() {
-        const { gameState } = this.ctx;
-        if (gameState.pendingExpiredDecisions && gameState.pendingExpiredDecisions.length === 0) {
-            console.log('✅ All expired contract decisions made!');
-            const statusDiv = document.getElementById('expiredContractsStatus');
-            if (statusDiv) {
- statusDiv.innerHTML = '<strong style="color: #34a853;">All decisions made! Close this window to continue.</strong>';
-            }
-        }
-    }
-
-    makeContractDecision(playerId, decision) {
-        const state = this.contractDecisionsState;
-        state.decisions[playerId] = decision;
-
-        const resignBtn = document.getElementById(`resign_${playerId}`);
-        const releaseBtn = document.getElementById(`release_${playerId}`);
-        const card = document.getElementById(`contract_${playerId}`);
-        const status = document.getElementById(`decision_status_${playerId}`);
-
-        if (decision === 'resign') {
-            card.style.border = '2px solid #34a853';
-            resignBtn.style.background = 'linear-gradient(135deg, #34a853 0%, #2e7d32 100%)';
-            releaseBtn.style.background = '';
- status.textContent = 'Re-signing';
-            status.style.color = '#34a853';
-        } else {
-            card.style.border = '2px solid #ea4335';
-            releaseBtn.style.background = 'linear-gradient(135deg, #ea4335 0%, #c62828 100%)';
-            resignBtn.style.background = '';
- status.textContent = 'Releasing';
-            status.style.color = '#ea4335';
-        }
-
-        this.updateAvailableCapDisplay();
-        this.updateContractDecisionsButton();
-    }
-
-    updateAvailableCapDisplay() {
-        const { helpers } = this.ctx;
-        const state = this.contractDecisionsState;
-        const userTeam = helpers.getUserTeam();
-        const currentSalary = helpers.calculateTeamSalary(userTeam);
-        const cap = helpers.getEffectiveCap(userTeam);
-        const expiredContracts = state.expiringPlayers;
-
-        const expiredSalary = expiredContracts.reduce((sum, p) => sum + p.salary, 0);
-        const resignedSalary = expiredContracts
-            .filter(p => state.decisions[p.id] === 'resign')
-            .reduce((sum, p) => sum + p.salary, 0);
-
-        const availableCap = cap - (currentSalary - expiredSalary + resignedSalary);
-        const remainingRoster = userTeam.roster.length - expiredContracts.length +
-            Object.values(state.decisions).filter(d => d === 'resign').length;
-    }
-
-    updateContractDecisionsButton() {
-        const state = this.contractDecisionsState;
-        const totalPlayers = state.expiringPlayers.length;
-        const decidedPlayers = Object.keys(state.decisions).length;
-        const btn = document.getElementById('contractDecisionsConfirmBtn');
-        if (btn) {
-            btn.disabled = decidedPlayers < totalPlayers;
-            btn.textContent = decidedPlayers < totalPlayers
-                ? `Decide on all players (${decidedPlayers}/${totalPlayers})`
- : 'Confirm All Decisions';
-        }
-    }
-
-    confirmContractDecisions() {
-        const { gameState, helpers } = this.ctx;
-        const state = this.contractDecisionsState;
-        const userTeam = helpers.getUserTeam();
-
-        state.expiringPlayers.forEach(player => {
-            const decision = state.decisions[player.id];
-            if (decision === 'resign') {
-                player.contractYears = helpers.determineContractLength(player.age, player.rating);
-                player.originalContractLength = player.contractYears;
-                delete player.contractExpired;
-                console.log(`✅ Re-signed ${player.name} to ${player.contractYears} year contract (${helpers.formatCurrency(player.salary)}/yr)`);
-            } else if (decision === 'release') {
-                const index = userTeam.roster.findIndex(p => p.id === player.id);
-                if (index !== -1) userTeam.roster.splice(index, 1);
-
-                player.contractYears = helpers.determineContractLength(player.age, player.rating);
-                player.originalContractLength = player.contractYears;
-                delete player.contractExpired;
-                gameState.freeAgents.push(player);
-                console.log(`❌ Released ${player.name} to free agency (${player.rating} OVR, ${helpers.formatCurrency(player.salary)}/yr)`);
-            }
-        });
-
-        document.getElementById('contractDecisionsModal').classList.add('hidden');
-
-        if (state.developmentLog.length > 0) {
-            this.showDevelopmentSummaryOnly(state.developmentLog);
-        } else {
-            this.runAISigningAndContinue();
-        }
-    }
+    // Contract Decisions — MIGRATED Session F
+    // Old interactive resign/release flow replaced by automated
+    // runContractExpiration() + React ContractsScreen in OffseasonHub.
+    // 9 getElementById calls removed. Business logic lives in
+    // runContractExpiration() above.
+    // ═══════════════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════════════
     // Free Agency Period

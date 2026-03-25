@@ -1781,12 +1781,9 @@
         window.dropPlayer = (...args) => getRosterController().dropPlayer(...args);
         window.filterCollegeGrads = (...args) => getDraftController().filterCollegeGrads(...args);
         window.filterDraftProspects = (...args) => getDraftController().filterDraftProspects(...args);
-        window.makeContractDecision = (...args) => getOffseasonController().makeContractDecision(...args);
         window.openFinanceDashboard = (...args) => getFinanceController().openFinanceDashboard(...args);
         window.rejectAiTradeProposal = (...args) => getTradeController().rejectAiTradeProposal(...args);
-        window.releaseExpiredPlayer = (...args) => getOffseasonController().releaseExpiredPlayer(...args);
         window.removeFromWatchList = (...args) => getRosterController().removeFromWatchList(...args);
-        window.resignExpiredPlayer = (...args) => getOffseasonController().resignExpiredPlayer(...args);
         window.selectDraftProspect = (...args) => getDraftController().selectDraftProspect(...args);
         window.setMarketingBudget = (...args) => getFinanceController().setMarketingBudget(...args);
         window.showDraftRound = (...args) => getDraftController().showDraftRound(...args);
