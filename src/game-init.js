@@ -313,7 +313,7 @@
                     gameState,
                     engines: {
                         FreeAgencyEngine, SalaryCapEngine, TeamFactory,
-                        ScoutingEngine, UIRenderer
+                        ScoutingEngine
                     },
                     helpers: {
                         getUserTeam, getTeamById, formatCurrency,
@@ -1818,7 +1818,6 @@
         window.closeAllStarModal = closeAllStarModal;
         window.closeRosterManagementDynamic = closeRosterManagementDynamic;
         window.continueFreeAgency = (...args) => getFreeAgencyController().continue(...args);
-        window.filterFreeAgentsByPosition = (...args) => getFreeAgencyController().filterByPosition(...args);
         window.fireCoach = () => getCoachManagementController().fire();
         window.hireCoach = (id, isPoach) => getCoachManagementController().hire(id, isPoach);
         window.isOnWatchList = (playerId) => getRosterController()._isOnWatchList(playerId);
@@ -1847,8 +1846,6 @@
         window.CalendarEngine = CalendarEngine;
         window.showCalendarDayDetail = showCalendarDayDetail;
         window.skipFreeAgency = (...args) => getFreeAgencyController().skip(...args);
-        window.submitFreeAgencyOffers = (...args) => getFreeAgencyController().submitOffers(...args);
-        window.toggleFreeAgentSelection = (...args) => getFreeAgencyController().toggleSelection(...args);
         window.togglePlayerAttributes = togglePlayerAttributes;
         window.toggleStandingsView = (view) => getDashboardController().toggleView(view);
         window.viewTierStandings = (tier) => getDashboardController().viewTier(tier);

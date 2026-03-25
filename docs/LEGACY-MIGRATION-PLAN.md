@@ -1,6 +1,6 @@
 # The Association Project — Legacy DOM Migration Plan
 
-Last updated: 2026-03-25 (after Sessions A/B/C — Trade, Coach, Finance migrated)
+Last updated: 2026-03-25 (after Sessions A/B/C/D — Trade, Coach, Finance, Roster migrated)
 
 This document is the single source of truth for migrating remaining legacy DOM
 code to React. Each controller section documents current state, what needs to
@@ -20,12 +20,12 @@ pick up where the last one left off.
 | FinanceController.js | 0 | **Clean** — Session C (2026-03-25) |
 | OffseasonController.js | 9 | 9 in contract decisions flow (active, needs migration) |
 | DashboardController.js | 36 | Entire controller is legacy — React DashboardScreen exists |
-| game-init.js | 48 | Bridge file — cleans up as controllers migrate |
+| game-init.js | 39 | Bridge file — cleans up as controllers migrate |
 | FreeAgencyController.js | 27 | React FreeAgencyModal exists — controller still drives old UI |
-| RosterController.js | 23 | React RosterScreen exists — some stubs already removed |
+| RosterController.js | 0 | **Clean** — Session D (2026-03-25) |
 
-**Total remaining:** ~144 getElementById calls across 5 files (excluding clean files).
-**Removed so far:** 57 getElementById calls (32 Trade + 8 Coach + 17 Finance), 23 index.html stubs, 11 dead window globals.
+**Total remaining:** ~112 getElementById calls across 4 files (excluding clean files).
+**Removed so far:** 80 getElementById calls (32 Trade + 8 Coach + 17 Finance + 23 Roster), 38 index.html stubs, 21 dead window globals.
 
 
 ## Migration Pattern
@@ -119,46 +119,48 @@ kept in sync. src/index.html is what Vite builds from (root is `src/` per
 vite.config.js). Root index.html is a reference copy.
 
 
-### Session D: RosterController.js (23 calls) — MEDIUM MIGRATION
+### Session D: RosterController.js (23 calls) — COMPLETE
 
-**Current state:**
-- `showRosterManagement()`: Builds roster display via `UIRenderer`, writes to
-  `positionBreakdown`, `rosterCount`, `capStatus`, `currentRoster`. Shows
-  `rosterModal`. React `RosterScreen.jsx` (1,479 lines) handles all of this.
-- `openScouting()`: Opens `scoutingModal`, builds scout tabs. React
-  `ScoutingScreen.jsx` (1,036 lines) handles scouting. Several scout tab IDs
-  (`scoutTabScanner`, `scoutTabPipeline`, `scoutTabWatchlist`,
-  `scoutTabNeeds`) were already removed from index.html in Phase 1 — some
-  controller calls are already silently failing.
-- Filter/sort for scouting: `scoutPos`, `scoutTier`, `scoutMinAge`,
-  `scoutMaxAge`, `scoutMinRating`, `scoutMaxRating`, `scoutContract`,
-  `scoutSort` — reads from DOM select elements that don't exist (returns
-  undefined/null, falls through to defaults).
-- `scoutTabContent`: Still in index.html (5 refs), used to render scout
-  results.
-- `watchlistCount`: Still in index.html (1 ref).
+**Completed:** 2026-03-25. 23 → 0 getElementById calls.
 
-**What to do:**
-1. Verify RosterScreen.jsx covers roster display, position breakdown, release
-2. Verify ScoutingScreen.jsx covers all scout tabs, filtering, pipeline
-3. Gut DOM code in controller
-4. Remove stubs: `rosterModal`, `positionBreakdown`, `rosterCount`,
-   `capStatus`, `currentRoster`, `positionFilter`, `tierFilter`,
-   `freeAgentsList`, `scoutingModal`, `watchlistCount`, `scoutTabContent`
-   (11 stubs)
-
-**React components:** RosterScreen.jsx (1,479 lines) — comprehensive roster
-management with release button, compliance banners, position breakdown.
-ScoutingScreen.jsx (1,036 lines) — full scouting with tabs, filters,
-pipeline, watchlist. RosterModal.jsx — registered in App.jsx.
-
-**Dependencies:** LeagueManager.js, SalaryCapEngine.js (pure logic).
-
-**Estimated effort:** Medium. Large React components already exist and are
-mature. Main work is verifying coverage and removing dead code.
-
-**Test:** Open roster from sidebar. View position breakdown. Release a player.
-Open scouting. Filter by position/tier/age. Check pipeline. Check watchlist.
+**What was done:**
+- Gutted updateRosterDisplay() — removed 4 getElementById calls
+  (positionBreakdown, rosterCount, capStatus, currentRoster) + all HTML
+  generation and UIRenderer calls
+- Gutted 8 scouting methods: openScoutingModal, closeScoutingModal,
+  switchScoutTab, _renderScannerTab, applyScoutFilter (8 DOM reads from
+  scoutPos/scoutTier/scoutMinAge/scoutMaxAge/scoutMinRating/scoutMaxRating/
+  scoutContract/scoutSort), showPlayerScoutDetail, renderPipelineTab/
+  filterPipeline, renderWatchListTab, renderNeedsTab, _updateWatchListCount
+  — 19 getElementById calls total
+- Removed UIRenderer import
+- Preserved: dropPlayer (roster mutation, penalty, save, events),
+  signPlayer (FA signing, cap checks, chemistry init, events),
+  watchlist CRUD (_getWatchList, _isOnWatchList, addToWatchList,
+  removeFromWatchList)
+- Added window._notifyReact() calls to addToWatchList/removeFromWatchList
+  for React refresh
+- game-init.js: removed 10 dead globals (openScoutingModal,
+  closeScoutingModal, switchScoutTab, applyScoutFilter,
+  showPlayerScoutDetail, renderScannerTab, renderWatchListTab,
+  filterPipeline, filterFreeAgents, sortFreeAgents)
+- game-init.js: removed dead state (_scoutFilters, currentFreeAgentFilter)
+- game-init.js: removed dead functions (filterFreeAgents, sortFreeAgents,
+  displayFreeAgents — 64 lines, 3 getElementById)
+- game-init.js: cleaned 5 rosterModal getElementById calls from
+  openRosterManagement, closeRosterManagement, closeRosterManagementToGame,
+  openTradeScreenFromRoster, openRosterManagementHub — removed legacy
+  fallback paths (React is now sole path)
+- game-init.js: removed displayFreeAgents from RosterController context
+- Kept 6 globals: dropPlayer, signPlayer, signFreeAgent, addToWatchList,
+  removeFromWatchList, isOnWatchList
+- index.html: 15 stubs removed per file (11 planned: rosterModal,
+  positionBreakdown, rosterCount, capStatus, currentRoster, positionFilter,
+  tierFilter, freeAgentsList, scoutingModal, watchlistCount, scoutTabContent
+  + 4 bonus: scoutTabScanner, scoutTabPipeline, scoutTabWatchlist,
+  scoutTabNeeds — zero references after scouting methods gutted)
+- 432 → 121 lines, net -311 lines (controller)
+- game-init.js: 1955 → 1858 lines, net -97 lines; 48 → 39 getElementById
 
 
 ### Session E: FreeAgencyController.js (27 calls) — MEDIUM-LARGE MIGRATION
@@ -317,7 +319,7 @@ removed entirely. Current remaining stubs grouped by migration session:
 | A (Trade) | tradeModal, tradePositionBreakdown, tradePartnerSelect, tradeInterface, yourTradeRoster, yourTradePicksHeader, yourTradePicks, aiTradeRoster, aiTradePicksHeader, aiTradePicks, tradeSummary, tradeYourValue, tradeAiValue, tradeNetValue, noTradePartner, aiTradeProposalModal | 16 | **DONE** |
 | B (Coach) | coachModal, coachModalContent | 2 | **DONE** |
 | C (Finance) | financeDashboardModal, financeDashboardCloseBtn, financeDashboardContent, financialTransitionModal, financialTransitionContent | 5 | **DONE** |
-| D (Roster) | rosterModal, positionBreakdown, rosterCount, capStatus, currentRoster, positionFilter, tierFilter, freeAgentsList, scoutingModal, watchlistCount, scoutTabContent | 11 |
+| D (Roster) | rosterModal, positionBreakdown, rosterCount, capStatus, currentRoster, positionFilter, tierFilter, freeAgentsList, scoutingModal, watchlistCount, scoutTabContent + scoutTabScanner, scoutTabPipeline, scoutTabWatchlist, scoutTabNeeds | 15 | **DONE** |
 | E (FA) | freeAgencyModal, faCapSpace, faOfferTally, faOfferCount, faOfferTotal, faOfferRemaining, faCurrentRoster, faPositionFilter, freeAgencyPlayersList, selectedOffersPanel, offerCount, offersList, submitOffersBtn, freeAgencyResultsModal, freeAgencyResultsContent | 15 |
 | F (Contracts) | contractDecisionsModal, contractDecisionsSummary, contractDecisionsConfirmBtn | 3 |
 | G (Dashboard) | TBD after investigation | ? |

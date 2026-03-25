@@ -1,11 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════
-// FreeAgencyController — Orchestrates Free Agency UI
+// FreeAgencyController — Orchestrates Free Agency
 // ═══════════════════════════════════════════════════════════════════
-// Handles both offseason free agency (multi-player bidding with AI
-// competition) and manages the modal lifecycle. All HTML generation
-// is delegated to UIRenderer; all business logic to FreeAgencyEngine.
-//
-// Created by extracting ~450 lines from index.html.
+// Session E migration: 27 → 0 getElementById calls. All UI via React
+// (FreeAgencyModal.jsx, OffseasonHub.jsx).
+// Business logic preserved: enrichment, AI offers, signings, results.
 // ═══════════════════════════════════════════════════════════════════
 
 export class FreeAgencyController {
@@ -20,7 +18,7 @@ export class FreeAgencyController {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  Offseason Free Agency — Full Modal Flow
+    //  Offseason Free Agency — Show (enrichment + React handoff)
     // ═══════════════════════════════════════════════════════════════
 
     /**
@@ -29,7 +27,8 @@ export class FreeAgencyController {
      */
     show() {
         const { gameState, engines, helpers } = this.ctx;
-        const { SalaryCapEngine, TeamFactory, UIRenderer } = engines;
+        const { SalaryCapEngine, TeamFactory, ScoutingEngine } = engines;
+        const { formatCurrency } = helpers;
         const userTeam = helpers.getUserTeam();
 
         // Reset selection state
@@ -56,62 +55,58 @@ export class FreeAgencyController {
         this.otherPlayers = otherPlayers.slice(0, MAX_OTHER);
         this.hiddenCount = otherPlayers.length - this.otherPlayers.length;
 
-        // React routing
+        // Pre-compute player data for React
+        const enrichPlayer = (p, isFormer) => {
+            const fit = ScoutingEngine.calculateTeamFit(p, userTeam, userTeam.coach);
+            const marketValue = TeamFactory.getMarketValue(p, userTeam.tier);
+            const natTier = TeamFactory.getPlayerNaturalTier(p);
+            const minOffer = Math.round(marketValue * 0.8);
+            const maxOffer = Math.round(marketValue * 1.2);
+            const suggestedYears = TeamFactory.determineContractLength(p.age, p.rating);
+            const previousTeam = p.previousTeamId ? helpers.getTeamById(p.previousTeamId) : null;
+
+            p._fitGrade = fit.grade;
+            p._fitColor = ScoutingEngine.gradeColor(fit.grade);
+            p._marketValue = marketValue;
+            p._minOffer = minOffer;
+            p._maxOffer = maxOffer;
+            p._suggestedYears = suggestedYears;
+            p._naturalTier = natTier;
+            p._isAboveTier = natTier < userTeam.tier;
+            p._isFormer = isFormer;
+            p._isWatched = this._isOnWatchList(p.id);
+            // Structured market data for React rendering
+            const TF = window.TeamFactory;
+            const tierValue = TF ? TF.getMarketValue(p, userTeam.tier) : (p.salary || 0);
+            const natTierColors = { 1: '#ff6b6b', 2: '#4ecdc4', 3: '#95afc0' };
+            p._marketData = {
+                value: formatCurrency(tierValue),
+                natTier: natTier,
+                badgeColor: natTierColors[natTier] || '#95afc0',
+                crossTierValue: (natTier < userTeam.tier && TF) ? formatCurrency(TF.getNaturalMarketValue(p)) : null,
+            };
+            p._fromTeamName = isFormer ? userTeam.name : (previousTeam ? previousTeam.name : (p.isCollegeGrad ? '' + p.college : 'N/A'));
+            return p;
+        };
+
+        const enrichedFormer = formerPlayers.map(p => enrichPlayer(p, true));
+        const enrichedOther = this.otherPlayers.map(p => enrichPlayer(p, false));
+
+        // Submit callback — React calls this with offer data
+        window._faSubmitOffers = (offerData) => {
+            gameState.userFreeAgencyOffers = offerData.map(o => ({
+                teamId: userTeam.id,
+                playerId: o.playerId,
+                salary: o.salary,
+                years: o.years,
+                tier: userTeam.tier,
+                teamRating: userTeam.rating,
+                teamSuccess: userTeam.wins / (userTeam.wins + userTeam.losses || 1)
+            }));
+            this._processAndShowReactResults();
+        };
+
         if (window._reactShowFA) {
-            const { ScoutingEngine } = engines;
-            const { formatCurrency } = helpers;
-
-            // Pre-compute player data for React
-            const enrichPlayer = (p, isFormer) => {
-                const fit = ScoutingEngine.calculateTeamFit(p, userTeam, userTeam.coach);
-                const marketValue = TeamFactory.getMarketValue(p, userTeam.tier);
-                const natTier = TeamFactory.getPlayerNaturalTier(p);
-                const minOffer = Math.round(marketValue * 0.8);
-                const maxOffer = Math.round(marketValue * 1.2);
-                const suggestedYears = TeamFactory.determineContractLength(p.age, p.rating);
-                const previousTeam = p.previousTeamId ? helpers.getTeamById(p.previousTeamId) : null;
-
-                p._fitGrade = fit.grade;
-                p._fitColor = ScoutingEngine.gradeColor(fit.grade);
-                p._marketValue = marketValue;
-                p._minOffer = minOffer;
-                p._maxOffer = maxOffer;
-                p._suggestedYears = suggestedYears;
-                p._naturalTier = natTier;
-                p._isAboveTier = natTier < userTeam.tier;
-                p._isFormer = isFormer;
-                p._isWatched = this._isOnWatchList(p.id);
-                // Structured market data for React rendering
-                const TF = window.TeamFactory;
-                const tierValue = TF ? TF.getMarketValue(p, userTeam.tier) : (p.salary || 0);
-                const natTierColors = { 1: '#ff6b6b', 2: '#4ecdc4', 3: '#95afc0' };
-                p._marketData = {
-                    value: formatCurrency(tierValue),
-                    natTier: natTier,
-                    badgeColor: natTierColors[natTier] || '#95afc0',
-                    crossTierValue: (natTier < userTeam.tier && TF) ? formatCurrency(TF.getNaturalMarketValue(p)) : null,
-                };
- p._fromTeamName = isFormer ? userTeam.name : (previousTeam ? previousTeam.name : (p.isCollegeGrad ? '' + p.college : 'N/A'));
-                return p;
-            };
-
-            const enrichedFormer = formerPlayers.map(p => enrichPlayer(p, true));
-            const enrichedOther = this.otherPlayers.map(p => enrichPlayer(p, false));
-
-            // Submit callback
-            window._faSubmitOffers = (offerData) => {
-                gameState.userFreeAgencyOffers = offerData.map(o => ({
-                    teamId: userTeam.id,
-                    playerId: o.playerId,
-                    salary: o.salary,
-                    years: o.years,
-                    tier: userTeam.tier,
-                    teamRating: userTeam.rating,
-                    teamSuccess: userTeam.wins / (userTeam.wins + userTeam.losses || 1)
-                }));
-                this._processAndShowReactResults();
-            };
-
             window._reactShowFA({
                 phase: 'select',
                 formerPlayers: enrichedFormer,
@@ -122,159 +117,7 @@ export class FreeAgencyController {
                 formatCurrency,
                 getTeamById: (id) => helpers.getTeamById(id),
             });
-            return;
         }
-
-        document.getElementById('faCapSpace').textContent = SalaryCapEngine.formatCurrency(capSpace);
-        document.getElementById('faCurrentRoster').innerHTML = this._buildRosterSidebar(userTeam);
-
-        // Empty state
-        if (gameState.freeAgents.length === 0) {
-            // [LEGACY REMOVED] document.getElementById('freeAgencyPlayersList').innerHTML = UIRenderer.faEmptyState();
-            document.getElementById('submitOffersBtn').disabled = true;
-            document.getElementById('freeAgencyModal').classList.remove('hidden');
-            return;
-        }
-
-        // Build initial list
-        const html = this._buildPlayerList('ALL');
-        // [LEGACY DOM] document.getElementById('freeAgencyPlayersList').innerHTML = html;
-        document.getElementById('freeAgencyModal').classList.remove('hidden');
-
-        // Initial panel updates
-        if (formerPlayers.length > 0) {
-            this._updateOffers();
-        }
-        this._updateTally();
-    }
-
-    /**
-     * Build the roster sidebar showing current team composition and cap.
-     */
-    _buildRosterSidebar(team) {
-        const { SalaryCapEngine, UIRenderer } = this.ctx.engines;
-        const { formatCurrency } = this.ctx.helpers;
-
-        if (!team.roster || team.roster.length === 0) {
-            return '<p style="text-align: center; opacity: 0.6; padding: 20px;">No players on roster</p>';
-        }
-
-        const sortedRoster = [...team.roster].sort((a, b) => b.rating - a.rating);
-        const byPosition = {
-            'PG': sortedRoster.filter(p => p.position === 'PG'),
-            'SG': sortedRoster.filter(p => p.position === 'SG'),
-            'SF': sortedRoster.filter(p => p.position === 'SF'),
-            'PF': sortedRoster.filter(p => p.position === 'PF'),
-            'C': sortedRoster.filter(p => p.position === 'C')
-        };
-
-        const teamEffCap = SalaryCapEngine.getEffectiveCap(team);
-        const baseCap = SalaryCapEngine.getSalaryCap(team.tier);
-        const totalSalary = SalaryCapEngine.calculateTeamSalary(team);
-
-        // [LEGACY REMOVED] return UIRenderer.currentRosterSidebar({
-            // roster: team.roster, byPosition, teamEffCap, baseCap,
-            // tier: team.tier, totalSalary, formatCurrency
-        // });
-    }
-
-    /**
-     * Build the full free agent player list HTML.
-     * Handles former players, watched players, and general FA pool.
-     */
-    _buildPlayerList(positionFilter) {
-        const { gameState, engines, helpers } = this.ctx;
-        const { ScoutingEngine, TeamFactory, UIRenderer } = engines;
-        const userTeam = helpers.getUserTeam();
-        const selected = this.selectedIds;
-
-        if (gameState.freeAgents.length === 0) {
-            // [LEGACY REMOVED] return UIRenderer.faEmptyState();
-        }
-
-        const shownCount = this.formerPlayers.length + this.otherPlayers.length;
-        // [LEGACY REMOVED] let html = UIRenderer.faListHeader({
-            // totalCount: gameState.freeAgents.length,
-            // shownCount, formerCount: this.formerPlayers.length,
-            // hiddenCount: this.hiddenCount, positionFilter
-        // });
-
-        // [LEGACY REMOVED] html += UIRenderer.faTableHeader();
-
-        // ── Former players ──
-        const filteredFormer = positionFilter && positionFilter !== 'ALL'
-            ? this.formerPlayers.filter(p => p.position === positionFilter)
-            : this.formerPlayers;
-
-        filteredFormer.forEach(player => {
-            const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
-            // [LEGACY REMOVED] html += UIRenderer.faFormerPlayerRow({
-                // player, isChecked: selected.has(String(player.id)),
-                // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
-                // watched: this._isOnWatchList(player.id),
-                // marketDisplay: UIRenderer.formatMarketDisplay(player, userTeam.tier),
-                // teamName: userTeam.name
-            // });
-        });
-
-        // ── Watched players (non-former) ──
-        const watchedFAs = this.otherPlayers.filter(p => this._isOnWatchList(p.id));
-        const unwatchedFAs = this.otherPlayers.filter(p => !this._isOnWatchList(p.id));
-
-        if (watchedFAs.length > 0) {
-            // [LEGACY REMOVED] html += UIRenderer.faSectionDivider({
- // label: 'WATCHED PLAYERS', count: watchedFAs.length,
-                // color: '#bb86fc', borderColor: 'rgba(155,89,182,0.4)'
-            // });
-
-            const filteredWatched = positionFilter && positionFilter !== 'ALL'
-                ? watchedFAs.filter(p => p.position === positionFilter) : watchedFAs;
-
-            filteredWatched.forEach(player => {
-                const previousTeam = player.previousTeamId ? helpers.getTeamById(player.previousTeamId) : null;
-                const previousTeamName = previousTeam ? previousTeam.name
- : (player.isCollegeGrad ? `${player.college}` : 'N/A');
-                const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
-                // [LEGACY REMOVED] html += UIRenderer.faPlayerRow({
-                    // player, isChecked: selected.has(String(player.id)),
-                    // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
-                    // previousTeamName, isWatched: true
-                // });
-            });
-        }
-
-        // ── Unwatched players ──
-        let filteredUnwatched = positionFilter && positionFilter !== 'ALL'
-            ? unwatchedFAs.filter(p => p.position === positionFilter) : unwatchedFAs;
-
-        if (filteredUnwatched.length > 0) {
-            const label = positionFilter && positionFilter !== 'ALL'
-                ? `OTHER AVAILABLE FREE AGENTS (${positionFilter})`
-                : 'OTHER AVAILABLE FREE AGENTS';
-            // [LEGACY REMOVED] html += UIRenderer.faSectionDivider({
-                // label, count: filteredUnwatched.length,
-                // color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)'
-            // });
-            if (this.hiddenCount > 0) {
-                html += `<tr><td colspan="8" style="padding: 5px 15px; font-size: 0.85em; opacity: 0.6; text-align: center;">${this.hiddenCount} more lower-rated players not shown</td></tr>`;
-            }
-        }
-
-        filteredUnwatched.forEach(player => {
-            const previousTeam = player.previousTeamId ? helpers.getTeamById(player.previousTeamId) : null;
-            const previousTeamName = previousTeam ? previousTeam.name
- : (player.isCollegeGrad ? `${player.college}` : 'N/A');
-            const fit = ScoutingEngine.calculateTeamFit(player, userTeam, userTeam.coach);
-            // [DEAD] player._marketDisplay = UIRenderer.formatMarketDisplay(player, userTeam.tier);
-            // [LEGACY REMOVED] html += UIRenderer.faPlayerRow({
-                // player, isChecked: selected.has(String(player.id)),
-                // fitGrade: fit.grade, gradeColor: ScoutingEngine.gradeColor(fit.grade),
-                // previousTeamName, isWatched: false
-            // });
-        });
-
-        html += '</tbody></table>';
-        return html;
     }
 
     /**
@@ -285,207 +128,24 @@ export class FreeAgencyController {
         return helpers.getRosterController()._isOnWatchList(playerId);
     }
 
-    // ── Filter / Selection handlers ──
-
-    /**
-     * Re-filter the FA list by position dropdown.
-     * Preserves checkbox selections across rebuilds.
-     */
-    filterByPosition() {
-        const { gameState } = this.ctx;
-        const positionFilter = document.getElementById('faPositionFilter').value;
-
-        // Sync visible checkboxes into persistent Set before rebuild
-        gameState.freeAgents.forEach(fa => {
-            const cb = document.getElementById(`fa_${fa.id}`);
-            if (cb) {
-                if (cb.checked) this.selectedIds.add(String(fa.id));
-                else this.selectedIds.delete(String(fa.id));
-            }
-        });
-
-        const html = this._buildPlayerList(positionFilter);
-        // [LEGACY DOM] document.getElementById('freeAgencyPlayersList').innerHTML = html;
-
-        this._updateOffers();
-        this._updateTally();
-    }
-
-    /**
-     * Toggle a single player's selection checkbox.
-     */
-    toggleSelection(playerId) {
-        const checkbox = document.getElementById(`fa_${playerId}`);
-        const idStr = String(playerId);
-
-        if (checkbox && checkbox.checked) {
-            this.selectedIds.add(idStr);
-        } else {
-            this.selectedIds.delete(idStr);
-        }
-
-        this._updateOffers();
-        this._updateTally();
-    }
-
-    // ── Offer panels ──
-
-    /**
-     * Update the running tally bar (count, estimated cost, remaining cap).
-     */
-    _updateTally() {
-        const { gameState, engines, helpers } = this.ctx;
-        const { SalaryCapEngine, TeamFactory } = engines;
-        const userTeam = helpers.getUserTeam();
-        if (!userTeam) return;
-
-        const selectedPlayers = gameState.freeAgents.filter(fa => this.selectedIds.has(String(fa.id)));
-
-        const tallyEl = document.getElementById('faOfferTally');
-        if (!tallyEl) return;
-
-        if (selectedPlayers.length === 0) {
-            tallyEl.style.display = 'none';
-            return;
-        }
-
-        tallyEl.style.display = 'block';
-
-        const estCost = selectedPlayers.reduce((sum, p) => sum + TeamFactory.getMarketValue(p, userTeam.tier), 0);
-        const capSpace = SalaryCapEngine.getRemainingCap(userTeam);
-        const remaining = capSpace - estCost;
-
-        document.getElementById('faOfferCount').textContent = selectedPlayers.length;
-        document.getElementById('faOfferTotal').textContent = SalaryCapEngine.formatCurrency(estCost);
-
-        const remEl = document.getElementById('faOfferRemaining');
-        remEl.textContent = SalaryCapEngine.formatCurrency(remaining);
-        remEl.style.color = remaining >= 0 ? '#34a853' : '#ea4335';
-    }
-
-    /**
-     * Update the detailed offers panel (salary sliders, contract length pickers).
-     */
-    _updateOffers() {
-        const { gameState, engines, helpers } = this.ctx;
-        const { SalaryCapEngine, TeamFactory, UIRenderer } = engines;
-        const { formatCurrency } = helpers;
-        const userTeam = helpers.getUserTeam();
-
-        const selectedPlayers = gameState.freeAgents.filter(fa => this.selectedIds.has(String(fa.id)));
-        const offerCount = selectedPlayers.length;
-
-        document.getElementById('offerCount').textContent = offerCount;
-
-        if (offerCount === 0) {
-            document.getElementById('selectedOffersPanel').style.display = 'none';
-            document.getElementById('submitOffersBtn').disabled = true;
-            return;
-        }
-
-        document.getElementById('selectedOffersPanel').style.display = 'block';
-        document.getElementById('submitOffersBtn').disabled = false;
-
-        let html = '';
-        selectedPlayers.forEach(player => {
-            const marketValue = TeamFactory.getMarketValue(player, userTeam.tier);
-            const playerNatTier = TeamFactory.getPlayerNaturalTier(player);
-            const minOffer = Math.round(marketValue * 0.8);
-            const maxOffer = Math.round(marketValue * 1.2);
-            const suggestedYears = TeamFactory.determineContractLength(player.age, player.rating);
-            const isFormerPlayer = player.previousTeamId === userTeam.id;
-            const isAboveTier = playerNatTier < userTeam.tier;
-
-            // Cache for validation during submit
-            player._faMarketValue = marketValue;
-            player._faMinOffer = minOffer;
-            player._faMaxOffer = maxOffer;
-
-            // [LEGACY REMOVED] html += UIRenderer.faOfferCard({
-                // player, marketValue, minOffer, maxOffer, suggestedYears,
-                // isFormerPlayer, isAboveTier, playerNatTier, userTier: userTeam.tier,
-                // formatCurrency,
-                // formatMarketDisplay: (p, t) => UIRenderer.formatMarketDisplay(p, t)
-            // });
-        });
-
-        document.getElementById('offersList').innerHTML = html;
-    }
-
-    // ── Submit / Skip ──
-
-    /**
-     * Validate and submit all user offers, then process the full FA round.
-     */
-    submitOffers() {
-        const { gameState, engines, helpers } = this.ctx;
-        const { SalaryCapEngine } = engines;
-        const userTeam = helpers.getUserTeam();
-
-        const selectedPlayers = gameState.freeAgents.filter(fa => this.selectedIds.has(String(fa.id)));
-
-        if (selectedPlayers.length === 0) {
-            alert('Please select at least one player to make an offer to.');
-            return;
-        }
-
-        // Validate and collect offers
-        gameState.userFreeAgencyOffers = [];
-        let totalCommitment = 0;
-
-        for (const player of selectedPlayers) {
-            const salaryInput = document.getElementById(`offer_salary_${player.id}`);
-            const yearsInput = document.getElementById(`offer_years_${player.id}`);
-
-            const offeredSalary = parseInt(salaryInput.value);
-            const offeredYears = parseInt(yearsInput.value);
-
-            const minOffer = player._faMinOffer;
-            const maxOffer = player._faMaxOffer;
-
-            if (offeredSalary < minOffer || offeredSalary > maxOffer) {
-                alert(`Your offer to ${player.name} is outside the acceptable range (${SalaryCapEngine.formatCurrency(minOffer)} - ${SalaryCapEngine.formatCurrency(maxOffer)})`);
-                return;
-            }
-
-            totalCommitment += offeredSalary;
-
-            gameState.userFreeAgencyOffers.push({
-                teamId: userTeam.id,
-                playerId: player.id,
-                salary: offeredSalary,
-                years: offeredYears,
-                tier: userTeam.tier,
-                teamRating: userTeam.rating,
-                teamSuccess: userTeam.wins / (userTeam.wins + userTeam.losses || 1)
-            });
-        }
-
-        // Check cap space
-        const capSpace = SalaryCapEngine.getRemainingCap(userTeam);
-        if (totalCommitment > capSpace) {
-            alert(`Your offers total ${SalaryCapEngine.formatCurrency(totalCommitment)}, but you only have ${SalaryCapEngine.formatCurrency(capSpace)} in cap space.\n\nReduce your offers or target fewer players.`);
-            return;
-        }
-
-        console.log(`✅ User submitted ${gameState.userFreeAgencyOffers.length} offers`);
-
-        // Close modal and process
-        document.getElementById('freeAgencyModal').classList.add('hidden');
-        this._process();
-    }
+    // ═══════════════════════════════════════════════════════════════
+    //  Skip
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Skip free agency entirely.
      */
     skip() {
         if (confirm('Are you sure you want to skip free agency? You won\'t be able to sign any free agents this off-season.')) {
-            console.log('⏭️ User skipped free agency');
+            console.log('User skipped free agency');
             if (window._reactCloseFA) window._reactCloseFA();
-            document.getElementById('freeAgencyModal').classList.add('hidden');
             this.ctx.helpers.getOffseasonController().runAISigningAndContinue();
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Processing pipeline
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Process offers and show results in React modal.
@@ -523,77 +183,20 @@ export class FreeAgencyController {
         });
 
         // Show results in React
-        window._reactShowFA({
-            phase: 'results',
-            results,
-            formatCurrency,
-            getTeamById: (id) => helpers.getTeamById(id),
-            userOffers: gameState.userFreeAgencyOffers,
-        });
-    }
-
-    // ── Processing pipeline ──
-
-    /**
-     * Run the full FA processing pipeline:
-     * 1. Generate AI offers
-     * 2. Process player decisions
-     * 3. Execute signings
-     * 4. Show results
-     */
-    _process() {
-        const { gameState, engines, helpers } = this.ctx;
-        const { FreeAgencyEngine, SalaryCapEngine, TeamFactory, UIRenderer } = engines;
-        const userTeam = helpers.getUserTeam();
-
-        console.log('🤖 Processing free agency...');
-
-        // Step 1: Generate AI offers
-        const allTeams = [...gameState.tier1Teams, ...gameState.tier2Teams, ...gameState.tier3Teams];
-        const aiTeams = allTeams.filter(t => t.id !== userTeam.id);
-
-        gameState.aiFreeAgencyOffers = FreeAgencyEngine.generateAIOffers(
-            { freeAgents: gameState.freeAgents, aiTeams },
-            { TeamFactory, SalaryCapEngine }
-        );
-        console.log(`  AI teams made ${gameState.aiFreeAgencyOffers.length} offers`);
-
-        // Step 2: Process decisions
-        const results = FreeAgencyEngine.processDecisions(
-            {
-                freeAgents: gameState.freeAgents,
+        if (window._reactShowFA) {
+            window._reactShowFA({
+                phase: 'results',
+                results,
+                formatCurrency,
+                getTeamById: (id) => helpers.getTeamById(id),
                 userOffers: gameState.userFreeAgencyOffers,
-                aiOffers: gameState.aiFreeAgencyOffers,
-                userTeamId: userTeam.id
-            },
-            { SalaryCapEngine }
-        );
-
-        // Step 3: Execute signings
-        FreeAgencyEngine.executeSignings({
-            results,
-            freeAgentPool: gameState.freeAgents,
-            getTeamById: helpers.getTeamById
-        });
-
-        // Step 4: Show results
-        this._showResults(results);
+            });
+        }
     }
 
-    /**
-     * Display the free agency results modal.
-     */
-    _showResults(results) {
-        const { gameState, engines, helpers } = this.ctx;
-        const { UIRenderer } = engines;
-        const { formatCurrency } = helpers;
-
-        // [LEGACY REMOVED] document.getElementById('freeAgencyResultsContent').innerHTML = UIRenderer.freeAgencyResults({
-            // results, formatCurrency, getTeamById: helpers.getTeamById,
-            // userOffers: gameState.userFreeAgencyOffers
-        // });
-        // [LEGACY DOM] document.getElementById('freeAgencyResultsModal').classList.remove('hidden');
-    }
+    // ═══════════════════════════════════════════════════════════════
+    //  Continue after FA
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Continue after viewing FA results.
@@ -606,15 +209,14 @@ export class FreeAgencyController {
         gameState._freeAgencyComplete = true;
 
         // Let AI teams fill remaining needs from leftover free agents
-        console.log('🤖 AI teams filling remaining roster needs...');
+        console.log('AI teams filling remaining roster needs...');
         helpers.aiSigningPhase();
         
         helpers.saveGameState();
 
         // In hub mode (OffseasonHub is active), just return - the React callback handles navigation
-        // We detect hub mode by checking if we're in offseason phase
         if (gameState.offseasonPhase) {
-            console.log('📝 [FA] Complete - hub mode detected, returning control to React');
+            console.log('[FA] Complete - hub mode detected, returning control to React');
             return;
         }
         
