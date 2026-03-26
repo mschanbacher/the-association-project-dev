@@ -97,11 +97,14 @@ export function WatchGameModal({ isOpen, data, onClose }) {
 
   useEffect(() => {
     if (isOpen && data) {
-      setSpeed(window._gameSettings?.watchGameSpeed || 1); setPaused(false); setGameOver(false); setFinalData(null);
+      const defaultSpd = window._gameSettings?.watchGameSpeed || 1;
+      setSpeed(defaultSpd); setPaused(false); setGameOver(false); setFinalData(null);
       setWinProbPoints([]); setCurrentWinProb(null); setTooltip(null);
       winProbPointsRef.current = [];
       if (playsRef.current) playsRef.current.innerHTML = '';
       if (leadersRef.current) leadersRef.current.innerHTML = '';
+      // Sync engine speed after a tick so _wgRefs and timer are ready
+      setTimeout(() => { window.watchGameSetSpeed?.(defaultSpd); }, 100);
     }
   }, [isOpen, data?.homeName, data?.awayName]);
 
