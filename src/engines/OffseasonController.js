@@ -6,7 +6,7 @@
 //   Owner Mode → Season Setup
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { UIRenderer } from './UIRenderer.js';
+
 
 /**
  * OffseasonController orchestrates the entire offseason flow.

@@ -7,75 +7,10 @@
     <title>The Association Project</title>
 </head>
 <body>
-    <!-- Legacy modal ID stubs — kept for fallback getElementById calls, all hidden -->
-    <!-- 26 zero-reference stubs removed 2026-03-25: seasonEndContent, playoffContent,
-         collegeGradSubtitle/CapInfo/Tally, cg*(6), scoutTab*(4), aiProposal*(4),
-         championshipPlayoff*(2), postGame*(2), expiringContractsList -->
+    <!-- Legacy stubs — only teamSelectionModal and gameContainer still referenced by App.jsx -->
     <div id="legacy-modal-stubs" style="display: none !important; position: absolute; width: 0; height: 0; overflow: hidden;">
-      <!-- Team selection (4 refs) -->
       <div id="teamSelectionModal"></div>
-      <div id="tier1Teams"></div>
-      <div id="tier2Teams"></div>
-      <div id="tier3Teams"></div>
-      <!-- Season end (6 refs) -->
-      <div id="seasonEndModal"></div>
-      <!-- Playoff (1 ref in OffseasonController) -->
-      <div id="playoffModal"></div>
-      <!-- Roster — MIGRATED Session D (React RosterScreen/RosterModal) -->
-      <!-- Development (3 refs) -->
-      <div id="developmentModal"></div>
-      <div id="developmentSummary"></div>
-      <!-- Free Agency — MIGRATED Session E (React FreeAgencyModal) -->
-      <!-- College Grad FA (1 ref in DraftController — needs migration) -->
-      <div id="collegeGradFAModal"></div>
-      <!-- Scouting — MIGRATED Session D (React ScoutingScreen) -->
-      <!-- Draft (2+ refs) -->
-      <div id="draftResultsModal"></div>
-      <div id="draftRound1Btn"></div>
-      <div id="draftCompBtn"></div>
-      <div id="draftRound2Btn"></div>
-      <div id="userPicksBtn"></div>
-      <div id="draftResultsContent"></div>
-      <!-- Bracket viewer (2 refs) -->
-      <div id="bracketViewerModal"></div>
-      <div id="bracketViewerContent"></div>
-      <!-- Lottery / Draft pick (2 refs) -->
-      <div id="lotteryModal"></div>
-      <div id="lotteryContent"></div>
-      <div id="userDraftPickModal"></div>
-      <div id="userPickNumber"></div>
-      <div id="draftPositionFilter"></div>
-      <div id="draftSortBy"></div>
-      <div id="draftProspectsList"></div>
-      <div id="draftYourRoster"></div>
-      <!-- Game container (active React root) -->
       <div id="gameContainer"></div>
-      <!-- Watch game (3 refs) -->
-      <div id="watchGameModal"></div>
-      <div id="watchGameContent"></div>
-      <!-- Box score (1 ref) -->
-      <div id="boxScoreModal"></div>
-      <div id="boxScoreContent"></div>
-      <!-- Franchise history (1 ref) -->
-      <div id="franchiseHistoryModal"></div>
-      <div id="franchiseHistoryContent"></div>
-      <!-- Compliance (3 refs) -->
-      <div id="complianceModal"></div>
-      <div id="complianceModalContent"></div>
-      <!-- Injury (3 refs) -->
-      <div id="injuryModal"></div>
-      <div id="injuryDetails"></div>
-      <div id="injuryOptions"></div>
-      <div id="injuryConfirmBtn"></div>
-      <!-- Calendar (1 ref) -->
-      <div id="calendarModal"></div>
-      <div id="calendarContent"></div>
-      <!-- All-Star (2 refs) -->
-      <div id="allStarModal"></div>
-      <div id="allStarContent"></div>
-      <!-- Contract decisions — MIGRATED Session F (React ContractsScreen in OffseasonHub) -->
-      <!-- Game menu (2 refs) -->
-      <div id="gameMenuModal"></div>
     </div>
     
     <!-- React UI root -->

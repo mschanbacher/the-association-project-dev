@@ -15,7 +15,7 @@
                 OffseasonController, TradeController, DraftController,
                 GameSimController, PlayoffSimController, FinanceController, RosterController,
                 FreeAgencyController, DashboardController, CoachManagementController,
-                SaveLoadController, TrainingCampEngine, UIHelpers, UIRenderer } = window;
+                SaveLoadController, TrainingCampEngine, UIHelpers } = window;
 
         // ============================================
         // 🏀 REFACTORED ARCHITECTURE - INCREMENTAL APPROACH
@@ -341,7 +341,7 @@
             if (!_coachMgmtController) {
                 _coachMgmtController = new CoachManagementController({
                     gameState,
-                    engines: { CoachEngine, SalaryCapEngine, UIRenderer },
+                    engines: { CoachEngine, SalaryCapEngine },
                     helpers: {
                         getUserTeam, formatCurrency, saveGameState,
                         getDashboardController,
