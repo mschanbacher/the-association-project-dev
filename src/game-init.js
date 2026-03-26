@@ -592,55 +592,7 @@
         const T2_NEIGHBORS = DivisionManager.T2_NEIGHBORS;
         const T3_NEIGHBORS = DivisionManager.T3_NEIGHBORS;
         
-        // Select starting tier
-        function selectTier(tier) {
-            // Safety check - gameState might not be initialized yet during initial load
-            if (!gameState || !gameState.tier1Teams || !gameState.tier2Teams || !gameState.tier3Teams) {
-                console.warn('selectTier called before gameState initialized');
-                return;
-            }
-            
-            document.getElementById('tier1Teams').style.display = 'none';
-            document.getElementById('tier2Teams').style.display = 'none';
-            document.getElementById('tier3Teams').style.display = 'none';
-            
-            if (tier === 1) {
-                document.getElementById('tier1Teams').style.display = 'grid';
-                populateTeamSelection(gameState.tier1Teams, 1);
-            } else if (tier === 2) {
-                document.getElementById('tier2Teams').style.display = 'grid';
-                populateTeamSelection(gameState.tier2Teams, 2);
-            } else {
-                document.getElementById('tier3Teams').style.display = 'grid';
-                populateTeamSelection(gameState.tier3Teams, 3);
-            }
-        }
-        // Make it globally accessible
-        // Populate team selection
-        function populateTeamSelection(teams, tier) {
-            const containerId = tier === 1 ? 'tier1Teams' : tier === 2 ? 'tier2Teams' : 'tier3Teams';
-            const container = document.getElementById(containerId);
-            
-            const divisions = {};
-            teams.forEach(team => {
-                if (!divisions[team.division]) divisions[team.division] = [];
-                divisions[team.division].push(team);
-            });
-
-            container.innerHTML = Object.entries(divisions).map(([division, divTeams]) => `
-                <div>
-                    <h3 style="margin-bottom: 10px; text-align: center; opacity: 0.8;">${division}</h3>
-                    ${divTeams.map(team => {
-                        FinanceEngine.ensureFinances(team);
-                        const revenue = FinanceEngine.getTotalRevenue(team);
-                        const spendingLimit = FinanceEngine.getSpendingLimit(team);
-                        const marketLabel = team.finances.marketSize >= 1.2 ? '🏙️' : team.finances.marketSize >= 1.0 ? '🏘️' : team.finances.marketSize >= 0.8 ? '🏡' : '🏚️';
-                        const fanbase = team.finances.fanbase;
-                        return UIRenderer.teamSelectionCard({ team, tier, marketLabel, spendingLimit, fanbase, formatCurrency });
-                    }).join('')}
-                </div>
-            `).join('');
-        }
+        // selectTier/populateTeamSelection removed — React NewGameFlow handles this
 
         // Select team and start game
         function selectTeam(teamId, tier) {
@@ -807,128 +759,9 @@
                 });
                 return;
             }
-            const modal = document.getElementById('calendarModal');
-            const content = document.getElementById('calendarContent');
-            
-            if (!gameState || !gameState.currentDate) {
-                content.innerHTML = '<h2 style="text-align: center;">No season in progress</h2>';
-                modal.classList.remove('hidden');
-                return;
-            }
-            
-            const currentDate = gameState.currentDate;
-            const startYear = gameState.seasonStartYear || 2025;
-            const seasonDates = CalendarEngine.getSeasonDates(startYear);
-            
-            // Build months to display
-            const months = [];
-            for (let m = 9; m <= 11; m++) months.push({ year: startYear, month: m });
-            for (let m = 0; m <= 3; m++) months.push({ year: startYear + 1, month: m });
-            
-            // Build user game lookup
-            const userTeamId = gameState.userTeamId;
-            const userTier = gameState.currentTier;
-            const userSchedule = userTier === 1 ? gameState.tier1Schedule :
-                                 userTier === 2 ? gameState.tier2Schedule :
-                                 gameState.tier3Schedule;
-            
-            const userGamesByDate = {};
-            if (userSchedule) {
-                const allTeams = [...(gameState.tier1Teams || []), ...(gameState.tier2Teams || []), ...(gameState.tier3Teams || [])];
-                userSchedule.forEach(game => {
-                    if (game.date && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId)) {
-                        const isHome = game.homeTeamId === userTeamId;
-                        const opponentId = isHome ? game.awayTeamId : game.homeTeamId;
-                        const opponent = allTeams.find(t => t.id === opponentId);
-                        userGamesByDate[game.date] = { isHome, opponent, played: game.played, game };
-                    }
-                });
-            }
-            
-            // Build total game count by date
-            const allGamesByDate = {};
-            [gameState.tier1Schedule, gameState.tier2Schedule, gameState.tier3Schedule].forEach((sched, idx) => {
-                if (!sched) return;
-                sched.forEach(game => {
-                    if (game.date) {
-                        if (!allGamesByDate[game.date]) allGamesByDate[game.date] = { total: 0, t1: 0, t2: 0, t3: 0 };
-                        allGamesByDate[game.date].total++;
-                        if (idx === 0) allGamesByDate[game.date].t1++;
-                        else if (idx === 1) allGamesByDate[game.date].t2++;
-                        else allGamesByDate[game.date].t3++;
-                    }
-                });
-            });
-            
-            // Convert season dates to strings for comparison
-            const calSeasonDates = {
-                allStarStart: CalendarEngine.toDateString(seasonDates.allStarStart),
-                allStarEnd: CalendarEngine.toDateString(seasonDates.allStarEnd),
-                tradeDeadline: CalendarEngine.toDateString(seasonDates.tradeDeadline),
-                tier1End: CalendarEngine.toDateString(seasonDates.tier1End)
-            };
-            
-            content.innerHTML = UIRenderer.calendarGrid({
-                months, currentDate, userGamesByDate, allGamesByDate,
-                seasonDates: calSeasonDates, startYear
-            });
-            modal.classList.remove('hidden');
         }
         
-        function showCalendarDayDetail(dateStr) {
-            if (!gameState) return;
-            
-            const detail = document.getElementById('calendarDayDetail');
-            if (!detail) return;
-            
-            const games = CalendarEngine.getGamesForDate(dateStr, gameState);
-            const event = CalendarEngine.getCalendarEvent(dateStr, gameState.seasonDates);
-            const allTeams = [...(gameState.tier1Teams || []), ...(gameState.tier2Teams || []), ...(gameState.tier3Teams || [])];
-            const userTeamId = gameState.userTeamId;
-            
-            const formattedDate = CalendarEngine.formatDateDisplay(dateStr);
-            
-            // Collect all games with team names and scores
-            const allGames = [];
-            const tierSchedules = [
-                { schedule: games.tier1, teams: gameState.tier1Teams, tier: 1 },
-                { schedule: games.tier2, teams: gameState.tier2Teams, tier: 2 },
-                { schedule: games.tier3, teams: gameState.tier3Teams, tier: 3 }
-            ];
-            
-            for (const { schedule, teams, tier } of tierSchedules) {
-                if (!schedule) continue;
-                for (const game of schedule) {
-                    const home = allTeams.find(t => t.id === game.homeTeamId);
-                    const away = allTeams.find(t => t.id === game.awayTeamId);
-                    if (!home || !away) continue;
-                    allGames.push({
-                        ...game,
-                        homeName: home.city ? `${home.city} ${home.name}` : home.name,
-                        awayName: away.city ? `${away.city} ${away.name}` : away.name,
-                        tier
-                    });
-                }
-            }
-            
-            const userGame = allGames.find(g => g.homeTeamId === userTeamId || g.awayTeamId === userTeamId);
-            const otherGames = allGames.filter(g => g.homeTeamId !== userTeamId && g.awayTeamId !== userTeamId);
-            
-            let userGameHTML = '';
-            if (userGame) {
-                userGameHTML = UIRenderer.calendarDayScores({ games: [userGame], date: dateStr, userTeamId, showHeader: false });
-            }
-            let otherGamesHTML = '';
-            if (otherGames.length > 0) {
-                otherGamesHTML = UIRenderer.calendarDayScores({ games: otherGames, date: dateStr, userTeamId, showHeader: false });
-            }
-            
-            detail.innerHTML = UIRenderer.calendarDayDetail({
-                formattedDate, event, allGames, userGame, otherGames,
-                userGameHTML, otherGamesHTML
-            });
-            detail.style.display = 'block';
-        }
+        // showCalendarDayDetail removed — React CalendarModal handles day details
         
         function showBoxScore(dateStr, homeTeamId, awayTeamId) {
             const games = CalendarEngine.getGamesForDate(dateStr, gameState);
@@ -962,9 +795,6 @@
             // Dispatch to React modal if available, otherwise fall back to legacy
             if (window._reactShowBoxScore) {
                 window._reactShowBoxScore(boxPayload);
-            } else {
-                document.getElementById('boxScoreContent').innerHTML = UIRenderer.boxScore(boxPayload);
-                document.getElementById('boxScoreModal').classList.remove('hidden');
             }
         }
         // ============================================
@@ -1041,19 +871,10 @@
             if (window._reactShowAllStar) {
                 window._allStarContinueCallback = () => {};
                 window._reactShowAllStar({ results, userTeamId: gameState.userTeamId });
-                return;
             }
-            document.getElementById('allStarContent').innerHTML = UIRenderer.allStarModal({
-                results, userTeamId: gameState.userTeamId
-            });
-            document.getElementById('allStarModal').classList.remove('hidden');
         }
         
-        function closeAllStarModal() {
-            document.getElementById('allStarModal').classList.add('hidden');
-        }
-        
-        // Close season end modal
+        // closeAllStarModal removed — React AllStarModal handles close
 
 
         function getAllLeaguePlayers() {
@@ -1159,14 +980,10 @@
             console.log('User Roster Size:', userTeam.roster ? userTeam.roster.length : 0);
             console.log('Free Agents Count:', gameState.freeAgents ? gameState.freeAgents.length : 0);
             
-            // Set return context based on what's currently open
-            if (!document.getElementById('seasonEndModal').classList.contains('hidden')) {
-                rosterManagementReturnContext = 'seasonEnd';
-            } else {
-                rosterManagementReturnContext = 'game';
-            }
+            // Context is set explicitly by specialized callers (compliance, hub).
+            // Generic path defaults to 'game'.
+            rosterManagementReturnContext = 'game';
 
-            document.getElementById('seasonEndModal').classList.add('hidden');
             window._rosterCloseCallback = () => closeRosterManagementDynamic();
             if (window._reactShowRoster) {
                 window._reactShowRoster(_buildRosterData(rosterManagementReturnContext));
@@ -1193,14 +1010,8 @@
             if (rosterManagementReturnContext === 'compliance') {
                 console.log('Returning from roster management to compliance check...');
                 getOffseasonController().checkRosterComplianceAndContinue();
-            } else if (rosterManagementReturnContext === 'development') {
-                console.log('Returning from roster management to development modal...');
-                document.getElementById('developmentModal').classList.remove('hidden');
-            } else {
-                // Default: return to Season End Modal
-                console.log('Returning from roster management to Season End modal...');
-                document.getElementById('seasonEndModal').classList.remove('hidden');
             }
+            // 'development' and 'seasonEnd' contexts handled by React (OffseasonHub)
         }
         
         function closeRosterManagementToGame() {
@@ -1253,7 +1064,6 @@
         function openRosterManagementFromCompliance() {
             // Set return context so closeRosterManagement knows where to go back
             rosterManagementReturnContext = 'compliance';
-            document.getElementById('complianceModal').classList.add('hidden');
 
             window._rosterCloseCallback = () => {
                 saveGameState();
@@ -1266,31 +1076,10 @@
         
         function recheckRosterCompliance() {
             // User clicked "Ready to Continue" - check again
-            document.getElementById('complianceModal').classList.add('hidden');
             getOffseasonController().checkRosterComplianceAndContinue();
         }
         
-        // ===== PLAYER ATTRIBUTE DISPLAY =====
-        
-        function togglePlayerAttributes(playerId) {
-            const container = document.getElementById(`playerAttrs_${playerId}`);
-            if (!container) return;
-            
-            if (container.style.display !== 'none') {
-                container.style.display = 'none';
-                return;
-            }
-            
-            const userTeam = getUserTeam();
-            const player = userTeam.roster.find(p => p.id === playerId);
-            if (!player) return;
-            
-            // Ensure attributes exist
-            PlayerAttributes.ensureAttributes(player);
-            
-            container.innerHTML = UIRenderer.playerAttributesPanel({ player, PlayerAttributes });
-            container.style.display = 'block';
-        }
+        // togglePlayerAttributes removed — React RosterScreen handles attribute display
         
         // ===== HELPER FUNCTIONS =====
         
@@ -1369,84 +1158,9 @@
                 });
                 return;
             }
-
-            // ── Legacy fallback ──
-            document.getElementById('injuryDetails').innerHTML = UIRenderer.injuryDetails({ player, team, injury });
-            
-            let optionsHtml = '';
-            
-            if (!isUserTeam) {
-                const aiDecision = injury.canPlayThrough && Math.random() < 0.3 ? 'playThrough' : 'rest';
-                InjuryEngine.applyInjury(player, injury, aiDecision);
-                
-                optionsHtml = UIRenderer.injuryAiDecision({ team, player, aiDecision, injury });
-                
-                document.getElementById('injuryConfirmBtn').textContent = 'Continue';
-                document.getElementById('injuryConfirmBtn').onclick = () => {
-                    if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
-                        gameState.pendingInjuries.shift();
-                    }
-                    document.getElementById('injuryModal').classList.add('hidden');
-                    pendingInjuryDecision = null;
-                    if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
-                        showNextInjuryModal();
-                    } else if (window._resumeAfterInjuries) {
-                        window._resumeAfterInjuries();
-                    }
-                };
-            } else {
-                if (injury.canPlayThrough) {
-                    optionsHtml = UIRenderer.injuryUserOptions({ player, injury });
-                } else {
-                    const dpeEligible = injury.allowsDPE && player.salary > getDPEThreshold(team.tier);
-                    const dpeAmount = dpeEligible ? Math.min(player.salary * 0.5, getDPEAmount(team.tier)) : 0;
-                    
-                    optionsHtml = UIRenderer.injurySevereOptions({ player, injury, formatCurrency, dpeEligible, dpeAmount });
-                    
-                    InjuryEngine.applyInjury(player, injury, 'rest');
-                    
-                    if (dpeEligible) {
-                        grantDPE(team, player);
-                    }
-                }
-                
-                document.getElementById('injuryConfirmBtn').textContent = injury.canPlayThrough ? 'Confirm Decision' : 'Continue';
-                document.getElementById('injuryConfirmBtn').onclick = () => {
-                    if (injury.canPlayThrough && !pendingInjuryDecision.decision) {
-                        alert('Please select a treatment option.');
-                        return;
-                    }
-                    
-                    if (pendingInjuryDecision.decision) {
-                        InjuryEngine.applyInjury(player, injury, pendingInjuryDecision.decision);
-                    }
-                    
-                    if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
-                        gameState.pendingInjuries.shift();
-                    }
-                    
-                    document.getElementById('injuryModal').classList.add('hidden');
-                    pendingInjuryDecision = null;
-                    
-                    if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
-                        showNextInjuryModal();
-                    } else if (window._resumeAfterInjuries) {
-                        window._resumeAfterInjuries();
-                    }
-                };
-            }
-            
-            document.getElementById('injuryOptions').innerHTML = optionsHtml;
-            document.getElementById('injuryModal').classList.remove('hidden');
         }
         
-        function selectInjuryOption(option) {
-            pendingInjuryDecision.decision = option;
-            document.querySelectorAll('.injury-option-btn').forEach(btn => {
-                btn.style.opacity = btn.dataset.option === option ? '1' : '0.5';
-                btn.style.border = btn.dataset.option === option ? '2px solid #667eea' : '2px solid transparent';
-            });
-        }
+        // selectInjuryOption removed — React InjuryModal handles option selection
         
         // DPE thresholds (roughly 50% of tier's mid-level exception equivalent)
         function getDPEThreshold(tier) {
@@ -1769,7 +1483,7 @@
         window.closeLotteryModal = (...args) => getDraftController().closeLotteryModal(...args);
         window.closeSeasonEnd = (...args) => getGameSimController().closeSeasonEnd(...args);
         window.confirmOffseasonDecisions = (...args) => getOffseasonController().confirmOffseasonDecisions(...args);
-        window.closeBracketViewer = () => { if (window._reactCloseBracket) window._reactCloseBracket(); document.getElementById('bracketViewerModal').classList.add('hidden'); };
+        window.closeBracketViewer = () => { if (window._reactCloseBracket) window._reactCloseBracket(); };
         window.openBracketViewer = () => getGameSimController().openBracketViewer();
         window.showPlayoffBoxScore = (seriesKey, gameIdx) => getGameSimController().showPlayoffBoxScore(seriesKey, gameIdx);
         window.continueAfterPostseason = (...args) => getOffseasonController().continueAfterPostseason(...args);
@@ -1807,7 +1521,6 @@
         window.watchNextGame = (...args) => getGameSimController().watchNextGame(...args);
 
         // ─── Local functions called from HTML ───
-        window.closeAllStarModal = closeAllStarModal;
         window.closeRosterManagementDynamic = closeRosterManagementDynamic;
         window.continueFreeAgency = (...args) => getFreeAgencyController().continue(...args);
         window.fireCoach = () => getCoachManagementController().fire();
@@ -1828,16 +1541,12 @@
         window.resetGame = () => getSaveLoadController().reset();
         window.downloadSave = () => getSaveLoadController().downloadSave();
         window.uploadSave = () => getSaveLoadController().uploadSave();
-        window.openGameMenu = () => { if (window._reactOpenGameMenu) window._reactOpenGameMenu(); else document.getElementById('gameMenuModal').classList.remove('hidden'); };
-        window.closeGameMenu = () => { if (window._reactCloseGameMenu) window._reactCloseGameMenu(); else document.getElementById('gameMenuModal').classList.add('hidden'); };
-        window.selectInjuryOption = selectInjuryOption;
+        window.openGameMenu = () => { if (window._reactOpenGameMenu) window._reactOpenGameMenu(); };
+        window.closeGameMenu = () => { if (window._reactCloseGameMenu) window._reactCloseGameMenu(); };
         window.selectTeam = selectTeam;
-        window.selectTier = selectTier;
         window.showBoxScore = showBoxScore;
         window.CalendarEngine = CalendarEngine;
-        window.showCalendarDayDetail = showCalendarDayDetail;
         window.skipFreeAgency = (...args) => getFreeAgencyController().skip(...args);
-        window.togglePlayerAttributes = togglePlayerAttributes;
 
         // Note: SimBenchmark is defined separately outside _initGame
 
