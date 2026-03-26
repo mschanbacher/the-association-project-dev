@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Modal, ModalHeader, ModalBody } from '../components/Modal.jsx';
+import { SettingsModal } from './SettingsModal.jsx';
 
 export function GameMenuModal({ isOpen, onClose }) {
   const [confirming, setConfirming] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -24,23 +26,31 @@ export function GameMenuModal({ isOpen, onClose }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth={360}>
-      <ModalHeader onClose={onClose}>Game Menu</ModalHeader>
-      <ModalBody style={{ padding: '12px 16px' }}>
-        <MenuRow label="Download Save" desc="Export your game to a file" onClick={handleDownload} />
-        <MenuRow label="Load Save" desc="Import a save file (replaces current)" onClick={handleUpload} />
+    <>
+      <Modal isOpen={isOpen && !settingsOpen} onClose={onClose} maxWidth={360}>
+        <ModalHeader onClose={onClose}>Game Menu</ModalHeader>
+        <ModalBody style={{ padding: '12px 16px' }}>
+          <MenuRow label="Download Save" desc="Export your game to a file" onClick={handleDownload} />
+          <MenuRow label="Load Save" desc="Import a save file (replaces current)" onClick={handleUpload} />
+          <MenuRow label="Settings" desc="Simulation speed, automation preferences" onClick={() => setSettingsOpen(true)} />
 
-        <div style={{ height: 1, background: 'var(--color-border)', margin: '8px 0' }} />
+          <div style={{ height: 1, background: 'var(--color-border)', margin: '8px 0' }} />
 
-        {!confirming ? (
-          <MenuRow label="Reset Game" desc="Start over — all progress will be lost"
-            danger onClick={handleReset} />
-        ) : (
-          <MenuRow label="Confirm Reset?" desc="Click again to permanently erase your save"
-            danger active onClick={handleReset} />
-        )}
-      </ModalBody>
-    </Modal>
+          {!confirming ? (
+            <MenuRow label="Reset Game" desc="Start over — all progress will be lost"
+              danger onClick={handleReset} />
+          ) : (
+            <MenuRow label="Confirm Reset?" desc="Click again to permanently erase your save"
+              danger active onClick={handleReset} />
+          )}
+        </ModalBody>
+      </Modal>
+
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
+    </>
   );
 }
 

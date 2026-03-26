@@ -97,7 +97,7 @@ export function WatchGameModal({ isOpen, data, onClose }) {
 
   useEffect(() => {
     if (isOpen && data) {
-      setSpeed(1); setPaused(false); setGameOver(false); setFinalData(null);
+      setSpeed(window._gameSettings?.watchGameSpeed || 1); setPaused(false); setGameOver(false); setFinalData(null);
       setWinProbPoints([]); setCurrentWinProb(null); setTooltip(null);
       winProbPointsRef.current = [];
       if (playsRef.current) playsRef.current.innerHTML = '';

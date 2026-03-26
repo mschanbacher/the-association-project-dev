@@ -1131,6 +1131,26 @@
                     dpeEligible = injury.allowsDPE && player.salary > getDPEThreshold(team.tier);
                     dpeAmount = dpeEligible ? Math.min(player.salary * 0.5, getDPEAmount(team.tier)) : 0;
                     if (dpeEligible) grantDPE(team, player);
+                } else if (isUserTeam && injury.canPlayThrough) {
+                    // User team, playable-through — check settings for auto-handling
+                    const injSetting = window._gameSettings?.injuryDecisions;
+                    if (injSetting === 'always-rest' || injSetting === 'ai-decides') {
+                        const autoDecision = injSetting === 'always-rest'
+                            ? 'rest'
+                            : (Math.random() < 0.3 ? 'playThrough' : 'rest');
+                        InjuryEngine.applyInjury(player, injury, autoDecision);
+                        // Advance queue without showing modal
+                        if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
+                            gameState.pendingInjuries.shift();
+                        }
+                        pendingInjuryDecision = null;
+                        if (gameState.pendingInjuries && gameState.pendingInjuries.length > 0) {
+                            showNextInjuryModal();
+                        } else if (window._resumeAfterInjuries) {
+                            window._resumeAfterInjuries();
+                        }
+                        return;
+                    }
                 }
 
                 // Set up callback for when React modal closes

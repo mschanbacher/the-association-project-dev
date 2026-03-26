@@ -1663,7 +1663,7 @@ export class OffseasonController {
             simController._watchAwayName = away.name;
             simController._watchDate = game.date;
             simController._watchPaused = false;
-            simController._watchSpeed = 1;
+            simController._watchSpeed = window._gameSettings?.watchGameSpeed || 1;
             simController._isPreseasonWatch = true;
         }
 

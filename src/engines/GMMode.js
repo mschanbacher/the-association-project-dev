@@ -261,16 +261,21 @@ export class GMMode {
 
             // Check if we need to interrupt for a user trade proposal or breaking news
             if (this.gameState.pendingTradeProposal) {
-                // AI wants to trade with user — pause sim and show proposal
-                this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
-                this.deps.saveGameState();
-                this.deps.updateUI();
-                window._resumeAfterAiTrade = () => {
-                    delete window._resumeAfterAiTrade;
-                    this._resumeSimWeek(this.gameState.currentDate, endDate);
-                };
-                this.deps.showAiTradeProposal();
-                return;
+                if (window._gameSettings?.autoDeclineTrades) {
+                    // Auto-decline: clear proposal and continue sim
+                    this.gameState.pendingTradeProposal = null;
+                } else {
+                    // AI wants to trade with user — pause sim and show proposal
+                    this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
+                    this.deps.saveGameState();
+                    this.deps.updateUI();
+                    window._resumeAfterAiTrade = () => {
+                        delete window._resumeAfterAiTrade;
+                        this._resumeSimWeek(this.gameState.currentDate, endDate);
+                    };
+                    this.deps.showAiTradeProposal();
+                    return;
+                }
             }
 
             if (notable) {
@@ -328,14 +333,18 @@ export class GMMode {
             const notable = this.processAiToAiTrades(simDate);
 
             if (this.gameState.pendingTradeProposal) {
-                this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
-                this.deps.saveGameState(); this.deps.updateUI();
-                window._resumeAfterAiTrade = () => {
-                    delete window._resumeAfterAiTrade;
-                    this._resumeSimWeek(this.gameState.currentDate, endDate);
-                };
-                this.deps.showAiTradeProposal();
-                return;
+                if (window._gameSettings?.autoDeclineTrades) {
+                    this.gameState.pendingTradeProposal = null;
+                } else {
+                    this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
+                    this.deps.saveGameState(); this.deps.updateUI();
+                    window._resumeAfterAiTrade = () => {
+                        delete window._resumeAfterAiTrade;
+                        this._resumeSimWeek(this.gameState.currentDate, endDate);
+                    };
+                    this.deps.showAiTradeProposal();
+                    return;
+                }
             }
             if (notable) {
                 this.gameState.currentDate = this.deps.CalendarEngine.addDays(simDate, 1);
@@ -694,14 +703,18 @@ export class GMMode {
 
             // Interrupt for AI-to-user trade proposal
             if (this.gameState.pendingTradeProposal) {
-                this.deps.saveGameState();
-                this.deps.updateUI();
-                window._resumeAfterAiTrade = () => {
-                    delete window._resumeAfterAiTrade;
-                    this.finishSeasonBatch();
-                };
-                this.deps.showAiTradeProposal();
-                return;
+                if (window._gameSettings?.autoDeclineTrades) {
+                    this.gameState.pendingTradeProposal = null;
+                } else {
+                    this.deps.saveGameState();
+                    this.deps.updateUI();
+                    window._resumeAfterAiTrade = () => {
+                        delete window._resumeAfterAiTrade;
+                        this.finishSeasonBatch();
+                    };
+                    this.deps.showAiTradeProposal();
+                    return;
+                }
             }
 
             // Interrupt for notable AI-AI trade (Breaking News)
@@ -949,6 +962,11 @@ export class GMMode {
      * Returns a Promise that resolves when the user dismisses it.
      */
     showBreakingNews(trade) {
+        // Settings: skip Breaking News modal if disabled
+        if (window._gameSettings?.showBreakingNews === false) {
+            return Promise.resolve();
+        }
+
         return new Promise((resolve) => {
             const t1Gave = trade.team1Gave.map(p => `${p.name} (${p.position}, ${p.rating} OVR)`).join(', ');
             const t2Gave = trade.team2Gave.map(p => `${p.name} (${p.position}, ${p.rating} OVR)`).join(', ');

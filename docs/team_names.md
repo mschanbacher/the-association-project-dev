@@ -17,6 +17,13 @@
 
 | City | Team Name | Rationale |
 |------|-----------|-----------|
+
+---
+
+## T2 Division: California — Colors
+
+| City | Team | Primary | Secondary | Notes |
+|------|------|---------|-----------|-------|
 | San Diego | Conquistadors | Revival of the original ABA San Diego Conquistadors name, rich local Spanish colonial history |
 | Anaheim | Groves | Orange County was wall-to-wall orange groves before Disney and suburban sprawl took over |
 | Riverside | Navals | The navel orange was literally born in Riverside; the parent tree still stands there today |
@@ -33,6 +40,13 @@
 
 | City | Team Name | Rationale |
 |------|-----------|-----------|
+
+---
+
+## T2 Division: Southwest — Colors
+
+| City | Team | Primary | Secondary | Notes |
+|------|------|---------|-----------|-------|
 | Las Vegas | Neons | The neon sign culture is iconic and uniquely Vegas; museumified in the city's own Neon Museum |
 | Reno | Dustwalkers | Deep tie to Burning Man and the playa culture that defines the region's alternative identity |
 | Albuquerque | Atoms | Los Alamos and Sandia National Labs make nuclear history inseparable from Albuquerque's identity |
@@ -411,3 +425,105 @@
 | Nuevo Laredo | Corridos | The border ballad tradition is completely and uniquely Nuevo Laredo; culturally specific and musically meaningful |
 | Reynosa | Maquileros | The maquiladora workers are completely specific to Reynosa's industrial identity; working class and powerful |
 | Mexicali | Hornos | Spanish for ovens; the extreme heat of the Mexicali Valley is one of the most defining facts about the city |
+
+---
+
+# Team Colors
+
+---
+
+## T2 Division: Pacific Northwest — Colors
+
+| City | Team | Primary | Secondary | Notes |
+|------|------|---------|-----------|-------|
+| Seattle | Grinders | `#3B1A08` | `#C8914A` | Deep espresso brown / caramel gold — coffee culture and working class identity |
+| Tacoma | Narrows | `#2E3F4F` | `#4A9B8E` | Industrial steel grey / Puget Sound teal — bridge and waterfront identity |
+| Spokane | Falls | `#2A2A35` | `#6BAED6` | Dark volcanic basalt / bright whitewater blue — the falls over basalt rock |
+| Salem | Bines | `#1C3528` | `#E8A05A` | Deep hop yard forest / bright harvest orange — trellis silhouette at dusk |
+| Eugene | Sole | `#5C1A10` | `#98C84A` | Burnt track red / electric lime green — inspired directly by Hayward Field's track surface and stadium accents |
+| Vancouver | Fog | `#2A3240` | `#B8C4CC` | Deep coastal charcoal / soft silver mist — the harbour and the low cloud |
+| Victoria | Crowns | `#7A3520` | `#B8B09A` | Sunlit Empress Hotel brick / cool limestone trim — pulled directly from the facade |
+| Boise | Rimrock | `#2C2820` | `#C4A870` | Deep dark basalt / warm high desert sand — the rimrock cliffs above the city |
+
+---
+
+## T2 Division: California — Colors
+
+| City | Team | Primary | Secondary | Notes |
+|------|------|---------|-----------|-------|
+| San Diego | Conquistadors | `#7A1020` | `#D4A832` | Deep crimson / warm antique gold — honoring the original ABA red and gold palette |
+| Anaheim | Groves | `#E8621A` | `#2A5C2A` | Vivid navel orange / deep citrus grove green — the fruit and the tree |
+| Riverside | Navals | `#4A2810` | `#4AB8D8` | Deep navel orange tree bark brown / vivid inland California sky blue — the parent tree that started it all |
+| Anaheim | Groves | `#1E5C2A` | `#F0E060` | Deep leafy grove green / bright orange blossom yellow — the canopy and the flowers |
+| Ontario | Chaparral | `#5A6A40` | `#70C8E0` | Dry sage grey-green / vivid bleached desert sky blue — drought-resistant inland hills palette |
+| Tijuana | Frontera | `#2A1A38` | `#E8285A` | Deep nightlife purple-black / electric hot pink — the neon glow of Avenida Revolución after dark |
+| Oakland | Oaks | `#1E2E3A` | `#E8B820` | Deep port crane steel blue-grey / vivid Oakland gold — the AT-AT cranes and the city's golden identity |
+| San Jose | Quicksilver | `#242830` | `#D83820` | Deep mine shaft charcoal / vivid cinnabar red — cinnabar ore is the source of mercury found in the Almaden mines |
+| Fresno | Tule | `#461848` | `#BEB0A8` | Deep raisin purple / warm taupe-grey fog — the crop and the weather that define the Central Valley |
+
+
+### Palette Audit — California
+**Primaries:** dark crimson (San Diego), deep grove green (Anaheim), dark tree bark brown (Riverside), sage grey-green (Ontario), night purple-black (Tijuana), port steel blue-grey (Oakland), mine shaft charcoal (San Jose), deep raisin purple (Fresno)
+**Secondaries:** antique gold, blossom yellow, sky blue, desert sky blue, hot pink, Oakland gold, cinnabar red, warm taupe fog
+**Notes:** No duplicate primaries or secondaries. Good spread across warm/cool. Two charcoal-adjacent primaries (Tijuana, San Jose) but different enough hue. Two sky blues in secondaries (Riverside, Ontario) — worth watching going forward.
+
+---
+
+## T2 Division: Southwest — Colors
+
+| City | Team | Primary | Secondary | Notes |
+|------|------|---------|-----------|-------|
+| Las Vegas | Neons | `#2C1428` | `#FF48C0` | Deep warm plum-mauve / brightest neon pink — the desert dusk sky as the Strip lights up |
+| Reno | Dustwalkers | `#3A3228` | `#E86820` | Deep alkali playa dust grey-tan / vivid burn orange — the effigy fire against the white dust of Black Rock Desert |
+| Albuquerque | Atoms | `#1E2818` | `#80E040` | Deep Trinity test site darkness / vivid uranium glass green — uranium glass glows exactly this color under UV light |
+| Las Cruces | Wayfarers | `#2E2838` | `#E8D8A0` | Deep Organ Mountain purple-grey / brilliant White Sands gypsum gold — the two landmarks flanking the city |
+| Tucson | Thorns | `#2E2040` | `#E04870` | Deep Santa Catalina mountain purple / vivid prickly pear magenta-pink — the mountains and the fruit |
+| Hermosillo | Forjadores | `#3A1E10` | `#4898E8` | Deep Sonoran rust-iron / vivid welding arc blue — the color of an arc welder lighting up the factory floor |
+| Ciudad Juárez | Gemelos | `#201820` | `#F09030` | Deep unified darkness / vivid warm amber — one darkness, one light shared by two cities across the river |
+| Colorado Springs | Fourteeners | `#1A2030` | `#E8C040` | Deep alpine darkness / vivid golden hour summit yellow — dawn light hitting the peaks before the valley wakes |
+
+
+### Palette Audit — Southwest
+**Primaries:** deep plum-mauve (Las Vegas), playa dust grey-tan (Reno), Trinity darkness (Albuquerque), Organ Mountain purple-grey (Las Cruces), Santa Catalina purple (Tucson), Sonoran rust-iron (Hermosillo), unified darkness (Juárez), alpine navy (Colorado Springs)
+**Secondaries:** neon pink, burn orange, uranium green, White Sands gold, prickly pear pink, welding arc blue, warm amber, summit gold
+**Notes:** Excellent variety — no duplicate primaries or secondaries. Two purples in primaries (Las Vegas, Tucson) but very different hues and values. Two golds in secondaries (Las Cruces, Colorado Springs) worth watching going forward.
+
+---
+
+## T2 Division: Great Plains — Colors
+
+| City | Team | Primary | Secondary | Notes |
+|------|------|---------|-----------|-------|
+| Omaha | Oracles | `#2E7878` | `#E89820` | Mid-tone Great Plains teal / vivid oracle amber — unexpected for the Midwest, completely distinctive |
+| Lincoln | Salters | `#5878A0` | `#D8A820` | Mid-tone salt flat mineral blue / vivid Nebraska prairie gold — the pale blue shimmer of salt deposits under a wide sky |
+| Wichita | Pilots | `#607888` | `#E8C040` | Mid-tone brushed aluminum grey / vivid Kansas wheat gold — the aircraft skin and the fields below |
+| Kansas City | Pitmasters | `#803828` | `#E86020` | Mid-tone BBQ smoke ring mahogany / vivid glowing ember orange — the smoke ring on perfect brisket and the coals beneath |
+| Des Moines | Actuaries | `#607080` | `#D82828` | Mid-tone ledger grey / vivid risk-in-red — the color of a loss on the books, bold and self-aware |
+| Sioux Falls | Quartzite | `#A05868` | `#3898C8` | Mid-tone pink quartzite rose / vivid Big Sioux River blue — the rock and the water that define the falls |
+| Tulsa | Wildcatters | `#C89020` | `#201810` | Vivid Art Deco gold / crude oil black — oil is liquid gold, the architecture and the wealth beneath the ground |
+| St. Louis | Spirits | `#686878` | `#40A0D8` | Mid-tone Spirit of St. Louis silver-grey / vivid Atlantic sky blue — Lindbergh's plane, the ABA name, the crossing |
+
+### Palette Audit — Great Plains
+**Primaries:** Plains teal (Omaha), salt flat blue (Lincoln), brushed aluminum grey (Wichita), smoke ring mahogany (Kansas City), ledger grey (Des Moines), quartzite rose (Sioux Falls), Art Deco gold (Tulsa), Lindbergh silver-grey (St. Louis)
+**Secondaries:** oracle amber, prairie gold, wheat gold, ember orange, risk red, river blue, crude black, Atlantic sky blue
+**Notes:** Great variety and the mid-tone push really worked — Sioux Falls quartzite rose and Tulsa gold as primaries are standouts. Two golds in secondaries (Lincoln, Wichita) and two blues (Sioux Falls, St. Louis) worth monitoring.
+
+---
+
+## T2 Division: Great Lakes — Colors
+
+| City | Team | Primary | Secondary | Notes |
+|------|------|---------|-----------|-------|
+| Pittsburgh | Condors | `#B83020` | `#1E4878` | Deep furnace red / three rivers blue — molten steel just before it pours, the confluence below |
+| Columbus | Brauhausers | `#784020` | `#E8C040` | Mid-tone dark lager mahogany / vivid wheat malt gold — the color of a perfect dunkel |
+| Cincinnati | Roustabouts | `#7A5048` | `#1880C8` | Muted dusty Over-the-Rhine brick / vivid canal blue — the blue does the heavy lifting |
+| Grand Rapids | Cabinetmakers | `#387878` | `#D89840` | Mid-tone Herman Miller signature teal / vivid warm oak — the design company that defined modern Grand Rapids |
+| Madison | Capitols | `#607858` | `#B87840` | Patinated copper green / fresh copper dome — the Capitol dome in two states of oxidation |
+| Fort Wayne | Machinists | `#586068` | `#E07020` | Mid-tone cast iron grey / vivid machining spark orange — the raw material and the sparks flying off the grinder |
+| Toledo | Glaziers | `#C8DDD0` | `#F0A020` | Near-clear low iron glass green-white / vivid glowing molten orange — high tech glass, luminous and extraordinary |
+| Buffalo | Squalls | `#586878` | `#20A0B8` | Mid-tone storm front grey / vivid Lake Erie cold teal — the sky just before the squall rolls in off the lake |
+
+### Palette Audit — Great Lakes
+**Primaries:** furnace red (Pittsburgh), dark lager mahogany (Columbus), dusty brick (Cincinnati), Herman Miller teal (Grand Rapids), patinated copper green (Madison), cast iron grey (Fort Wayne), low iron glass white-green (Toledo), storm grey (Buffalo)
+**Secondaries:** three rivers blue, wheat gold, vivid canal blue, warm oak, fresh copper, spark orange, molten glass orange, Lake Erie teal
+**Notes:** Toledo's near-white primary is the most distinctive in the entire league so far — completely uncharted. No duplicate primaries or secondaries. Good spread across warm and cool throughout.
