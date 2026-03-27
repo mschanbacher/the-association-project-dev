@@ -39,6 +39,7 @@ import { UserDraftPickModal } from './screens/UserDraftPickModal.jsx';
 import { WatchGameModal } from './screens/WatchGameModal.jsx';
 import { BreakingNewsModal } from './screens/BreakingNewsModal.jsx';
 import { DPEReplacementModal } from './screens/DPEReplacementModal.jsx';
+import { InboundLoanRequestModal } from './screens/InboundLoanRequestModal.jsx';
 import { PlayoffHub } from './screens/PlayoffHub.jsx';
 import { PlayoffEndModal } from './screens/PlayoffEndModal.jsx';
 import { OffseasonHub } from './screens/OffseasonHub.jsx';
@@ -79,6 +80,7 @@ function AppContent() {
   const [watchGameData, setWatchGameData] = useState(null);
   const [breakingNewsData, setBreakingNewsData] = useState(null);
   const [dpeReplacementData, setDpeReplacementData] = useState(null);
+  const [inboundLoanData, setInboundLoanData] = useState(null);
   const [playoffHubData, setPlayoffHubData] = useState(null);
   const [playoffEndData, setPlayoffEndData] = useState(null);
   const [offseasonHubData, setOffseasonHubData] = useState(null);
@@ -152,6 +154,8 @@ function AppContent() {
     window._reactShowBreakingNews = (data, resolve) => { setBreakingNewsData({ ...data, _resolve: resolve }); };
     window._reactShowDPEReplacement = (data) => setDpeReplacementData({ ...data });
     window._reactCloseDPEReplacement = () => setDpeReplacementData(null);
+    window._reactShowInboundLoan = (data) => setInboundLoanData({ ...data });
+    window._reactCloseInboundLoan = () => setInboundLoanData(null);
 
     // Playoff Hub
     window._reactShowPlayoffHub = (data) => {
@@ -385,6 +389,14 @@ function AppContent() {
         onComplete={(action, details) => {
           setDpeReplacementData(null);
           window._dpeReplacementCallback?.(action, details);
+        }}
+      />
+      <InboundLoanRequestModal
+        isOpen={!!inboundLoanData}
+        data={inboundLoanData}
+        onRespond={(response) => {
+          setInboundLoanData(null);
+          window._inboundLoanCallback?.(response);
         }}
       />
       <DevelopmentModal

@@ -1274,6 +1274,56 @@
                 _freeAgentsRef: gameState.freeAgents, // mutable ref for FA pool modification
             });
         }
+
+        /**
+         * Show the Inbound Loan Request Modal when an AI higher-tier team
+         * wants to borrow a player from the user's team.
+         */
+        function _showInboundLoanRequest() {
+            const request = gameState.pendingLoanRequest;
+            if (!request || !window._reactShowInboundLoan || !LoanEngine) {
+                // Can't show modal — clear request and let AI try elsewhere
+                gameState.pendingLoanRequest = null;
+                if (window._resumeAfterLoanRequest) window._resumeAfterLoanRequest();
+                return;
+            }
+
+            // Set up the response callback
+            window._inboundLoanCallback = (response) => {
+                const req = gameState.pendingLoanRequest;
+                gameState.pendingLoanRequest = null;
+
+                if (response === 'accept' && req) {
+                    const userTeam = getUserTeam();
+                    // Execute the loan: player moves from user team to borrowing team
+                    LoanEngine.executeLoan({
+                        player: req.requestedPlayer,
+                        originalTeam: userTeam,
+                        borrowingTeam: req.borrowingTeam,
+                        injuredPlayer: req.injuredPlayer,
+                        loanFee: req.offerAmount,
+                        proratedSalary: req.proratedSalary,
+                        currentDate: req.currentDate || gameState.currentDate,
+                        activeLoans: gameState.activeLoans,
+                        initializePlayerChemistry: (p) => ChemistryEngine.initializePlayer(p),
+                    });
+                    console.log(`[Inbound Loan] Accepted: ${req.requestedPlayer.name} loaned to ${req.borrowingTeam.city} ${req.borrowingTeam.name} for ${SalaryCapEngine.formatCurrency(req.offerAmount)}`);
+                    saveGameState();
+                    getDashboardController().refresh();
+                } else {
+                    console.log(`[Inbound Loan] Declined: ${req?.requestedPlayer?.name || 'unknown'}`);
+                    // AI will try other players from non-user teams on next sim tick
+                }
+
+                // Resume sim
+                if (window._resumeAfterLoanRequest) {
+                    window._resumeAfterLoanRequest();
+                }
+            };
+
+            // Open the React modal
+            window._reactShowInboundLoan(request);
+        }
         
         // selectInjuryOption removed — React InjuryModal handles option selection
         
@@ -1471,6 +1521,7 @@
                     checkLoanReturns: LoanEngine ? (params) => LoanEngine.checkLoanReturns(params) : null,
                     LoanEngine,
                     generateSalary,
+                    showInboundLoanRequest: () => _showInboundLoanRequest(),
                     tradeDraftPick: (fromTeamId, toTeamId, originalTeamId, year, round) => {
                         if (!gameState.draftPickOwnership) return;
                         const key = `${originalTeamId}_${year}_${round}`;

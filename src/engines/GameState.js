@@ -86,6 +86,7 @@ class GameState {
         
         // --- Transient: regenerated during gameplay, reset on load ---
         this._pendingInjuries = [];             // Injuries awaiting user decision
+        this._pendingLoanRequest = null;        // Inbound loan request awaiting user decision
         this._userPlayoffResult = null;         // User's playoff outcome
         this._seasonEndData = null;             // Cached season-end summary for modals
         
@@ -244,6 +245,8 @@ class GameState {
     // --- Transient: season/offseason flow ---
     get pendingInjuries() { return this._pendingInjuries; }
     set pendingInjuries(value) { this._pendingInjuries = value; }
+    get pendingLoanRequest() { return this._pendingLoanRequest; }
+    set pendingLoanRequest(value) { this._pendingLoanRequest = value; }
     
     get postseasonResults() { return this._postseasonResults; }
     set postseasonResults(value) { this._postseasonResults = value; }
