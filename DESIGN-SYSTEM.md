@@ -29,6 +29,7 @@
 - **Semantic green** (`--color-win`): positive state (wins, cap space available, ≥2 players at position)
 - **Semantic red** (`--color-loss`): negative state (losses, over cap, 0 players at position)
 - **Semantic gold** (`--color-warning`): caution (1 player at position, expiring contracts)
+- **Semantic blue** (`--color-info`): neutral informational state (DPE replacement modals, league news alerts, system notifications)
 - **Tier colors**: `--color-tier1` (gold), `--color-tier2` (grey), `--color-tier3` (bronze)
 - Semantic colors are constant regardless of team — never change based on team identity
 - **Away team**: always `#6B6B65` (neutral grey) in watch game to avoid same-color conflicts

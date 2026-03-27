@@ -70,6 +70,7 @@ class GameState {
         this._scoutingWatchList = [];           // User-curated scouting watch list
         this._tradeHistory = [];               // All trades (user + AI-AI) across seasons
         this._lastAiToAiTradeDate = null;      // Date string of last AI-AI trade check
+        this._activeLoans = [];                // Emergency injury loans currently active
 
         // --- Feature flags (persistent so mid-offseason saves respect the flag they started with) ---
         // _usePlayoffHub: when true, postseason routes to the new Playoff Hub screen instead of
@@ -233,6 +234,8 @@ class GameState {
 
     get tradeHistory() { return this._tradeHistory; }
     set tradeHistory(value) { this._tradeHistory = value; }
+    get activeLoans() { return this._activeLoans || []; }
+    set activeLoans(value) { this._activeLoans = value; }
     get lastAiToAiTradeDate() { return this._lastAiToAiTradeDate; }
     set lastAiToAiTradeDate(value) { this._lastAiToAiTradeDate = value; }
     get pendingBreakingNews() { return this._pendingBreakingNews; }
@@ -630,6 +633,10 @@ class GameState {
             if (p.isDraftProspect) cp.dp = 1;
             if (p.previousTeamId) cp.ptid = p.previousTeamId;
             if (p.previousSeasonAvgs) cp.psa = p.previousSeasonAvgs;
+            // Loan flags
+            if (p.onLoan) cp.ol = 1;
+            if (p.loanFromTeamId) cp.lft = p.loanFromTeamId;
+            if (p.loanToTeamId) cp.ltt = p.loanToTeamId;
             return cp;
         };
         
@@ -682,6 +689,7 @@ class GameState {
             scoutingWatchList: this._scoutingWatchList,
             tradeHistory: this._tradeHistory,
             lastAiToAiTradeDate: this._lastAiToAiTradeDate,
+            activeLoans: this._activeLoans || [],
             // Feature flags
             usePlayoffHub: this._usePlayoffHub,
             // v4: playoff state persistence (dehydrated: team objects → {_ref: id}, boxScores stripped)
@@ -748,6 +756,10 @@ class GameState {
             if (cp.dp) p.isDraftProspect = true;
             if (cp.ptid) p.previousTeamId = cp.ptid;
             if (cp.psa) p.previousSeasonAvgs = cp.psa;
+            // Loan flags
+            if (cp.ol) p.onLoan = true;
+            if (cp.lft) p.loanFromTeamId = cp.lft;
+            if (cp.ltt) p.loanToTeamId = cp.ltt;
             return p;
         };
         
@@ -848,6 +860,7 @@ class GameState {
         state._scoutingWatchList = data.scoutingWatchList || [];
         state._tradeHistory = data.tradeHistory || [];
         state._lastAiToAiTradeDate = data.lastAiToAiTradeDate || null;
+        state._activeLoans = data.activeLoans || [];
         // Feature flags — PlayoffHub is now the only postseason path; always true
         // regardless of what old saves stored, so stale false values don't revert behavior.
         state._usePlayoffHub = true;

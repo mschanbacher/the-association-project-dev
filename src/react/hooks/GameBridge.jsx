@@ -106,6 +106,7 @@ function getEngines() {
     TeamFactory:      window.TeamFactory,
     GamePipeline:     window.GamePipeline,
     OwnerEngine:      window.OwnerEngine,
+    LoanEngine:       window.LoanEngine,
   };
 }
 

@@ -53,3 +53,4 @@ export { CoachManagementController } from './engines/CoachManagementController.j
 export { SaveLoadController } from './engines/SaveLoadController.js';
 export { TrainingCampEngine } from './engines/TrainingCampEngine.js';
 export { SettingsManager } from './engines/SettingsManager.js';
+export { LoanEngine } from './engines/LoanEngine.js';

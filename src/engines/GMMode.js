@@ -480,6 +480,22 @@ export class GMMode {
                 this.deps.updateInjuries(homeTeam);
                 this.deps.updateInjuries(awayTeam);
                 
+                // Check loan returns (after injuries tick down so healed players trigger returns)
+                if (this.deps.checkLoanReturns && this.gameState.activeLoans && this.gameState.activeLoans.length > 0) {
+                    const allTeams = [...this.gameState.tier1Teams, ...this.gameState.tier2Teams, ...this.gameState.tier3Teams];
+                    const loanReturns = this.deps.checkLoanReturns({
+                        activeLoans: this.gameState.activeLoans,
+                        allTeams,
+                        currentDate: dateStr,
+                        initializePlayerChemistry: this.deps.initializePlayerChemistry,
+                    });
+                    if (loanReturns.length > 0) {
+                        loanReturns.forEach(r => {
+                            console.log(`[Loan] Returned: ${r.loan?.playerName} (${r.reason})`);
+                        });
+                    }
+                }
+                
                 // Check injuries
                 if (isUserGame) {
                     const userGamesPlayed = userTeam ? (userTeam.wins + userTeam.losses) : 0;
