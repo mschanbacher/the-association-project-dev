@@ -23,44 +23,40 @@ export function DPEReplacementModal({ isOpen, data, onComplete }) {
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const [negotiationState, setNegotiationState] = useState(null); // null | { player, team, ... }
   const [selectedFAId, setSelectedFAId] = useState(null);
+  const [lastDataKey, setLastDataKey] = useState(null);
 
   const { gameState, engines } = useGame();
 
+  // Destructure data safely (may be null)
+  const injuredPlayer = data?.injuredPlayer;
+  const userTeam = data?.team;
+  const dpeAmount = data?.dpeAmount || 0;
+  const borrowingTier = data?.borrowingTier || 1;
+  const loanCandidates = data?.loanCandidates;
+  const freeAgents = data?.freeAgents;
+  const activeLoans = data?.activeLoans;
+  const generateSalary = data?.generateSalary;
+  const gamesRemaining = data?.gamesRemaining || 0;
+  const totalGames = data?.totalGames || 82;
+  const currentDate = data?.currentDate;
+  const calculateLoanTerms = data?.calculateLoanTerms;
+  const evaluateLoanOffer = data?.evaluateLoanOffer;
+  const executeLoan = data?.executeLoan;
+  const signFreeAgentViaDPE = data?.signFreeAgentViaDPE;
+  const initializePlayerChemistry = data?.initializePlayerChemistry;
+
+  const isT3 = borrowingTier === 3;
+
   // Reset state when modal opens with new data
-  const dataKey = data?.injuredPlayer?.id;
-  const [lastDataKey, setLastDataKey] = useState(null);
+  const dataKey = injuredPlayer?.id;
   if (dataKey && dataKey !== lastDataKey) {
     setLastDataKey(dataKey);
-    setActiveTab(data?.borrowingTier === 3 ? 'fa' : 'loan');
+    setActiveTab(isT3 ? 'fa' : 'loan');
     setPosFilter('All');
     setExpandedPlayerId(null);
     setNegotiationState(null);
     setSelectedFAId(null);
   }
-
-  if (!isOpen || !data) return null;
-
-  const {
-    injuredPlayer,
-    team: userTeam,
-    dpeAmount,
-    borrowingTier,
-    loanCandidates,   // from LoanEngine.getAvailableLoanPlayers
-    freeAgents,       // from LoanEngine.getAffordableFreeAgents
-    activeLoans,
-    generateSalary,
-    gamesRemaining,
-    totalGames,
-    currentDate,
-    // Engine functions passed from game-init
-    calculateLoanTerms,
-    evaluateLoanOffer,
-    executeLoan,
-    signFreeAgentViaDPE,
-    initializePlayerChemistry,
-  } = data;
-
-  const isT3 = borrowingTier === 3;
 
   // ── Filtered loan candidates ──
   const filteredCandidates = useMemo(() => {
@@ -83,13 +79,16 @@ export function DPEReplacementModal({ isOpen, data, onComplete }) {
   }, [calculateLoanTerms, borrowingTier, gamesRemaining, totalGames, generateSalary]);
 
   // ── Cost tier label ──
-  const costTierLabel = (estimatedTotal) => {
+  const costTierLabel = useCallback((estimatedTotal) => {
     if (dpeAmount <= 0) return { text: 'High', cls: 'loss' };
     const ratio = estimatedTotal / dpeAmount;
     if (ratio < 0.4) return { text: 'Low', cls: 'win' };
     if (ratio < 0.75) return { text: 'Medium', cls: 'warning' };
     return { text: 'High', cls: 'loss' };
-  };
+  }, [dpeAmount]);
+
+  // Early return AFTER all hooks
+  if (!isOpen || !data) return null;
 
   // ── Team situation label ──
   const sitLabel = (ctx) => {
