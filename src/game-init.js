@@ -1132,6 +1132,7 @@
                     dpeEligible = injury.allowsDPE && player.salary > getDPEThreshold(team.tier);
                     dpeAmount = dpeEligible ? Math.min(player.salary * 0.5, getDPEAmount(team.tier)) : 0;
                     if (dpeEligible) grantDPE(team, player);
+                    console.log(`[DPE Check] ${player.name}: allowsDPE=${injury.allowsDPE}, salary=${player.salary}, threshold=${getDPEThreshold(team.tier)}, eligible=${dpeEligible}, amount=${dpeAmount}`);
                 } else if (isUserTeam && injury.canPlayThrough) {
                     // User team, playable-through — check settings for auto-handling
                     const injSetting = window._gameSettings?.injuryDecisions;
@@ -1175,6 +1176,7 @@
 
                 // Set up callback for when React injury modal closes
                 window._injuryDecisionCallback = (decision) => {
+                    console.log(`[DPE Callback] decision=${decision}, _dpeEligible=${_dpeEligible}, isUserTeam=${isUserTeam}, _dpeAmount=${_dpeAmount}, hasReactShow=${!!window._reactShowDPEReplacement}, hasLoanEngine=${!!LoanEngine}`);
                     // For user playthrough injuries, apply the decision now
                     if (isUserTeam && injury.canPlayThrough && decision) {
                         InjuryEngine.applyInjury(player, injury, decision);
@@ -1182,6 +1184,7 @@
 
                     // If DPE was granted for user team, show DPE Replacement Modal
                     if (_dpeEligible && isUserTeam && _dpeAmount > 0 && window._reactShowDPEReplacement && LoanEngine) {
+                        console.log(`[DPE] Opening DPE Replacement Modal for ${_injuredPlayer.name}`);
                         _showDPEReplacementModal(_injuredTeam, _injuredPlayer, _dpeAmount, advanceQueue);
                         return;
                     }

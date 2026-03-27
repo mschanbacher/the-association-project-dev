@@ -52,6 +52,7 @@ import {
   TrainingCampEngine,
 } from '../main.js';
 import { SettingsManager } from '../engines/SettingsManager.js';
+import { LoanEngine } from '../engines/LoanEngine.js';
 
 // Expose all modules on window for _initGame to access
 Object.assign(window, {
@@ -99,6 +100,7 @@ Object.assign(window, {
   CoachManagementController,
   SaveLoadController,
   TrainingCampEngine,
+  LoanEngine,
 });
 
 console.log('🏀 Modules loaded via Vite bundle');
