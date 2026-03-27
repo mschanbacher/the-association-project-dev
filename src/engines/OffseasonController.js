@@ -818,6 +818,14 @@ export class OffseasonController {
             if (faRetired > 0) console.log(`${faRetired} free agents retired`);
         }
 
+        // Return all active loans before healing injuries
+        if (helpers.returnAllLoans) {
+            const returned = helpers.returnAllLoans();
+            if (returned.length > 0) {
+                console.log(`[Loans] Season-end sweep: returned ${returned.length} loaned players`);
+            }
+        }
+
         // Heal injuries and reset fatigue
         console.log('🏥 Healing off-season injuries...');
         [...gameState.tier1Teams, ...gameState.tier2Teams, ...gameState.tier3Teams].forEach(team => {

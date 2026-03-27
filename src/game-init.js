@@ -58,6 +58,16 @@
                         },
                         advanceFinancialTransitions,
                         healAllInjuries: (team) => InjuryEngine.healAllInjuries(team),
+                        returnAllLoans: () => {
+                            if (!LoanEngine || !gameState.activeLoans || gameState.activeLoans.length === 0) return [];
+                            const allTeams = [...gameState.tier1Teams, ...gameState.tier2Teams, ...gameState.tier3Teams];
+                            return LoanEngine.returnAllLoans({
+                                activeLoans: gameState.activeLoans,
+                                allTeams,
+                                currentDate: gameState.currentDate || 'season-end',
+                                initializePlayerChemistry,
+                            });
+                        },
                         resetAllFatigue: (teams) => FatigueEngine.resetAll(teams),
                         clearMarketValueCache: (players) => TeamFactory.clearMarketValueCache(players),
                         runDraft: () => getDraftController().runDraft(),
@@ -1459,6 +1469,8 @@
                     applyTradePenalty: (team, tradedPlayer) => ChemistryEngine.applyTradePenalty(team, tradedPlayer),
                     initializePlayerChemistry: (player) => ChemistryEngine.initializePlayer(player),
                     checkLoanReturns: LoanEngine ? (params) => LoanEngine.checkLoanReturns(params) : null,
+                    LoanEngine,
+                    generateSalary,
                     tradeDraftPick: (fromTeamId, toTeamId, originalTeamId, year, round) => {
                         if (!gameState.draftPickOwnership) return;
                         const key = `${originalTeamId}_${year}_${round}`;

@@ -507,6 +507,8 @@ export class GMMode {
                     aiTeamInjuries.forEach(({team, player, injury}) => {
                         const aiDecision = injury.canPlayThrough && Math.random() < 0.3 ? 'playThrough' : 'rest';
                         this.deps.applyInjury(player, injury, aiDecision);
+                        // AI-to-AI loan: if DPE-eligible, attempt a loan
+                        this._processAiDPELoan(team, player, injury, dateStr);
                     });
                     
                     if (userTeamInjuries.length > 0) {
@@ -527,6 +529,8 @@ export class GMMode {
                     injuries.forEach(({team, player, injury}) => {
                         const aiDecision = injury.canPlayThrough && Math.random() < 0.3 ? 'playThrough' : 'rest';
                         this.deps.applyInjury(player, injury, aiDecision);
+                        // AI-to-AI loan: if DPE-eligible, attempt a loan
+                        this._processAiDPELoan(team, player, injury, dateStr);
                     });
                 }
             }
@@ -1043,6 +1047,85 @@ export class GMMode {
         });
     }
     
+    // ============================================
+    // AI-TO-AI LOAN PROCESSING
+    // ============================================
+
+    /**
+     * Check if an AI team's injury qualifies for DPE and attempt a loan.
+     * Called immediately after an AI injury is applied.
+     * @param {Object} team - The injured team
+     * @param {Object} player - The injured player
+     * @param {Object} injury - The injury object
+     * @param {string} dateStr - Current date
+     */
+    _processAiDPELoan(team, player, injury, dateStr) {
+        // Only process DPE-eligible injuries
+        if (!injury.allowsDPE) return;
+
+        const LoanEngine = this.deps.LoanEngine;
+        if (!LoanEngine) return;
+
+        // Check salary threshold
+        const dpeThresholds = { 1: 6000000, 2: 600000, 3: 75000 };
+        const dpeAmounts = { 1: 6000000, 2: 600000, 3: 75000 };
+        const threshold = dpeThresholds[team.tier] || dpeThresholds[3];
+        const maxDPE = dpeAmounts[team.tier] || dpeAmounts[3];
+
+        if (!player.salary || player.salary <= threshold) return;
+
+        const dpeAmount = Math.min(player.salary * 0.5, maxDPE);
+
+        // Grant DPE to team
+        if (!team.dpe) team.dpe = [];
+        team.dpe.push({ player: player.name, amount: dpeAmount, expires: this.gameState.currentSeason });
+
+        // Determine lower-tier teams
+        let lowerTierTeams = [];
+        if (team.tier === 1) lowerTierTeams = this.gameState.tier2Teams;
+        else if (team.tier === 2) lowerTierTeams = this.gameState.tier3Teams;
+
+        // T1 and T2: attempt loan first, then FA
+        if (team.tier <= 2 && lowerTierTeams.length > 0) {
+            const totalGamesMap = { 1: 82, 2: 60, 3: 40 };
+            const totalGames = totalGamesMap[team.tier] || 82;
+            const gamesPlayed = (team.wins || 0) + (team.losses || 0);
+            const gamesRemaining = Math.max(1, totalGames - gamesPlayed);
+
+            const loanResult = LoanEngine.processAiLoan({
+                team, injuredPlayer: player, dpeAmount,
+                lowerTierTeams,
+                activeLoans: this.gameState.activeLoans,
+                allTeams: [...this.gameState.tier1Teams, ...this.gameState.tier2Teams, ...this.gameState.tier3Teams],
+                currentDate: dateStr,
+                generateSalary: this.deps.generateSalary || window.generateSalary,
+                gamesRemaining, totalGames,
+                initializePlayerChemistry: this.deps.initializePlayerChemistry,
+            });
+
+            if (loanResult) {
+                console.log(`[AI Loan] ${team.city} ${team.name} loaned ${loanResult.playerName} from ${loanResult.originalTeamName} (fee: ${loanResult.loanFee})`);
+                return;
+            }
+        }
+
+        // Fallback: sign a free agent via DPE
+        const affordableFAs = LoanEngine.getAffordableFreeAgents(
+            this.gameState.freeAgents, dpeAmount, team.tier
+        );
+        // Pick best FA at the injured player's position, or best overall
+        const posMatch = affordableFAs.find(fa => fa.position === player.position);
+        const bestFA = posMatch || affordableFAs[0];
+        if (bestFA) {
+            LoanEngine.signFreeAgentViaDPE({
+                player: bestFA, team,
+                freeAgents: this.gameState.freeAgents,
+                initializePlayerChemistry: this.deps.initializePlayerChemistry,
+            });
+            console.log(`[AI DPE FA] ${team.city} ${team.name} signed FA ${bestFA.name} (${bestFA.rating} OVR) via DPE`);
+        }
+    }
+
     // ============================================
     // SAVE / LOAD
     // ============================================

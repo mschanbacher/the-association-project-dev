@@ -594,6 +594,9 @@ function PlayerRow({ player, engines, expanded, onToggle, team }) {
       </td>
       <td style={{ padding: '10px 12px', textAlign: 'center' }}>
         <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {player.onLoan && (
+            <Badge variant="info">LOAN</Badge>
+          )}
           {player.injuryStatus === 'out' && (
             <Badge variant="loss">
               OUT {player.injury?.gamesRemaining ? `(${player.injury.gamesRemaining}g)` : ''}
@@ -605,7 +608,7 @@ function PlayerRow({ player, engines, expanded, onToggle, team }) {
           {fatigue >= 60 && !hasInjury && (
             <Badge variant="warning">{Math.round(fatigue)}% fatigue</Badge>
           )}
-          {!hasInjury && fatigue < 60 && (
+          {!hasInjury && fatigue < 60 && !player.onLoan && (
             <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)' }}>
               Healthy
             </span>
